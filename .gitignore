@@ -1,0 +1,6 @@
+sim/build/
+efinity/.lock
+efinity/*.peri.xml
+efinity/work_syn/
+efinity/work_pnr/
+efinity/outflow/
