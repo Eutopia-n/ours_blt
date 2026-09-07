@@ -2,5 +2,6 @@ sim/build/
 efinity/.lock
 efinity/*.peri.xml
 efinity/work_syn/
+efinity/work_syn_block_copy/
 efinity/work_pnr/
 efinity/outflow/

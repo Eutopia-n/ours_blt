@@ -18,3 +18,8 @@
 - `efinity/blt_solid_fill.xml`：Ti60F225/I3 的独立 Efinity 综合工程。
 - `docs/solid_fill.md`：接口约定、验证点和编译步骤。
 - `docs/verification/solid_fill_2026-09-07.md`：仿真与 Efinity 综合证据。
+- `rtl/blt_block_copy.v`：单未完成读请求的 Block Copy 数据通路。
+- `sim/blt_block_copy_tb.v`：Block Copy 正常、边界、空操作和背压测试。
+- `efinity/blt_block_copy.xml`：Block Copy 独立综合工程。
+- `docs/block_copy.md`：Block Copy 接口、限制与验证说明。
+- `docs/verification/block_copy_2026-09-07.md`：Block Copy 仿真与综合证据。
