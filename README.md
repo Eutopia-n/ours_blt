@@ -1,25 +1,17 @@
-# 自研 BitBlt 加速器
+# RTL 实验模块
 
-这里只放本队自己写的 RTL、仿真文件、寄存器定义和软件驱动；不要把官方工程直接覆盖进来。
+本目录用于维护独立 RTL 模块、配套仿真及软件接口代码。
 
-建议后续结构：
+## 目录结构
 
-- `rtl/`：`blt_regs`、`blt_core`、FIFO/AXI 适配模块。
-- `sim/`：Solid Fill、Block Copy 的测试平台。
-- `sw/`：RISC-V C 驱动和演示程序。
-- `docs/`：寄存器表、状态机图、性能数据。
+- `rtl/`：模块源码与接口适配。
+- `sim/`：测试平台与仿真文件。
+- `sw/`：软件接口与使用示例。
+- `docs/`：接口说明与验证记录。
+- `efinity/`：工具工程配置。
 
-开发顺序：Solid Fill → Block Copy → 总线寄存器 → DDR/帧缓存 → 双缓冲。
+## 维护约定
 
-## 当前里程碑
-
-- `rtl/blt_solid_fill.v`：独立 Solid Fill 写请求生成器。
-- `sim/blt_solid_fill_tb.v`：正常、边界、空操作和背压测试。
-- `efinity/blt_solid_fill.xml`：Ti60F225/I3 的独立 Efinity 综合工程。
-- `docs/solid_fill.md`：接口约定、验证点和编译步骤。
-- `docs/verification/solid_fill_2026-09-07.md`：仿真与 Efinity 综合证据。
-- `rtl/blt_block_copy.v`：单未完成读请求的 Block Copy 数据通路。
-- `sim/blt_block_copy_tb.v`：Block Copy 正常、边界、空操作和背压测试。
-- `efinity/blt_block_copy.xml`：Block Copy 独立综合工程。
-- `docs/block_copy.md`：Block Copy 接口、限制与验证说明。
-- `docs/verification/block_copy_2026-09-07.md`：Block Copy 仿真与综合证据。
+- 模块与配套测试保持同步，接口变更时更新相关说明。
+- 外部依赖与本目录源码分开管理，避免直接覆盖已有文件。
+- 具体使用方式、适用范围与验证情况以对应模块文档为准。
