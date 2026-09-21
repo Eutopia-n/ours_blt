@@ -5,3 +5,23 @@ efinity/work_syn/
 efinity/work_syn_block_copy/
 efinity/work_pnr/
 efinity/outflow/
+
+# Generated implementation files for the integrated Ti60 project.
+my/first_light/outflow/
+my/first_light/work_syn/
+my/first_light/work_pnr/
+my/first_light/work_pt/
+my/first_light/work_dbg/
+my/first_light/software/build/
+my/first_light/sim/work/
+my/first_light/sim/soc_modelsim.v
+my/first_light/sim/soc_wiring.vh
+my/first_light/reports/*.ppm
+**/__pycache__/
+*.pyc
+*.wlf
+wlft*
+transcript
+vsim_stacktrace.vstf
+# Retain selected validation logs and releases intentionally.
+# RAM .bin files and vendor IP are build inputs, not disposable outputs.

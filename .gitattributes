@@ -1,0 +1,6 @@
+# Preserve supplied HDL/IP bytes and existing line endings.
+* -text
+*.bit binary
+*.bin binary
+*.elf binary
+*.png binary
