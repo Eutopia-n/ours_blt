@@ -7,7 +7,7 @@ import sys
 
 ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
-parser.add_argument('step',choices=['prepare','firmware','sim','sim-soc','interface','map','compile','inspect'])
+parser.add_argument('step',choices=['prepare','firmware','sim','sim-fifo','sim-mode','sim-soc','interface','map','compile','inspect'])
 parser.add_argument('--efinity',default='S:/Efinity')
 parser.add_argument('--modelsim',default='S:/ModelSim/win64')
 parser.add_argument('--demo',choices=['motion','double-buffer'],default='motion')
@@ -49,6 +49,26 @@ elif args.step=='firmware':
         # Efinity and ModelSim resolve readmemb relative to the build working directory.
         (ROOT/name).write_text(content)
     print('Embedded firmware into 4 KiB on-chip RAM (no SPI flash programming).')
+elif args.step=='sim-fifo':
+    sim=Path(args.modelsim)
+    if not (ROOT/'sim/work').exists():
+        run([sim/'vlib.exe','sim/work'],'vlib.log')
+    run([sim/'vlog.exe','-work','sim/work','-sv','rtl/sync_fifo.v',
+         'sim/tb_sync_fifo.sv'],'vlog_fifo.log')
+    run([sim/'vsim.exe','-batch','-t','1ps','-lib','sim/work','tb_sync_fifo',
+         '-do','onerror {quit -code 1 -force}; run -all; quit -code 0 -force'],'simulation_fifo.log')
+    if 'ALL FIFO TESTS PASSED' not in (ROOT/'reports/simulation_fifo.log').read_text(errors='replace'):
+        raise SystemExit('FIFO simulation did not reach the success marker')
+elif args.step=='sim-mode':
+    sim=Path(args.modelsim)
+    if not (ROOT/'sim/work').exists():
+        run([sim/'vlib.exe','sim/work'],'vlib.log')
+    run([sim/'vlog.exe','-work','sim/work','-sv','rtl/video_mode_measure.v',
+         'sim/tb_video_mode_measure.sv'],'vlog_mode.log')
+    run([sim/'vsim.exe','-batch','-t','1ps','-lib','sim/work','tb_video_mode_measure',
+         '-do','onerror {quit -code 1 -force}; run -all; quit -code 0 -force'],'simulation_mode.log')
+    if 'ALL VIDEO MODE TESTS PASSED' not in (ROOT/'reports/simulation_mode.log').read_text(errors='replace'):
+        raise SystemExit('Video mode simulation did not reach the success marker')
 elif args.step in ['sim','sim-soc']:
     sim=Path(args.modelsim)
     soc_test=args.step=='sim-soc'
@@ -60,8 +80,8 @@ elif args.step in ['sim','sim-soc']:
         extra=['+incdir+sim','sim/soc_modelsim.v']
     if not (ROOT/'sim/work').exists():
         run([sim/'vlib.exe','sim/work'],'vlib.log')
-    run([sim/'vlog.exe','-work','sim/work','-sv','rtl/fill_engine.v','rtl/render_regs.v',
-         'rtl/framebuffer_video.v','rtl/render_subsystem.v',*extra,
+    run([sim/'vlog.exe','-work','sim/work','-sv','rtl/sync_fifo.v','rtl/fill_engine.v','rtl/render_regs.v',
+         'rtl/framebuffer_video.v','rtl/video_mode_measure.v','rtl/render_subsystem.v',*extra,
          'sim/tb_soc_double_buffer.sv' if soc_test and args.demo=='double-buffer' else f'sim/{test}.sv'],'vlog'+suffix+'.log')
     run([sim/'vsim.exe','-batch','-t','1ps','-lib','sim/work',test,
          '-do','onerror {quit -code 1 -force}; run -all; quit -code 0 -force'],'simulation'+suffix+'.log')

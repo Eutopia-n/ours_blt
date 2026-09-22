@@ -1,9 +1,11 @@
-Model Technology ModelSim SE-64 vlog 10.6e Compiler 2018.06 Jun 23 2018
-Start time: 13:32:06 on Sep 21,2026
-vlog -work sim/work -sv rtl/fill_engine.v rtl/render_regs.v rtl/framebuffer_video.v rtl/render_subsystem.v "+incdir+sim" sim/soc_modelsim.v sim/tb_soc.sv 
+Model Technology ModelSim SE-64 vlog 2020.4 Compiler 2020.10 Oct 13 2020
+Start time: 12:39:57 on Sep 22,2026
+vlog -work sim/work -sv rtl/sync_fifo.v rtl/fill_engine.v rtl/render_regs.v rtl/framebuffer_video.v rtl/video_mode_measure.v rtl/render_subsystem.v "+incdir+sim" sim/soc_modelsim.v sim/tb_soc.sv 
+-- Compiling module sync_fifo
 -- Compiling module fill_engine
 -- Compiling module render_regs
 -- Compiling module framebuffer_video
+-- Compiling module video_mode_measure
 -- Compiling module render_subsystem
 -- Compiling module soc
 -- Compiling module EfxSapphireSoc
@@ -88,5 +90,5 @@ vlog -work sim/work -sv rtl/fill_engine.v rtl/render_regs.v rtl/framebuffer_vide
 
 Top level modules:
 	tb_soc
-End time: 13:32:07 on Sep 21,2026, Elapsed time: 0:00:01
+End time: 12:39:57 on Sep 22,2026, Elapsed time: 0:00:00
 Errors: 0, Warnings: 0

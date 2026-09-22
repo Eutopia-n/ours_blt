@@ -27,8 +27,10 @@ module tb_render;
     integer wa,ra,wl,rl,wb,rb;
     integer write_delay=0;
     reg writing=0,reading=0, inject_write_error=0,inject_read_error=0;
+    reg force_bus_ready=0;
     integer bursts=0,read_bursts=0,crossings=0,read_crossings=0;
     integer copy_read_bursts=0,video_read_bursts=0,contentions=0,checked_copies=0;
+    integer copy_16beat_bursts=0,ready_write_cycles=0;
     reg held_aw=0,held_ar=0,held_w=0;
     reg [39:0] last_aw,last_ar;
     reg [36:0] last_w;
@@ -41,14 +43,23 @@ module tb_render;
         held_ar=arvalid&&!arready; last_ar={araddr,arlen};
         held_w=wvalid&&!wready; last_w={wdata,wstrb,wlast};
         if(dut.fill_arvalid&&dut.video_arvalid) contentions=contentions+1;
+        if(dut.fill.fifo_overflow||dut.fill.fifo_underflow)
+            $fatal(1,"Write FIFO overflow/underflow");
+        if(dut.fill.fifo_level>16) $fatal(1,"Write FIFO level exceeded its depth");
+        // Once an AW burst has started, a ready slave must see a W beat every
+        // cycle. This catches the old synchronous-row-RAM C_WLOAD bubbles.
+        if(writing&&wready) begin
+            ready_write_cycles=ready_write_cycles+1;
+            if(!wvalid) $fatal(1,"WVALID bubble while WREADY was asserted");
+        end
     end
     // Deterministic randomized AXI backpressure and independent read/write responses.
     always @(negedge clk) begin
         rng={rng[30:0],rng[31]^rng[21]^rng[1]^rng[0]};
-        awready=!writing && !bvalid && write_delay==0 && rng[0];
-        wready=writing && rng[2];
-        arready=!reading && !rvalid && rng[3];
-        if(reading && !rvalid && rng[4]) begin
+        awready=!writing && !bvalid && write_delay==0 && (force_bus_ready||rng[0]);
+        wready=writing && (force_bus_ready||rng[2]);
+        arready=!reading && !rvalid && (force_bus_ready||rng[3]);
+        if(reading && !rvalid && (force_bus_ready||rng[4])) begin
             rdata={mem[ra+3],mem[ra+2],mem[ra+1],mem[ra]};
             rlast=rb==rl; rresp=inject_read_error ? 2'b10 : 0; rvalid=1;
         end
@@ -59,6 +70,7 @@ module tb_render;
                 $fatal(1,"Illegal AXI AW burst");
             if(awaddr<BASE || awaddr+(awlen+1)*4>BASE+MEM_BYTES) $fatal(1,"AW outside framebuffer");
             if(awaddr[11:0]==0) crossings=crossings+1;
+            if(dut.fill.copy_mode && awlen==15) copy_16beat_bursts=copy_16beat_bursts+1;
             wa=awaddr-BASE; wl=awlen; wb=0; writing=1; bursts=bursts+1;
         end
         if(wvalid && wready) begin
@@ -282,7 +294,14 @@ module tb_render;
                 checked_copy(parity&1,20,(parity>>1)&1,250,test_width,3);
             end
         checked_copy(125,3,127,19,129,7); // reads and writes cross 4K boundaries
+        // With an always-ready memory, two complete rows must be faster than
+        // the previous alternate C_WDATA/C_WLOAD implementation.
+        force_bus_ready=1;
         checked_copy(0,100,0,350,640,2);
+        read_reg(36,status);
+        force_bus_ready=0;
+        if(status>=1900) $fatal(1,"FIFO copy did not remove write bubbles: %0d cycles",status);
+        $display("PASS: FIFO copy uses continuous W beats, 640x2 in %0d core cycles",status);
         checked_copy(51,101,52,101,121,11); // same-row overlap, right
         checked_copy(52,101,51,101,121,11); // same-row overlap, left
         checked_copy(51,101,50,102,121,19); // vertical overlap, bottom-up
@@ -295,7 +314,8 @@ module tb_render;
         checked_copy(31,3,41,19,129,2);
         inject_write_error=1; copy_block(31,3,41,19,129,2,1); inject_write_error=0;
         checked_copy(31,3,41,19,129,2);
-        if(copy_read_bursts==0||read_crossings==0) $fatal(1,"Missing copy read/boundary coverage");
+        if(copy_read_bursts==0||read_crossings==0||copy_16beat_bursts==0||ready_write_cycles==0)
+            $fatal(1,"Missing copy read/boundary/FIFO coverage");
         $display("PASS: %0d patterned copies, all alignments, sizes, overlap, read/write error recovery",checked_copies);
         fill(0,0,640,480,16'h1082);
         fill(64,60,192,120,16'hf800);
@@ -315,6 +335,12 @@ module tb_render;
         // The comparison stays active throughout concurrent scanout and copy.
         checked_copy(0,0,0,0,640,480);
         wait(frames==2);
+        read_reg(68,status);
+        if(status!=={16'd480,16'd640}) $fatal(1,"Measured video size %h",status);
+        read_reg(72,status);
+        if(status!==1) $fatal(1,"Measured video mode not valid: %h",status);
+        write_reg(68,0,1); write_reg(72,0,1);
+        $display("PASS: measured HDMI active raster is 640x480; registers are read-only");
         read_reg(4,status);
         if(status&48) $fatal(1,"Video error status %h",status);
         if(crossings==0||contentions==0||video_read_bursts==0) $fatal(1,"Missing boundary/arbitration coverage");

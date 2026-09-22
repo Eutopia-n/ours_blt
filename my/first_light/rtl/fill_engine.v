@@ -24,9 +24,10 @@ module fill_engine #(
     input wire [31:0] rdata, input wire [1:0] rresp,
     input wire rlast, input wire rvalid, output wire rready
 );
-    localparam IDLE=0, F_PREP=1, F_ADDR=2, F_DATA=3, F_RESP=4,
-               C_RPREP=5, C_RADDR=6, C_RDATA=7,
-               C_WPREP=8, C_WADDR=9, C_WDATA=10, C_WRESP=11, C_WLOAD=12;
+    localparam IDLE=0, F_PREP=1, F_FIFO=2, F_ADDR=3, F_DATA=4, F_RESP=5,
+               C_RPREP=6, C_RADDR=7, C_RDATA=8,
+               C_WPREP=9, C_WPRIME=10, C_WFIFO=11,
+               C_WADDR=12, C_WDATA=13, C_WRESP=14;
     reg [3:0] state;
     reg copy_mode;
     reg [31:0] source_row_addr;
@@ -41,23 +42,21 @@ module fill_engine #(
     reg [4:0] copy_read_burst_words, copy_read_beat;
     reg [9:0] copy_write_words_left, copy_write_row_words, copy_write_word_index;
     reg [4:0] copy_write_burst_words, copy_write_beat;
+    reg [4:0] fifo_load_count;
+    reg [9:0] fifo_base_word_index;
+    reg [9:0] copy_prefetch_index;
     reg copy_src_half, copy_dst_half;
     // Raw source words are stored before any destination writes. Two banks
     // allow synchronous block RAM inference and halfword realignment.
     reg [15:0] copy_buf_lo [0:511];
     reg [15:0] copy_buf_hi [0:511];
     reg [15:0] copy_qlo, copy_qhi;
-    wire [8:0] copy_lo_index = copy_write_word_index[8:0] +
+    wire [8:0] copy_lo_index = copy_prefetch_index[8:0] +
         ((copy_src_half && !copy_dst_half) ? 9'd1 : 9'd0);
-    wire [8:0] copy_hi_index = copy_write_word_index[8:0] -
+    wire [8:0] copy_hi_index = copy_prefetch_index[8:0] -
         ((!copy_src_half && copy_dst_half) ? 9'd1 : 9'd0);
     wire [31:0] copy_data = copy_src_half == copy_dst_half ?
         {copy_qhi,copy_qlo} : {copy_qlo,copy_qhi};
-    // A masked neighbour may be outside the loaded row; do not expose X data
-    // on inactive byte lanes in simulation or sample uninitialised pixels.
-    wire [31:0] copy_mask = {{16{wstrb[2]}},{16{wstrb[0]}}};
-    wire [9:0] active_word_index = copy_mode ? copy_write_word_index : word_index;
-    wire [9:0] active_row_words = copy_mode ? copy_write_row_words : row_words;
     wire read_beat_error = rresp != 0 || rlast != (copy_read_beat == copy_read_burst_words-1);
     wire [32:0] row_offset = (({17'd0,height}-33'd1) << 10) +
                             (({17'd0,height}-33'd1) << 8);
@@ -71,17 +70,54 @@ module fill_engine #(
     wire [9:0] copy_read_proposed = copy_read_words_left > 16 ? 10'd16 : copy_read_words_left;
     wire [10:0] write_words_to_4k = 11'd1024 - {1'b0,awaddr[11:2]};
     wire [9:0] copy_write_proposed = copy_write_words_left > 16 ? 10'd16 : copy_write_words_left;
+    // The FIFO can hold one complete AXI write burst. Its first entries are
+    // cached before AWVALID and the rest are prefetched while W data drains,
+    // keeping WVALID continuous when WREADY is asserted.
+    wire [36:0] fifo_input;
+    wire [36:0] fifo_output;
+    wire [4:0] fifo_level;
+    wire fifo_full, fifo_empty, fifo_overflow, fifo_underflow;
+    wire fifo_clear = state == IDLE;
+    wire fifo_loading =
+        (!copy_mode && (state == F_FIFO || state == F_ADDR || state == F_DATA) &&
+         fifo_load_count < burst_words) ||
+        (copy_mode && (state == C_WFIFO || state == C_WADDR || state == C_WDATA) &&
+         fifo_load_count < copy_write_burst_words);
+    wire fifo_push = fifo_loading && !fifo_full;
+    wire fifo_pop = (state == F_DATA || state == C_WDATA) && !fifo_empty && wready;
+    wire [9:0] fifo_word_index = fifo_base_word_index + {5'd0,fifo_load_count};
+    wire [9:0] fifo_row_words = copy_mode ? copy_write_row_words : row_words;
+    wire [4:0] fifo_burst_words = copy_mode ? copy_write_burst_words : burst_words;
+    wire [3:0] fifo_entry_strb =
+        ((fifo_word_index == 0 && first_high) ? 4'b1100 : 4'b1111) &
+        ((fifo_word_index == fifo_row_words-10'd1 && last_low) ? 4'b0011 : 4'b1111);
+    // A masked neighbour may be outside the loaded row. Zero inactive lanes
+    // before caching the word so simulation never exposes uninitialised data.
+    wire [31:0] fifo_entry_mask =
+        {{16{fifo_entry_strb[2]}},{16{fifo_entry_strb[0]}}};
+    wire [31:0] fifo_entry_data = copy_mode ?
+        (copy_data & fifo_entry_mask) : {fill_color,fill_color};
+    wire fifo_entry_last = fifo_load_count == fifo_burst_words-1'b1;
+    assign fifo_input = {fifo_entry_last,fifo_entry_strb,fifo_entry_data};
+
+    sync_fifo write_fifo (
+        .clk(clk),.reset(reset),.clear(fifo_clear),
+        .push(fifo_push),.push_data(fifo_input),
+        .pop(fifo_pop),.pop_data(fifo_output),
+        .full(fifo_full),.empty(fifo_empty),.level(fifo_level),
+        .overflow(fifo_overflow),.underflow(fifo_underflow)
+    );
+
     assign busy = state != IDLE;
     assign awlen = {3'd0,(copy_mode ? copy_write_burst_words : burst_words)} - 8'd1;
     assign awvalid = state == F_ADDR || state == C_WADDR;
-    assign wvalid = state == F_DATA || state == C_WDATA;
+    assign wvalid = (state == F_DATA || state == C_WDATA) && !fifo_empty;
     assign arlen = {3'd0,copy_read_burst_words} - 8'd1;
     assign arvalid = state == C_RADDR;
     assign rready = state == C_RDATA;
-    assign wdata = copy_mode ? (copy_data & copy_mask) : {fill_color,fill_color};
-    assign wstrb = ((active_word_index == 0 && first_high) ? 4'b1100 : 4'b1111) &
-                   ((active_word_index == active_row_words-10'd1 && last_low) ? 4'b0011 : 4'b1111);
-    assign wlast = copy_mode ? copy_write_beat == copy_write_burst_words-1 : beat == burst_words-1;
+    assign wdata = fifo_output[31:0];
+    assign wstrb = fifo_output[35:32];
+    assign wlast = fifo_output[36];
     assign bready = state == F_RESP || state == C_WRESP;
 
     always @(posedge clk) begin
@@ -104,6 +140,7 @@ module fill_engine #(
             copy_read_word_index <= 0; copy_read_burst_words <= 0; copy_read_beat <= 0;
             copy_write_words_left <= 0; copy_write_row_words <= 0; copy_write_word_index <= 0;
             copy_write_burst_words <= 0; copy_write_beat <= 0;
+            fifo_load_count <= 0; fifo_base_word_index <= 0; copy_prefetch_index <= 0;
             copy_src_half <= 0; copy_dst_half <= 0;
         end else begin
             if (busy) cycles <= cycles + 1'b1;
@@ -145,13 +182,25 @@ module fill_engine #(
             end
             F_PREP: begin
                 burst_words <= words_to_4k < proposed_words ? words_to_4k[4:0] : proposed_words[4:0];
-                beat <= 0; state <= F_ADDR;
+                beat <= 0; fifo_load_count <= 0;
+                fifo_base_word_index <= word_index;
+                state <= F_FIFO;
             end
-            F_ADDR: if (awready) state <= F_DATA;
-            F_DATA: if (wready) begin
-                beat <= beat + 1'b1;
-                word_index <= word_index + 1'b1;
-                if (wlast) state <= F_RESP;
+            F_FIFO: if (fifo_push) begin
+                fifo_load_count <= fifo_load_count + 1'b1;
+                state <= F_ADDR;
+            end
+            F_ADDR: begin
+                if (fifo_push) fifo_load_count <= fifo_load_count + 1'b1;
+                if (awready) state <= F_DATA;
+            end
+            F_DATA: begin
+                if (fifo_push) fifo_load_count <= fifo_load_count + 1'b1;
+                if (fifo_pop) begin
+                    beat <= beat + 1'b1;
+                    word_index <= word_index + 1'b1;
+                    if (wlast) state <= F_RESP;
+                end
             end
             F_RESP: if (bvalid) begin
                 if (bresp != 0) begin error <= 1; done <= 1; state <= IDLE; end
@@ -192,15 +241,42 @@ module fill_engine #(
             end
             C_WPREP: begin
                 copy_write_burst_words <= write_words_to_4k < copy_write_proposed ? write_words_to_4k[4:0] : copy_write_proposed[4:0];
-                copy_write_beat <= 0; state <= C_WADDR;
+                copy_write_beat <= 0; fifo_load_count <= 0;
+                fifo_base_word_index <= copy_write_word_index;
+                copy_prefetch_index <= copy_write_word_index;
+                state <= C_WPRIME;
             end
-            C_WADDR: if (awready) state <= C_WDATA;
-            C_WLOAD: state <= C_WDATA; // one cycle for synchronous row RAM read
-            C_WDATA: if (wready) begin
-                copy_write_beat <= copy_write_beat + 1'b1;
-                copy_write_word_index <= copy_write_word_index + 1'b1;
-                if (wlast) state <= C_WRESP;
-                else state <= C_WLOAD;
+            // Prime the synchronous row RAM, then issue one read per cycle
+            // while the corresponding previous result enters the FIFO.
+            C_WPRIME: begin
+                copy_prefetch_index <= copy_prefetch_index + 1'b1;
+                state <= C_WFIFO;
+            end
+            C_WFIFO: if (fifo_push) begin
+                fifo_load_count <= fifo_load_count + 1'b1;
+                if (fifo_load_count != copy_write_burst_words-1'b1)
+                    copy_prefetch_index <= copy_prefetch_index + 1'b1;
+                state <= C_WADDR;
+            end
+            C_WADDR: begin
+                if (fifo_push) begin
+                    fifo_load_count <= fifo_load_count + 1'b1;
+                    if (fifo_load_count != copy_write_burst_words-1'b1)
+                        copy_prefetch_index <= copy_prefetch_index + 1'b1;
+                end
+                if (awready) state <= C_WDATA;
+            end
+            C_WDATA: begin
+                if (fifo_push) begin
+                    fifo_load_count <= fifo_load_count + 1'b1;
+                    if (fifo_load_count != copy_write_burst_words-1'b1)
+                        copy_prefetch_index <= copy_prefetch_index + 1'b1;
+                end
+                if (fifo_pop) begin
+                    copy_write_beat <= copy_write_beat + 1'b1;
+                    copy_write_word_index <= copy_write_word_index + 1'b1;
+                    if (wlast) state <= C_WRESP;
+                end
             end
             C_WRESP: if (bvalid) begin
                 if (bresp != 0) begin error <= 1; done <= 1; state <= IDLE; end

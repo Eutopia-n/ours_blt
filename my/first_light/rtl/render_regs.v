@@ -8,6 +8,8 @@ module render_regs (
     input wire memory_ready, busy, done, error,
     input wire [31:0] cycles,
     input wire video_underflow, video_error, display_page_active, swap_ack,
+    input wire [15:0] video_width, video_height,
+    input wire video_mode_valid,
     output reg start, output reg display_enable,
     output reg [1:0] operation, output reg [31:0] src, dst, stride,
     output reg draw_page, output reg swap_page, output reg swap_toggle,
@@ -20,7 +22,7 @@ module render_regs (
         paddr == 16 || paddr == 20 || paddr == 24 || paddr == 28 ||
         paddr == 32 || paddr == 36 || paddr == 40 || paddr == 44 ||
         paddr == 48 || paddr == 52 || paddr == 56 || paddr == 60 ||
-        paddr == 64;
+        paddr == 64 || paddr == 68 || paddr == 72;
     wire writable = paddr == 8 || paddr == 12 || paddr == 16 || paddr == 20 ||
         paddr == 24 || paddr == 28 || paddr == 32 || paddr == 48 || paddr == 52 ||
         paddr == 56 || paddr == 60 || paddr == 64;
@@ -51,6 +53,8 @@ module render_regs (
         56: prdata = {31'd0,draw_page};
         60: prdata = {31'd0,swap_page};
         64: prdata = {31'd0,swap_toggle};
+        68: prdata = {video_height,video_width};
+        72: prdata = {31'd0,video_mode_valid};
         default: prdata = 0;
         endcase
     end

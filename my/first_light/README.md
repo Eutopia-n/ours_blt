@@ -14,10 +14,12 @@
 - 双缓冲换页：RISC-V 在后台页完成渲染后写入换页请求，视频端只在垂直消隐的帧边界采纳请求，避免一帧中途改变显示基址。
 - 两个交替使用的片内行缓存，AXI 时钟域向像素时钟域提供像素。
 - 拷贝引擎另有一个片内行缓存，先读完一行再写目标；显示与拷贝按完整 AXI 读 burst 仲裁。
+- 加速器写通道包含 16×37 位同步 FIFO，缓存 `{WLAST,WSTRB,WDATA}`；拷贝时连续预取行 RAM，在 `WREADY` 连续有效时每周期发送一个 beat。
 - 640×480 HDMI 视频输出；实际像素时钟约 25.208333 MHz，800×525 总时序，对应约 60.01984 Hz。此数值是设计刷新率，不是实测渲染性能。
 - C 固件及驱动、渲染模块仿真、实际 Sapphire 核执行固件的联合仿真入口。
 - 同一场景的 CPU 逐像素基线与硬件 Fill/Copy 两条路径，默认每 4 秒切换，UART 小写 c/h 可提前切换。
 - 两列显示最近测得的 CPU/HW FPS 与每帧渲染微秒数，当前模式为白字，另一列为灰字；每 4 帧更新一次。
+- 根据送入 HDMI 编码器的实际 DE/HS/VS，每帧测量有效宽高；RISC-V 经只读 APB 寄存器读取并显示 `RES 宽X高`，检测完成前显示 `RES WAIT`。
 
 本阶段采用两个固定 framebuffer 连续换页。独立图像资源区、跨页资源拷贝、可变源行距、Alpha、Color Key 和互动游戏尚未实现；32 个方块也不是已测出的性能极限。已有基础演示闭环不等于整道赛题验收完成。
 
@@ -26,6 +28,8 @@
 CPU 通过现有的 APB 外设窗口发送少量配置；像素数据走独立的 AXI 主接口。这样 CPU 不需要逐像素写 DDR。
 
 渲染器和扫描接口一起接入 Sapphire 的 `io_ddrMasters_0_*`。纯色填充只写 DDR，拷贝先读后写，显示扫描只读；新增仲裁器锁定当前读请求直到其全部数据返回，再选择下一笔事务，显示优先。Sapphire 内部继续负责与 CPU 的访存仲裁，并将 32 位数据转换成 DDR 控制器使用的 128 位数据。
+
+拷贝行缓存和写 FIFO 解决的是两个不同问题：行缓存允许按索引重新组合奇偶半字，并在源、目标重叠时保护尚未写出的源像素；FIFO 则把行 RAM 的同步读取与 AXI `WREADY` 反压解耦。每个 FIFO 项同时保存数据、字节选通和 burst 末尾标志，地址握手后可边预取边发送，避免旧实现逐 beat 插入 `C_WLOAD` 空周期。
 
 DDR 与像素时钟不同，所以显示端不能直接跨时钟读取一组普通寄存器。本工程使用双时钟 RAM 作为行缓存，请求与完成信号采用翻转位及两级同步。每条有效显示行开始前检查缓存行号；取数失败时输出黑色并记录错误，避免把错误行当作正常画面。
 
@@ -40,13 +44,17 @@ DDR 与像素时钟不同，所以显示端不能直接跨时钟读取一组普�
 | `first_light.sdc` | 时钟与跨时钟约束 |
 | `rtl/competition_top.v` | CPU、DDR、渲染器与 HDMI 编码器连接；由准备脚本生成 |
 | `rtl/fill_engine.v` | 保留模块名，新增 Block Copy 读写状态机及同步行 RAM |
+| `rtl/sync_fifo.v` | 16 项单时钟写数据 FIFO，缓存一个最大 AXI burst |
 | `rtl/render_regs.v` | APB 寄存器与状态接口 |
 | `rtl/framebuffer_video.v` | DDR 扫描读取、行缓存、行场同步 |
+| `rtl/video_mode_measure.v` | 从实际 DE/HS/VS 测量每帧有效宽高 |
 | `rtl/render_subsystem.v` | 模块连接、显示/拷贝读通道仲裁 |
 | `software/main.c` | C 驱动、连续动画、CPU/HW 基线与计时、像素字体 |
 | `software/double_buffer_demo.c` | 保留上一阶段的静态两页校验程序 |
 | `software/start.S`、`software/link.ld` | 片内 RAM 启动、异常处理入口与内存布局 |
 | `sim/tb_render.sv` | 像素、总线反压、错误处理、行场时序检查 |
+| `sim/tb_sync_fifo.sv` | FIFO 顺序、满空边界、同时读写及清空测试 |
+| `sim/tb_video_mode_measure.sv` | 分辨率测量的正常、边界和空帧独立测试 |
 | `sim/tb_soc.sv` | 官方 Sapphire 仿真模型运行真实固件 |
 | `tools/build.py` | 编译与仿真入口，不执行硬件下载 |
 | `reports/sim_frame.png` | 从仿真实际像素输出保存的画面，不是显示器照片 |
@@ -61,6 +69,8 @@ DDR 与像素时钟不同，所以显示端不能直接跨时钟读取一组普�
 
 ```powershell
 python my\first_light\tools\build.py firmware
+python my\first_light\tools\build.py sim-fifo
+python my\first_light\tools\build.py sim-mode
 python my\first_light\tools\build.py sim
 python my\first_light\tools\build.py sim-soc
 python my\first_light\tools\build.py compile
@@ -99,6 +109,8 @@ python my\first_light\tools\build.py compile
 | 0x38 | DRAW_PAGE | 读写 | 填充/拷贝页：0=A，1=B；忙碌时不可修改 |
 | 0x3C | SWAP_PAGE | 读写 | 请求视频显示页：0=A，1=B |
 | 0x40 | SWAP | 写 | 写 1 产生换页请求，在下一帧边界生效 |
+| 0x44 | VIDEO_SIZE | 只读 | 高 16 位为实测有效高度，低 16 位为实测有效宽度 |
+| 0x48 | VIDEO_STATUS | 只读 | bit0=1 表示至少完成一次非空有效画面测量 |
 
 STATUS：bit0 BUSY，bit1 DONE，bit2 渲染命令错误（填充或拷贝），bit3 DDR_READY，bit4 显示欠载，bit5 显示读响应/长度错误，bit6 当前显示页（0=A，1=B），bit7 SWAP_PENDING（换页等待确认）。DONE 和命令错误在下一条命令启动时清除；显示错误保持到复位。拷贝读错误报告在 bit2，不混入显示错误。
 

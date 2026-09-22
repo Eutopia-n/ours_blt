@@ -20,6 +20,9 @@
 #define GFX_DRAW_PAGE 0x38u
 #define GFX_SWAP_PAGE 0x3cu
 #define GFX_SWAP      0x40u
+#define GFX_VIDEO_SIZE   0x44u
+#define GFX_VIDEO_STATUS 0x48u
+#define GFX_VIDEO_VALID  1u
 #define GFX_BUSY       1u
 #define GFX_DONE       2u
 #define GFX_ERROR      4u
