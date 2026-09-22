@@ -7,9 +7,9 @@
 ## 当前可运行工程：Ti60F225 2D 渲染
 
 - 开发板：基于 Ti60F225I3 的 Ti60F225 开发板。
-- 功能：RISC-V C 驱动、AXI DDR 纯色填充/图像拷贝、双缓冲、640×480 HDMI、32 个运动方块与 CPU/HW 性能对比。
+- 功能：RISC-V C 驱动、带内部写数据 FIFO 的 AXI DDR 纯色填充/图像拷贝、双缓冲、640×480 HDMI、32 个运动方块与 CPU/HW 性能对比。
 - 用户反馈的一组实板读数：CPU 20 FPS / 36202 μs，HW 60 FPS / 4778 μs；场景渲染加速比约 7.58 倍。该组读数不代表长期稳定性或最大负载。
-- 当前限制：同一绘制页内拷贝、固定 1280 字节行距；独立图片资源区、显式渲染 FIFO、Alpha、Color Key 与互动游戏尚未完成。
+- 当前限制：同一绘制页内拷贝、固定 1280 字节行距；独立图片资源区、Alpha、Color Key 与互动游戏尚未完成。
 
 入口：[工程说明](my/first_light/README.md)、[动画与验收记录](my/first_light/MOTION_DEMO.md)、[归档下载文件](my/first_light/releases/motion_20260921/first_light.bit)、[实板观测记录](my/first_light/releases/motion_20260921/BOARD_OBSERVATION.md)。
 

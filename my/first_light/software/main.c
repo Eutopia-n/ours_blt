@@ -156,6 +156,21 @@ static char *decimal(char *out,uint32_t value) {
     while(n) *out++=digits[--n];
     *out=0; return out;
 }
+static void resolution_hud(void) {
+    uint32_t status=mmio_read(GFX_BASE+GFX_VIDEO_STATUS);
+    if (!(status&GFX_VIDEO_VALID)) {
+        text_at(532,56,"RES WAIT",0xffff);
+        return;
+    }
+    uint32_t size=mmio_read(GFX_BASE+GFX_VIDEO_SIZE);
+    uint32_t width=size&0xffffu, height=size>>16;
+    char label[16]="RES ";
+    char *end=decimal(label+4,width);
+    *end++='X';
+    end=decimal(end,height);
+    uint32_t glyphs=(uint32_t)(end-label);
+    text_at(640-12-glyphs*12,56,label,0xffff);
+}
 static uint32_t fps[2],render_us[2],samples[2];
 static void hud(uint32_t hw) {
     for (uint32_t n=0;n<2;++n) {
@@ -167,6 +182,7 @@ static void hud(uint32_t hw) {
         text_at(x,32,"US",color);
         decimal(number,render_us[n]); text_at(x+36,32,samples[n] ? number : "-",color);
     }
+    resolution_hud();
     publish_pixels();
 }
 int main(void) {

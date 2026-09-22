@@ -1,1 +1,1 @@
-S:/Efinity/toolchain/bin/../lib/gcc/riscv-none-elf/13.4.0/../../../../riscv-none-elf/bin/ld.exe: warning: C:\Users\EEDE1\.codex\worktrees\ours-blt-upload\Ti60F225_DemoBoard_v4\my\first_light\software\build\first_light.elf has a LOAD segment with RWX permissions
+C:/Efinity/efinity-riscv-ide-2026.1/toolchain/bin/../lib/gcc/riscv-none-elf/13.4.0/../../../../riscv-none-elf/bin/ld.exe: warning: C:\Users\18123\Desktop\qiansai\try\my\first_light\software\build\first_light.elf has a LOAD segment with RWX permissions

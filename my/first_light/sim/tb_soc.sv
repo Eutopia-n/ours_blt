@@ -36,6 +36,9 @@ module tb_soc;
     integer reports_cpu=0,reports_hw=0,mode_frames[0:1];
     integer last_commands=0,last_fills=0,last_copies=0,last_mode=-1,scene_frame=-1;
     integer page_present[0:1],bus_cycle=0,cpu_writes=0;
+    integer video_status_reads=0,video_size_reads=0;
+    reg last_video_valid=0;
+    reg [31:0] last_video_size=0;
     reg [15:0] golden[0:307199],snapshot[0:614399];
     reg returned_to_cpu=0;
     // DDR is modeled at the controller's 128-bit AXI port. Real Sapphire
@@ -88,6 +91,14 @@ module tb_soc;
         end
         if(psel&&penable&&pready) begin
             if(pslverror) $fatal(1,"Firmware APB error at %h",paddr);
+            if(!pwrite&&paddr==16'h48) begin
+                last_video_valid=prdata[0];
+                video_status_reads=video_status_reads+1;
+            end
+            if(!pwrite&&paddr==16'h44) begin
+                last_video_size=prdata;
+                video_size_reads=video_size_reads+1;
+            end
             if(pwrite&&paddr==16'h8) begin
                 commands=commands+1;
                 if(graphics.operation==0) fill_commands=fill_commands+1;
@@ -138,11 +149,39 @@ module tb_soc;
     function automatic [15:0] stripe(input integer y);
         stripe=y<10 ? 16'h07ff : y<20 ? 16'hf81f : 16'hffe0;
     endfunction
+    function automatic [7:0] resolution_char(input integer index,input bit measured);
+        begin
+            if(measured) case(index)
+                0:resolution_char="R"; 1:resolution_char="E"; 2:resolution_char="S";
+                3:resolution_char=" "; 4:resolution_char="6"; 5:resolution_char="4";
+                6:resolution_char="0"; 7:resolution_char="X"; 8:resolution_char="4";
+                9:resolution_char="8"; default:resolution_char="0";
+            endcase else case(index)
+                0:resolution_char="R"; 1:resolution_char="E"; 2:resolution_char="S";
+                3:resolution_char=" "; 4:resolution_char="W"; 5:resolution_char="A";
+                6:resolution_char="I"; default:resolution_char="T";
+            endcase
+        end
+    endfunction
+    function automatic [15:0] glyph_bits(input [7:0] character);
+        begin
+            case(character)
+                "0":glyph_bits=16'h7b6f; "4":glyph_bits=16'h5bc9;
+                "6":glyph_bits=16'h79ef; "8":glyph_bits=16'h7bef;
+                "A":glyph_bits=16'h2bed; "E":glyph_bits=16'h79a7;
+                "I":glyph_bits=16'h7497; "R":glyph_bits=16'h7bac;
+                "S":glyph_bits=16'h79cf; "T":glyph_bits=16'h7492;
+                "W":glyph_bits=16'h5bfd; "X":glyph_bits=16'h5aad;
+                default:glyph_bits=0;
+            endcase
+        end
+    endfunction
     // Independently rasterize the scene, then compare every non-HUD pixel
     // at submission. Save the entire page for subsequent scanout checks.
     task check_scene;
-        integer mode,page,x,y,base,offset;
-        reg [15:0] actual;
+        integer mode,page,x,y,base,offset,res_x,res_len,char_index,row,col,dx,dy;
+        reg [15:0] actual,bits;
+        reg [7:0] character;
         begin
             mode=commands!=last_commands; page=graphics.swap_page;
             if(mode!=(swap_commands>=5 && swap_commands<=8))
@@ -166,12 +205,31 @@ module tb_soc;
                 for(integer row=0;row<32;row=row+1)
                     for(integer col=0;col<32;col=col+1) golden[(y+row)*640+x+col]=stripe(row);
             end
+            if(last_video_valid && last_video_size!=={16'd480,16'd640})
+                $fatal(1,"Firmware read invalid measured size %h",last_video_size);
+            res_x=last_video_valid ? 496 : 532;
+            res_len=last_video_valid ? 11 : 8;
+            for(char_index=0;char_index<res_len;char_index=char_index+1) begin
+                character=resolution_char(char_index,last_video_valid);
+                bits=glyph_bits(character);
+                for(row=0;row<5;row=row+1) for(col=0;col<3;col=col+1)
+                    if(bits&(1<<(14-row*3-col)))
+                        for(dy=0;dy<3;dy=dy+1) for(dx=0;dx<3;dx=dx+1)
+                            golden[(56+row*3+dy)*640+res_x+char_index*12+col*3+dx]=16'hffff;
+            end
             base=page*PAGE_BYTES;
             for(integer n=0;n<307200;n=n+1) begin
                 actual={mem[base+n*2+1],mem[base+n*2]};
                 if(n>=640*64 && actual!==golden[n])
                     $fatal(1,"Mode %0d frame %0d pixel (%0d,%0d): %h != %h",mode,scene_frame,n%640,n/640,actual,golden[n]);
                 snapshot[page*307200+n]=actual;
+            end
+            // Rows 56..63 are above the old comparison boundary: verify the
+            // complete RES WAIT / measured RES 640X480 label explicitly.
+            for(y=56;y<64;y=y+1) for(x=res_x;x<628;x=x+1) begin
+                actual={mem[base+(y*640+x)*2+1],mem[base+(y*640+x)*2]};
+                if(actual!==golden[y*640+x])
+                    $fatal(1,"Resolution HUD pixel (%0d,%0d): %h != %h",x,y,actual,golden[y*640+x]);
             end
             // The top-left pixel of C/H must identify the active column.
             offset=base+8*1280+12*2;
@@ -249,7 +307,8 @@ module tb_soc;
         for(integer n=0;n<MEM_BYTES;n=n+1) mem[n]=8'ha5;
         repeat(50) @(negedge clk); reset=0;
         wait(return_frames>=1 && reports_cpu>=1 && reports_hw>=1);
-        if(mode_frames[0]<5 || mode_frames[1]!=4 || swap_acks<9 || cpu_reads==0 || cpu_writes==0)
+        if(mode_frames[0]<5 || mode_frames[1]!=4 || swap_acks<9 || cpu_reads==0 || cpu_writes==0 ||
+           video_status_reads==0 || video_size_reads==0 || !last_video_valid)
             $fatal(1,"Missing CPU/HW mode, UART or double-buffer coverage");
         if(graphics.underflow||graphics.read_error) $fatal(1,"SoC scanout error");
         $display("PASS: real CPU/HW/CPU, %0d CPU frames, %0d HW frames, %0d swaps; same scene pixels; UART metrics; no front writes",

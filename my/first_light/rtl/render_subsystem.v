@@ -17,6 +17,8 @@ module render_subsystem (
 );
     wire start, display_enable, busy, done, error, underflow, read_error;
     wire display_page_active, draw_page, swap_page, swap_toggle, swap_ack_pixel;
+    wire [15:0] video_width_pixel, video_height_pixel;
+    wire video_mode_valid_pixel, video_mode_toggle_pixel;
     wire [1:0] operation;
     wire [31:0] src, dst, stride, cycles;
     wire [15:0] width, height, color;
@@ -29,11 +31,39 @@ module render_subsystem (
     wire [31:0] draw_frame_base = draw_page ? 32'h01096000 : 32'h01000000;
     (* async_reg = "true" *) reg [1:0] display_page_sync;
     (* async_reg = "true" *) reg [2:0] swap_ack_sync;
+    (* async_reg = "true" *) reg [2:0] video_mode_toggle_sync;
+    (* async_reg = "true" *) reg [15:0] video_width_meta, video_width_sync;
+    (* async_reg = "true" *) reg [15:0] video_height_meta, video_height_sync;
+    (* async_reg = "true" *) reg [1:0] video_valid_sync;
+    reg [15:0] video_width, video_height;
+    reg video_mode_valid, video_mode_seen;
     always @(posedge clk) begin
-        if (reset) begin display_page_sync <= 0; swap_ack_sync <= 0; end
+        if (reset) begin
+            display_page_sync <= 0; swap_ack_sync <= 0;
+            video_mode_toggle_sync <= 0;
+            video_width_meta <= 0; video_width_sync <= 0;
+            video_height_meta <= 0; video_height_sync <= 0;
+            video_valid_sync <= 0;
+            video_width <= 0; video_height <= 0;
+            video_mode_valid <= 0; video_mode_seen <= 0;
+        end
         else begin
             display_page_sync <= {display_page_sync[0],display_page_active};
             swap_ack_sync <= {swap_ack_sync[1:0],swap_ack_pixel};
+            // The data bus is stable for a complete video frame. Give it two
+            // destination clocks to settle before the third-stage toggle is seen.
+            video_width_meta <= video_width_pixel;
+            video_width_sync <= video_width_meta;
+            video_height_meta <= video_height_pixel;
+            video_height_sync <= video_height_meta;
+            video_valid_sync <= {video_valid_sync[0],video_mode_valid_pixel};
+            video_mode_toggle_sync <= {video_mode_toggle_sync[1:0],video_mode_toggle_pixel};
+            if (video_mode_toggle_sync[2] != video_mode_seen) begin
+                video_mode_seen <= video_mode_toggle_sync[2];
+                video_width <= video_width_sync;
+                video_height <= video_height_sync;
+                video_mode_valid <= video_valid_sync[1];
+            end
         end
     end
     // Lock the selected master BEFORE asserting ARVALID; keep its ownership
@@ -81,6 +111,7 @@ module render_subsystem (
         .memory_ready(memory_ready),.busy(busy),.done(done),.error(error),.cycles(cycles),
         .video_underflow(underflow),.video_error(read_error),.display_page_active(display_page_sync[1]),
         .swap_ack(swap_ack_sync[2]),
+        .video_width(video_width),.video_height(video_height),.video_mode_valid(video_mode_valid),
         .start(start),.display_enable(display_enable),
         .dst(dst),.stride(stride),.width(width),.height(height),.color(color),
         .operation(operation),.src(src),.draw_page(draw_page),.swap_page(swap_page),.swap_toggle(swap_toggle)
@@ -104,6 +135,11 @@ module render_subsystem (
         .pixel(pixel),.hs(hs),.vs(vs),.de(de),.active_page(display_page_active),
         .swap_ack(swap_ack_pixel),
         .underflow(underflow),.read_error(read_error)
+    );
+    video_mode_measure mode_measure (
+        .pixel_clk(pixel_clk),.reset(reset),.hs(hs),.vs(vs),.de(de),
+        .width(video_width_pixel),.height(video_height_pixel),
+        .valid(video_mode_valid_pixel),.update_toggle(video_mode_toggle_pixel)
     );
 endmodule
 `default_nettype wire

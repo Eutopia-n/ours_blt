@@ -1,9 +1,9 @@
 # vsim -batch -t 1ps -lib sim/work tb_soc -do "onerror {quit -code 1 -force}; run -all; quit -code 0 -force" 
-# Start time: 13:32:07 on Sep 21,2026
-# ** Note: (vsim-3813) Design is being optimized due to module recompilation...
-# //  ModelSim SE-64 10.6e Jun 23 2018
+# Start time: 12:39:57 on Sep 22,2026
+# ** Note: (vsim-8009) Loading existing optimized design _opt
+# //  ModelSim SE-64 2020.4 Oct 13 2020
 # //
-# //  Copyright 1991-2018 Mentor Graphics Corporation
+# //  Copyright 1991-2020 Mentor Graphics Corporation
 # //  All Rights Reserved.
 # //
 # //  ModelSim SE-64 and its associated documentation contain trade
@@ -23,12 +23,12 @@
 # 
 # CPU FPS 19 US 35948
 # 
-# HW FPS 60 US 4370
+# HW FPS 60 US 4383
 # 
 # PASS: real CPU/HW/CPU, 5 CPU frames, 4 HW frames, 9 swaps; same scene pixels; UART metrics; no front writes
 # PASS: 8 complete A frames, 8 complete B frames, no scanout mismatch
 # SOC TEST PASSED
-# ** Note: $finish    : sim/tb_soc.sv(258)
+# ** Note: $finish    : sim/tb_soc.sv(317)
 #    Time: 333264596575 ps  Iteration: 1  Instance: /tb_soc
-# End time: 13:56:08 on Sep 21,2026, Elapsed time: 0:24:01
+# End time: 12:49:04 on Sep 22,2026, Elapsed time: 0:09:07
 # Errors: 0, Warnings: 0

@@ -1,0 +1,10 @@
+Model Technology ModelSim SE-64 vlog 2020.4 Compiler 2020.10 Oct 13 2020
+Start time: 12:39:14 on Sep 22,2026
+vlog -work sim/work -sv rtl/sync_fifo.v sim/tb_sync_fifo.sv 
+-- Compiling module sync_fifo
+-- Compiling module tb_sync_fifo
+
+Top level modules:
+	tb_sync_fifo
+End time: 12:39:14 on Sep 22,2026, Elapsed time: 0:00:00
+Errors: 0, Warnings: 0

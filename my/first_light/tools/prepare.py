@@ -197,7 +197,7 @@ for node in list(di):
     if node.tag==e('design_file'): di.remove(node)
 di.find(e('top_module')).set('name','competition_top')
 sources=['rtl/competition_top.v','rtl/render_subsystem.v','rtl/render_regs.v',
-         'rtl/fill_engine.v','rtl/framebuffer_video.v','vendor/soc/soc.v',
+         'rtl/sync_fifo.v','rtl/fill_engine.v','rtl/framebuffer_video.v','rtl/video_mode_measure.v','vendor/soc/soc.v',
          'vendor/common/simple_dual_port_ram.v','vendor/dvi_encoder.v','vendor/encode.v']
 sources += [str(x.relative_to(ROOT)).replace('\\','/') for x in (ROOT/'vendor/ddr3_controller').rglob('*.v')
             if x.name not in ['simple_dual_port_ram.v','axi_upsizer.v']]
