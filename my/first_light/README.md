@@ -1,14 +1,19 @@
 # Ti60 2D 引擎：连续动画与 CPU/HW 渲染对比
 
+2026-09-22 在分辨率显示与写 FIFO 版本上增加独立 DDR 图片资源区和源行距。当前版本说明见 [DDR_ASSETS.md](DDR_ASSETS.md)；此前同步记录见 [SYNC_FIFO_RESOLUTION.md](SYNC_FIFO_RESOLUTION.md)，FIFO 原理见 [FIFO_CACHE.md](FIFO_CACHE.md)。
+
+新版交付后用户反馈实板数据：CPU 30 FPS / 26220 μs、HW 60 FPS / 4778 μs。此为单组用户观测，详细限制与计时口径见 [实板观测记录](releases/ddr_assets_20260922/BOARD_OBSERVATION.md)。当前下载文件为 [DDR 资源区版本 first_light.bit](releases/ddr_assets_20260922/first_light.bit)。
+
 适用对象：基于 Ti60F225I3 的 Ti60F225 开发板。工程使用仓库提供的 DDR3、Sapphire RISC-V 和 HDMI 示例作为板级基础。
 
-当前链路：RISC-V 运行 C 程序 → CPU 逐像素渲染或 FPGA 经 AXI Burst 渲染 → 双缓冲 DDR → HDMI TX。纯色填充与 Block Copy 已由用户确认上板显示正常；当前版本增加 32 个运动方块与 CPU/HW 计时对比。用户于 2026-09-21 反馈实板读数：CPU 20 FPS、36202 μs，HW 60 FPS、4778 μs；这是单组观测，长时间稳定性尚待确认。最新说明见 `MOTION_DEMO.md`；前三阶段历史记录见 `DOUBLE_BUFFER.md`、`BLOCK_COPY.md`、`VALIDATION.md`。
+当前链路：RISC-V 启动时上传图片到独立 DDR 资源区 → CPU 逐像素或 FPGA 经 AXI Burst 拷贝图片到后台页 → 双缓冲换页 → HDMI TX。纯色填充与 Block Copy 的历史版本已由用户确认上板显示正常。用户于 2026-09-21 反馈的 CPU 20 FPS / 36202 μs、HW 60 FPS / 4778 μs 属于旧版单组观测，不能代表当前资源区版本的实板性能。历史说明保存在 `MOTION_DEMO.md`、`DOUBLE_BUFFER.md`、`BLOCK_COPY.md`、`VALIDATION.md`。
 
 ## 1. 本阶段交付内容
 
 - 独立 Efinity 工程 `first_light.xml`，顶层为 `competition_top`，器件为 Ti60F225 / I3。
 - RGB565 矩形纯色填充，支持奇数 X、奇数宽度、AXI 写响应错误上报。
-- RGB565 图像块拷贝，源和目标均位于当前 framebuffer，固定 1280 字节行距；支持不同半字偏移及重叠矩形。
+- RGB565 图像块拷贝：支持同页显存内重叠拷贝，以及独立 DDR 资源区到所选绘制页的拷贝；源行距可单独配置，目标行距固定 1280 字节。
+- 图片资源区为 `0x01200000～0x012FFFFF`（1 MiB）。Demo 启动时一次性上传 32×32 彩条图片，此后 CPU/HW 都从该区域读取，不再在每帧显存中生成源块。
 - 每次最多 16 个 32 位 beat，遇到 4 KB 边界自动拆分，最终 B 响应返回后才置 DONE。
 - 两个 DDR framebuffer：A=`0x01000000`、B=`0x01096000`，每页 640×480、RGB565、每像素 2 字节、每行 1280 字节，每页 614400 字节。
 - 双缓冲换页：RISC-V 在后台页完成渲染后写入换页请求，视频端只在垂直消隐的帧边界采纳请求，避免一帧中途改变显示基址。
@@ -21,7 +26,7 @@
 - 两列显示最近测得的 CPU/HW FPS 与每帧渲染微秒数，当前模式为白字，另一列为灰字；每 4 帧更新一次。
 - 根据送入 HDMI 编码器的实际 DE/HS/VS，每帧测量有效宽高；RISC-V 经只读 APB 寄存器读取并显示 `RES 宽X高`，检测完成前显示 `RES WAIT`。
 
-本阶段采用两个固定 framebuffer 连续换页。独立图像资源区、跨页资源拷贝、可变源行距、Alpha、Color Key 和互动游戏尚未实现；32 个方块也不是已测出的性能极限。已有基础演示闭环不等于整道赛题验收完成。
+本阶段采用两个固定 framebuffer 连续换页，明确的写 FIFO 和独立资源区拷贝均已实现。资源可拷贝到 A/B 两页，但不开放任意地址或 A→B 显存跨页拷贝。Alpha、Color Key 和互动游戏尚未实现；32 个方块也不是已测出的性能极限。编译和仿真通过仍需上板验收。
 
 ## 2. 为什么这样连接
 
@@ -110,21 +115,26 @@ python my\first_light\tools\build.py compile
 | 0x3C | SWAP_PAGE | 读写 | 请求视频显示页：0=A，1=B |
 | 0x40 | SWAP | 写 | 写 1 产生换页请求，在下一帧边界生效 |
 | 0x44 | VIDEO_SIZE | 只读 | 高 16 位为实测有效高度，低 16 位为实测有效宽度 |
-| 0x48 | VIDEO_STATUS | 只读 | bit0=1 表示至少完成一次非空有效画面测量 |
+| 0x48 | VIDEO_STATUS | 只读 | bit0=1 表示最近完成的画面测量非空；复位或测得空帧时为 0 |
+| 0x4C | SRC_STRIDE | 读写 | 拷贝源行距，单位字节，复位 1280；资源区支持 WIDTH×2～65534 的偶数，同页显存必须为 1280 |
 
 STATUS：bit0 BUSY，bit1 DONE，bit2 渲染命令错误（填充或拷贝），bit3 DDR_READY，bit4 显示欠载，bit5 显示读响应/长度错误，bit6 当前显示页（0=A，1=B），bit7 SWAP_PENDING（换页等待确认）。DONE 和命令错误在下一条命令启动时清除；显示错误保持到复位。拷贝读错误报告在 bit2，不混入显示错误。
 
+VIDEO_SIZE 测量的是 FPGA 输出的有效画面，当前应为 `0x01E00280`（640×480）；它不读取显示器 EDID，也不自动切换分辨率。VIDEO_STATUS 按帧更新，不是 HDMI 插拔检测信号。
+
 换页顺序：绘制完成 → SWAP_PAGE 写目标页 → SWAP 写 1 → 等待 STATUS bit7=0 且 bit6 等于目标页 → 复用旧前台页。bit7 为 1 时，新的 SWAP、SWAP_PAGE 或渲染 COMMAND 写入产生 APB 错误，避免请求互相覆盖。即使提交同一显示页，也必须等待确认，不能只检查 bit6。
 
-配置顺序：等待空闲 → 写 OPERATION 及 DST/WIDTH/HEIGHT/STRIDE → 填充时写 COLOR，拷贝时写 SRC → COMMAND 写 1 → 等待 DONE=1 且 BUSY=0 → 检查错误。忙碌时写寄存器、写只读地址或访问未知地址会产生 APB 错误。`fill_rect()` 和 `copy_rect()` 各自设置 OPERATION，支持交替调用。
+配置顺序：等待空闲 → 写 OPERATION 及 DST/WIDTH/HEIGHT/STRIDE → 填充时写 COLOR，拷贝时写 SRC 和 SRC_STRIDE → COMMAND 写 1 → 等待 DONE=1 且 BUSY=0 → 检查错误。忙碌时写寄存器、写只读地址或访问未知地址会产生 APB 错误。`fill_rect()`、`copy_rect()`、`copy_image()` 各自设置 OPERATION，支持交替调用。
 
-硬件检查源/目标范围是否仍在显存内；X+WIDTH 是否越过一行由 C 驱动检查。本阶段只支持 RGB565、源/目标同为 1280 字节 stride 的 framebuffer 内拷贝。缓存整行并按地址选择从上往下或从下往上遍历，从而保护重叠源数据。
+硬件检查目标在所选绘制页内，源在同页显存或资源区内；C 驱动检查目标 X+WIDTH 和 Y+HEIGHT。每像素为 RGB565 两字节，资源区源地址/行距必须为偶数。缓存整行并保持原有同页重叠拷贝方向；资源区则独立递增源行地址。行距为 2 mod 4 时，每行重新计算源半字位置。硬件不允许写资源区；是否将所选绘制页保持为后台页由双缓冲驱动保证。
 
 ## 6. 软件流程与函数
 
 `fill_rect(x,y,width,height,color)` 配置硬件并等待写响应完成，返回 0 表示成功；负值表示参数、忙碌、硬件错误或超时。它不使用 CPU 写像素。
 
 `copy_rect(src_x,src_y,dst_x,dst_y,width,height)` 配置源与目标，由硬件完成搬运，也不使用 CPU 写像素。CPU 写像素后必须确保 DDR 写响应完成；本核使用 write-through 缓存，由 `publish_pixels()` 失效缓存并强制 DDR 读回进行同步，不能调用本核未实现的 CSR 0x810。
+
+`copy_image(source,source_stride,dst_x,dst_y,width,height)` 接受 DDR 图片地址和源行距；`copy_rect()` 通过它保留同页接口。`init_assets()` 仅在启动时初始化 2048 字节图片并排空 CPU 写操作。当前 CPU/HW 每帧都清屏并从该图片复制 32 次；硬件每帧为 1 个 Fill 和 32 个 Copy，不再包含 3 个源块 Fill。
 
 `cycle_now()` 读取官方 CLINT 的 MTIME 低 32 位（基址加 `0xBFF8`），用于超时和延时。该 Sapphire 配置读 `mcycle` CSR 会产生非法指令异常，因此使用已在 BSP 中定义的 CLINT 接口。时间差用无符号减法计算，以处理低 32 位翻转。
 
@@ -153,7 +163,7 @@ STATUS：bit0 BUSY，bit1 DONE，bit2 渲染命令错误（填充或拷贝），
 
 本次只生成新版文件，不自动下载。使用 Efinity Programmer 的易失性 JTAG 配置方式加载 `outflow/first_light.bit`；不要把“临时验证”与写 SPI Flash 混为一谈。HDMI 连接板上的 TX 接口，串口参数为 115200、8N1，实际 COM 号在 Windows 设备管理器确认。旧 Block Copy 版仍在 `releases/block_copy_20260921/`，最终双缓冲版另存 `releases/double_buffer_20260921/`，不覆盖已上板验证的旧版。
 
-当前动画版显示 32 个运动彩条块，两列 CPU/HW FPS 与 US 数值，白字列约每 4 秒切换。串口启动行为 `Ti60 MOTION 32 CPU/HW`，随后周期输出实际测量值。至少等 10 秒让两种模式均采样，详细验收步骤见 `MOTION_DEMO.md`。
+当前动画版显示 32 个运动彩条块，两列 CPU/HW FPS 与 US 数值和 RES 640X480，白字列约每 4 秒切换；左侧 (0,64) 的固定源块已消失。串口启动行为 `Ti60 DDR ASSET 32 CPU/HW`，随后周期输出实际测量值。至少等 10 秒让两种模式均采样，当前验收步骤见 `DDR_ASSETS.md`。
 
 以下表格包含历史静态程序的故障信息；若仍看到 PASS DOUBLE BUFFER 和静态图案，说明下载的是旧版，不是当前动画版。
 

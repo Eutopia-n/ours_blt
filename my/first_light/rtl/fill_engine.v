@@ -1,17 +1,19 @@
-// RGB565 solid fill and framebuffer block copy.
+// RGB565 solid fill, framebuffer block copy and DDR asset-to-framebuffer copy.
 // One outstanding AXI read or write burst, at most 16 beats.
 // Byte strobes preserve neighbouring pixels for odd X / odd rectangle widths.
 `default_nettype none
 module fill_engine #(
     parameter [31:0] FB_BASE = 32'h01000000,
-    parameter [31:0] FB_BYTES = 32'd614400
+    parameter [31:0] FB_BYTES = 32'd614400,
+    parameter [31:0] ASSET_BASE = 32'h01200000,
+    parameter [31:0] ASSET_BYTES = 32'h00100000
 ) (
     input wire clk, input wire reset,
     input wire start, input wire memory_ready,
     input wire [1:0] operation, input wire [31:0] src,
     input wire [31:0] frame_base,
     input wire [31:0] dst, input wire [15:0] width, height,
-    input wire [31:0] stride, input wire [15:0] color,
+    input wire [31:0] stride, src_stride, input wire [15:0] color,
     output wire busy, output reg done, output reg error,
     output reg [31:0] cycles,
     output reg [31:0] awaddr, output wire [7:0] awlen,
@@ -31,6 +33,8 @@ module fill_engine #(
     reg [3:0] state;
     reg copy_mode;
     reg [31:0] source_row_addr;
+    reg [31:0] source_row_step;
+    reg [9:0] copy_width;
     reg [31:0] row_step;
     reg [31:0] row_addr;
     reg [15:0] rows_left;
@@ -60,7 +64,18 @@ module fill_engine #(
     wire read_beat_error = rresp != 0 || rlast != (copy_read_beat == copy_read_burst_words-1);
     wire [32:0] row_offset = (({17'd0,height}-33'd1) << 10) +
                             (({17'd0,height}-33'd1) << 8);
-    wire [32:0] source_end = {1'b0,src} + row_offset + ({17'd0,width} << 1);
+    // Limit source pitch to 16 bits before multiplying. Check the full APB
+    // value too, so a large/overflowing stride cannot wrap into a valid range.
+    wire [31:0] source_offset = (height - 16'd1) * src_stride[15:0];
+    wire [32:0] source_end = {1'b0,src} + {1'b0,source_offset} + ({17'd0,width} << 1);
+    wire source_in_frame = src >= frame_base &&
+        source_end <= {1'b0,frame_base}+{1'b0,FB_BYTES} && src_stride == 1280;
+    wire source_in_assets = src >= ASSET_BASE &&
+        source_end <= {1'b0,ASSET_BASE}+{1'b0,ASSET_BYTES};
+    wire reverse_copy = source_in_frame && dst > src;
+    wire [31:0] next_source_row = source_row_addr + source_row_step;
+    wire [9:0] next_read_words =
+        ({1'b0,copy_width} + {10'd0,next_source_row[1]} + 11'd1) >> 1;
     wire [32:0] end_address = {1'b0,dst} +
         (({17'd0,height}-33'd1) << 10) +
         (({17'd0,height}-33'd1) << 8) + ({17'd0,width} << 1);
@@ -132,6 +147,7 @@ module fill_engine #(
         if (reset) begin
             state <= IDLE; done <= 0; error <= 0; cycles <= 0;
             awaddr <= 0; araddr <= 0; row_addr <= 0; source_row_addr <= 0;
+            source_row_step <= 1280; copy_width <= 0;
             rows_left <= 0; row_step <= 1280; copy_mode <= 0;
             fill_color <= 0; words_left <= 0; row_words <= 0;
             word_index <= 0; burst_words <= 0; beat <= 0;
@@ -150,8 +166,9 @@ module fill_engine #(
                 if (!memory_ready || (operation > 1) || dst[0] || width == 0 || height == 0 ||
                     width > 640 || height > 480 || stride != 1280 ||
                     dst < frame_base || end_address > {1'b0,frame_base}+{1'b0,FB_BYTES} ||
-                    (operation == 1 && (src[0] || src < frame_base ||
-                     source_end > {1'b0,frame_base}+{1'b0,FB_BYTES}))) begin
+                    (operation == 1 && (src[0] || src_stride[0] ||
+                     src_stride > 65534 || src_stride < ({16'd0,width} << 1) ||
+                     !(source_in_frame || source_in_assets)))) begin
                     error <= 1; done <= 1;
                 end else begin
                     copy_mode <= operation == 1;
@@ -163,13 +180,16 @@ module fill_engine #(
                         words_left <= ({1'b0,width[9:0]} + {10'd0,dst[1]} + 11'd1) >> 1;
                         word_index <= 0; state <= F_PREP;
                     end else begin
-                        // Same stride on both sides. Copy bottom-up when the
-                        // destination follows the source, preserving overlap.
-                        row_step <= dst > src ? -32'd1280 : 32'd1280;
-                        row_addr <= dst + (dst > src ? row_offset[31:0] : 32'd0);
-                        source_row_addr <= src + (dst > src ? row_offset[31:0] : 32'd0);
-                        awaddr <= {dst[31:2],2'b00} + (dst > src ? row_offset[31:0] : 32'd0);
-                        araddr <= {src[31:2],2'b00} + (dst > src ? row_offset[31:0] : 32'd0);
+                        // Same-page copies retain equal strides and bottom-up
+                        // traversal when dst follows src, preserving overlap.
+                        // Assets never overlap the destination and read top-down.
+                        row_step <= reverse_copy ? -32'd1280 : 32'd1280;
+                        source_row_step <= reverse_copy ? -src_stride : src_stride;
+                        copy_width <= width[9:0];
+                        row_addr <= dst + (reverse_copy ? row_offset[31:0] : 32'd0);
+                        source_row_addr <= src + (reverse_copy ? source_offset : 32'd0);
+                        awaddr <= {dst[31:2],2'b00} + (reverse_copy ? row_offset[31:0] : 32'd0);
+                        araddr <= {src[31:2],2'b00} + (reverse_copy ? source_offset : 32'd0);
                         copy_src_half <= src[1]; copy_dst_half <= dst[1];
                         copy_read_row_words <= ({1'b0,width[9:0]} + {10'd0,src[1]} + 11'd1) >> 1;
                         copy_write_row_words <= ({1'b0,width[9:0]} + {10'd0,dst[1]} + 11'd1) >> 1;
@@ -284,11 +304,15 @@ module fill_engine #(
                     if (rows_left == 1) begin done <= 1; state <= IDLE; end
                     else begin
                         row_addr <= row_addr + row_step;
-                        source_row_addr <= source_row_addr + row_step;
+                        source_row_addr <= next_source_row;
                         awaddr <= {row_addr[31:2],2'b00} + row_step;
-                        araddr <= {source_row_addr[31:2],2'b00} + row_step;
+                        araddr <= {next_source_row[31:2],2'b00};
+                        // A pitch of 2 mod 4 alternates the source halfword
+                        // alignment each row (e.g. tightly packed odd widths).
+                        copy_src_half <= next_source_row[1];
                         rows_left <= rows_left - 1'b1;
-                        copy_read_words_left <= copy_read_row_words;
+                        copy_read_row_words <= next_read_words;
+                        copy_read_words_left <= next_read_words;
                         copy_write_words_left <= copy_write_row_words;
                         copy_read_word_index <= 0; copy_write_word_index <= 0;
                         state <= C_RPREP;

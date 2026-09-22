@@ -18,7 +18,9 @@ module tb_render;
     wire [15:0] pixel;
     wire hs,vs,de;
     render_subsystem dut(.*);
-    localparam BASE=32'h01000000, PAGE_BYTES=614400, MEM_BYTES=1228800;
+    localparam BASE=32'h01000000, PAGE_BYTES=614400;
+    localparam ASSET_BASE=32'h01200000, ASSET_BYTES=1048576;
+    localparam MEM_BYTES=ASSET_BASE-BASE+ASSET_BYTES;
     reg [31:0] draw_base=BASE;
     reg [7:0] mem[0:MEM_BYTES-1];
     reg [7:0] golden[0:MEM_BYTES-1];
@@ -31,6 +33,7 @@ module tb_render;
     integer bursts=0,read_bursts=0,crossings=0,read_crossings=0;
     integer copy_read_bursts=0,video_read_bursts=0,contentions=0,checked_copies=0;
     integer copy_16beat_bursts=0,ready_write_cycles=0;
+    integer asset_reads=0,checked_assets=0;
     reg held_aw=0,held_ar=0,held_w=0;
     reg [39:0] last_aw,last_ar;
     reg [36:0] last_w;
@@ -68,7 +71,8 @@ module tb_render;
         if(awvalid && awready) begin
             if(awlen>15 || awaddr[1:0]!=0 || awaddr[11:0]+(awlen+1)*4>4096)
                 $fatal(1,"Illegal AXI AW burst");
-            if(awaddr<BASE || awaddr+(awlen+1)*4>BASE+MEM_BYTES) $fatal(1,"AW outside framebuffer");
+            if(awaddr<draw_base || awaddr+(awlen+1)*4>draw_base+PAGE_BYTES)
+                $fatal(1,"AW outside selected draw page");
             if(awaddr[11:0]==0) crossings=crossings+1;
             if(dut.fill.copy_mode && awlen==15) copy_16beat_bursts=copy_16beat_bursts+1;
             wa=awaddr-BASE; wl=awlen; wb=0; writing=1; bursts=bursts+1;
@@ -87,7 +91,11 @@ module tb_render;
         if(arvalid && arready) begin
             if(arlen>15 || araddr[1:0]!=0 || araddr[11:0]+(arlen+1)*4>4096)
                 $fatal(1,"Illegal AXI AR burst");
-            if(araddr<BASE || araddr+(arlen+1)*4>BASE+MEM_BYTES) $fatal(1,"AR outside framebuffer");
+            if(!((araddr>=BASE && araddr+(arlen+1)*4<=BASE+2*PAGE_BYTES) ||
+                 (dut.read_owner_copy && araddr>=ASSET_BASE &&
+                  araddr+(arlen+1)*4<=ASSET_BASE+ASSET_BYTES)))
+                $fatal(1,"AR outside allowed framebuffer/resource pools");
+            if(araddr>=ASSET_BASE) asset_reads=asset_reads+1;
             if(araddr[11:0]==0) read_crossings=read_crossings+1;
             if(dut.read_owner_copy) copy_read_bursts=copy_read_bursts+1;
             else video_read_bursts=video_read_bursts+1;
@@ -144,17 +152,43 @@ module tb_render;
         checked_copies=checked_copies+1;
     endtask
     task copy_block(input integer sx,sy,dx,dy,w,h,input bit expect_error=0);
+        raw_copy(draw_base+sy*1280+sx*2,1280,draw_base+dy*1280+dx*2,w,h,expect_error);
+    endtask
+    task raw_copy(input [31:0] source,pitch,destination,
+                  input integer w,h,input bit expect_error=0);
         reg [31:0] status;
         integer tries;
-        write_reg(48,1); write_reg(52,draw_base+sy*1280+sx*2);
-        write_reg(12,draw_base+dy*1280+dx*2); write_reg(16,w); write_reg(20,h);
+        write_reg(48,1); write_reg(52,source); write_reg(76,pitch);
+        write_reg(12,destination); write_reg(16,w); write_reg(20,h);
         write_reg(24,1280); write_reg(8,1);
+        if(!expect_error && w==640 && h==480) write_reg(76,64,1);
         status=0; tries=0;
         while((status&3)!=2) begin
             read_reg(4,status); tries=tries+1;
             if(tries>1000000) $fatal(1,"Copy timeout");
         end
         if(((status&4)!=0)!=expect_error) $fatal(1,"Copy error mismatch: %h",status);
+    endtask
+    task checked_asset(input [31:0] source,pitch,input integer dx,dy,w,h);
+        integer s,d;
+        for(integer n=0;n<MEM_BYTES;n=n+1) golden[n]=mem[n];
+        for(integer y=0;y<h;y=y+1) for(integer x=0;x<w;x=x+1) begin
+            s=source-BASE+y*pitch+x*2;
+            d=draw_base-BASE+(dy+y)*1280+(dx+x)*2;
+            {golden[d+1],golden[d]}={mem[s+1],mem[s]};
+        end
+        raw_copy(source,pitch,draw_base+dy*1280+dx*2,w,h);
+        for(integer n=0;n<MEM_BYTES;n=n+1)
+            if(mem[n]!==golden[n]) $fatal(1,"Asset copy src=%h pitch=%0d %0dx%0d byte=%0d got=%h expected=%h",
+                source,pitch,w,h,n,mem[n],golden[n]);
+        checked_assets=checked_assets+1;
+    endtask
+    task rejected_copy(input [31:0] source,pitch,destination,input integer w,h);
+        integer before_reads,before_writes;
+        before_reads=read_bursts; before_writes=bursts;
+        raw_copy(source,pitch,destination,w,h,1);
+        if(read_bursts!=before_reads || bursts!=before_writes)
+            $fatal(1,"Invalid copy generated a DDR transaction");
     endtask
     function [15:0] expected(input integer x,y);
         integer local_y;
@@ -269,6 +303,7 @@ module tb_render;
         for(integer i=0;i<MEM_BYTES;i=i+1) mem[i]=8'ha5;
         repeat(10) @(negedge clk); reset=0;
         read_reg(0,status); if(status!==32'h32444631) $fatal(1,"ID mismatch");
+        read_reg(76,status); if(status!=1280) $fatal(1,"Default source stride changed");
         fill(1,0,0,1,16'hffff,1);
         fill(639,479,2,1,16'hffff,1);
         if(bursts!=0) $fatal(1,"Invalid command issued AXI transaction");
@@ -317,6 +352,52 @@ module tb_render;
         if(copy_read_bursts==0||read_crossings==0||copy_16beat_bursts==0||ready_write_cycles==0)
             $fatal(1,"Missing copy read/boundary/FIFO coverage");
         $display("PASS: %0d patterned copies, all alignments, sizes, overlap, read/write error recovery",checked_copies);
+        // Resource data must be nonuniform in both X and Y. Snapshot checks
+        // include both pages, the gap and the complete immutable resource pool.
+        for(integer n=0;n<ASSET_BYTES/2;n=n+1)
+            {mem[ASSET_BASE-BASE+2*n+1],mem[ASSET_BASE-BASE+2*n]}=(n*137)^(n>>3)^16'h6a5c;
+        for(integer parity=0;parity<4;parity=parity+1)
+            for(integer size=0;size<7;size=size+1) begin
+                case(size)
+                    0:test_width=1; 1:test_width=2; 2:test_width=31; 3:test_width=32;
+                    4:test_width=33; 5:test_width=639; 6:test_width=640;
+                endcase
+                checked_asset(ASSET_BASE+(parity&1)*2,test_width*2,0,260,test_width,3);
+                if(test_width<640)
+                    checked_asset(ASSET_BASE+4090+(parity&1)*2,test_width*2+6,
+                                  (parity>>1)&1,270,test_width,4);
+            end
+        checked_asset(ASSET_BASE,1280,0,0,640,480);
+        checked_asset(ASSET_BASE+ASSET_BYTES-2,2,639,479,1,1);
+        checked_asset(ASSET_BASE+ASSET_BYTES-33*2*3,66,1,310,33,3);
+        checked_asset(ASSET_BASE,65534,7,310,2,16);
+        rejected_copy(ASSET_BASE-2,64,BASE,32,2);
+        rejected_copy(ASSET_BASE+ASSET_BYTES-2,4,BASE,2,1);
+        rejected_copy(ASSET_BASE+ASSET_BYTES-64,64,BASE,32,2);
+        rejected_copy(ASSET_BASE+1,64,BASE,32,1);
+        rejected_copy(ASSET_BASE,63,BASE,31,3);
+        rejected_copy(ASSET_BASE,62,BASE,32,2);
+        rejected_copy(ASSET_BASE,0,BASE,1,1);
+        rejected_copy(ASSET_BASE,65536,BASE,1,2);
+        rejected_copy(ASSET_BASE,32'h10000040,BASE,32,2);
+        rejected_copy(32'hfffffff0,64,BASE,32,2);
+        rejected_copy(BASE,64,BASE,32,2); // Different pitch forbidden for overlap.
+        rejected_copy(BASE+PAGE_BYTES,1280,BASE,32,2); // Other display page is not a resource.
+        rejected_copy(ASSET_BASE,64,ASSET_BASE,32,2); // Resource pool is read-only to the engine.
+        rejected_copy(ASSET_BASE,64,BASE+PAGE_BYTES,32,2);
+        rejected_copy(ASSET_BASE,64,32'hfffffff0,32,2);
+        rejected_copy(ASSET_BASE,64,BASE,0,1);
+        rejected_copy(ASSET_BASE,1280,BASE,640,481);
+        read_reg(76,status); if(status!=1280) $fatal(1,"Source stride readback mismatch");
+        old_writes=bursts;
+        inject_read_error=1; raw_copy(ASSET_BASE+4094,66,BASE+20*1280+2,33,3,1);
+        inject_read_error=0;
+        if(bursts!=old_writes || reading || rvalid) $fatal(1,"Asset read error failed to drain");
+        checked_asset(ASSET_BASE+4094,66,1,20,33,3);
+        inject_write_error=1; raw_copy(ASSET_BASE+4094,66,BASE+20*1280+2,33,3,1);
+        inject_write_error=0;
+        checked_asset(ASSET_BASE+4094,66,1,20,33,3);
+        $display("PASS: %0d DDR asset copies, independent pitches, all halfword alignments, 4K/pool boundaries, invalid ranges/strides, recovery; %0d resource bursts",checked_assets,asset_reads);
         fill(0,0,640,480,16'h1082);
         fill(64,60,192,120,16'hf800);
         fill(301,161,127,99,16'h07e0);
@@ -349,6 +430,7 @@ module tb_render;
         check_page_writes=1;
         // Fill and copy into B while every scanned A pixel is still checked.
         draw_base=BASE+PAGE_BYTES; write_reg(56,1);
+        checked_asset(ASSET_BASE+4094,66,1,310,33,3);
         fill(639,479,2,1,16'hffff,1);
         fill(0,0,640,480,16'h39e7);
         fill(1,7,33,3,16'h07ff); checked_copy(1,7,101,13,33,3);
@@ -360,6 +442,7 @@ module tb_render;
         frame_target=frames+2; await_swap(1); wait(frames>=frame_target);
         // Retire A, repaint it, and switch back. No front-page writes allowed.
         draw_base=BASE; write_reg(56,0);
+        checked_asset(ASSET_BASE+4094,66,1,310,33,3);
         fill(0,0,640,480,16'h4a49); repainted_a=1;
         wait(dut.video.v==200 && dut.video.h==200);
         write_reg(60,0); write_reg(64,1);

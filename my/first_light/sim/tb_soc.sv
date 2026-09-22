@@ -25,7 +25,9 @@ module tb_soc;
         .rdata(rdata),.rresp(rresp),.rlast(rlast),.rvalid(rvalid),.rready(rready),
         .pixel(pixel),.hs(hs),.vs(vs),.de(de)
     );
-    localparam BASE=32'h01000000, PAGE_BYTES=614400, MEM_BYTES=1228800;
+    localparam BASE=32'h01000000, PAGE_BYTES=614400;
+    localparam ASSET_BASE=32'h01200000, ASSET_BYTES=1048576;
+    localparam MEM_BYTES=ASSET_BASE-BASE+ASSET_BYTES;
     reg [7:0] mem[0:MEM_BYTES-1];
     reg writing=0,reading=0;
     integer wa,ra,wl,rl,wb,rb,ws,rs;
@@ -37,6 +39,7 @@ module tb_soc;
     integer last_commands=0,last_fills=0,last_copies=0,last_mode=-1,scene_frame=-1;
     integer page_present[0:1],bus_cycle=0,cpu_writes=0;
     integer video_status_reads=0,video_size_reads=0;
+    integer asset_write_bytes=0,cpu_asset_reads=0,hw_asset_reads=0;
     reg last_video_valid=0;
     reg [31:0] last_video_size=0;
     reg [15:0] golden[0:307199],snapshot[0:614399];
@@ -57,8 +60,11 @@ module tb_soc;
         if(m_awvalid&&m_awready) begin
             // The upsizer can retain an unaligned first address while WSTRB
             // selects only two bytes. Burst extent starts at the aligned beat.
-            if(m_awaddr<BASE || (m_awaddr&~((1<<m_awsize)-1))+(m_awlen+1)*(1<<m_awsize)>BASE+MEM_BYTES)
-                $fatal(1,"SoC write outside framebuffer: %h",m_awaddr);
+            if(!((m_awaddr>=BASE && (m_awaddr&~((1<<m_awsize)-1))+(m_awlen+1)*(1<<m_awsize)<=BASE+2*PAGE_BYTES) ||
+                 (m_awaddr>=ASSET_BASE && (m_awaddr&~((1<<m_awsize)-1))+(m_awlen+1)*(1<<m_awsize)<=ASSET_BASE+2048)))
+                $fatal(1,"SoC write outside framebuffer/uploaded image: %h",m_awaddr);
+            if(m_awaddr>=ASSET_BASE && (m_awid[7] || swap_commands!=0))
+                $fatal(1,"Only startup CPU code may upload resources");
             if(m_awburst!=1 || m_awsize>4) $fatal(1,"Unsupported AW burst");
             wa=m_awaddr-BASE; wl=m_awlen; wb=0; ws=1<<m_awsize;
             wid=m_awid; writing=1;
@@ -67,14 +73,22 @@ module tb_soc;
         if(m_wvalid&&m_wready) begin
             if(m_wlast!=(wb==wl)) $fatal(1,"SoC WLAST mismatch");
             for(integer b=0;b<16;b=b+1)
-                if(m_wstrb[b]) mem[(wa&~15)+b]=m_wdata[8*b+:8];
+                if(m_wstrb[b]) begin
+                    mem[(wa&~15)+b]=m_wdata[8*b+:8];
+                    if(wa>=ASSET_BASE-BASE) asset_write_bytes=asset_write_bytes+1;
+                end
             wa=(wa&~(ws-1))+ws; wb=wb+1;
             if(m_wlast) begin writing=0; m_bvalid<=1; m_bid<=wid; m_bresp<=0; end
         end
         if(m_bvalid&&m_bready) m_bvalid<=0;
         if(m_arvalid&&m_arready) begin
-            if(m_araddr<BASE || (m_araddr&~((1<<m_arsize)-1))+(m_arlen+1)*(1<<m_arsize)>BASE+MEM_BYTES)
-                $fatal(1,"SoC read outside framebuffer: %h",m_araddr);
+            if(!((m_araddr>=BASE && (m_araddr&~((1<<m_arsize)-1))+(m_arlen+1)*(1<<m_arsize)<=BASE+2*PAGE_BYTES) ||
+                 (m_araddr>=ASSET_BASE && (m_araddr&~((1<<m_arsize)-1))+(m_arlen+1)*(1<<m_arsize)<=ASSET_BASE+ASSET_BYTES)))
+                $fatal(1,"SoC read outside framebuffer/resource pools: %h",m_araddr);
+            if(m_araddr>=ASSET_BASE) begin
+                if(m_arid[7]) hw_asset_reads=hw_asset_reads+1;
+                else cpu_asset_reads=cpu_asset_reads+1;
+            end
             if(m_arburst!=1 || m_arsize>4) $fatal(1,"Unsupported AR burst");
             ra=m_araddr-BASE; rl=m_arlen; rb=0; rs=1<<m_arsize;
             rid=m_arid; reading=1;
@@ -102,14 +116,18 @@ module tb_soc;
             if(pwrite&&paddr==16'h8) begin
                 commands=commands+1;
                 if(graphics.operation==0) fill_commands=fill_commands+1;
-                else copy_commands=copy_commands+1;
+                else begin
+                    if(graphics.src!=ASSET_BASE || graphics.src_stride!=64)
+                        $fatal(1,"Demo copy did not use the independent DDR image");
+                    copy_commands=copy_commands+1;
+                end
             end
             if(pwrite&&paddr==16'h40) begin
                 swap_commands=swap_commands+1;
                 check_scene();
             end
         end
-        if(graphics.display_enable && m_awvalid && m_awready &&
+        if(graphics.display_enable && m_awvalid && m_awready && m_awaddr<BASE+2*PAGE_BYTES &&
            ((m_awaddr>=BASE+PAGE_BYTES)==graphics.display_page_sync[1]))
             $fatal(1,"Firmware rendered to the front page");
     end
@@ -186,7 +204,7 @@ module tb_soc;
             mode=commands!=last_commands; page=graphics.swap_page;
             if(mode!=(swap_commands>=5 && swap_commands<=8))
                 $fatal(1,"Unexpected renderer mode: present=%0d mode=%0d",swap_commands,mode);
-            if(mode && (fill_commands-last_fills!=4 || copy_commands-last_copies!=32))
+            if(mode && (fill_commands-last_fills!=1 || copy_commands-last_copies!=32))
                 $fatal(1,"Incomplete hardware scene");
             if(writing || m_bvalid) $fatal(1,"Present before DDR writes completed");
             if(mode!=last_mode) begin
@@ -197,8 +215,13 @@ module tb_soc;
             last_fills=fill_commands; last_copies=copy_commands;
             mode_frames[mode]=mode_frames[mode]+1;
             for(integer n=0;n<307200;n=n+1) golden[n]=16'h1082;
+            if(asset_write_bytes!=2048) $fatal(1,"Image was not uploaded exactly once: %0d bytes",asset_write_bytes);
             for(integer row=0;row<32;row=row+1)
-                for(integer col=0;col<32;col=col+1) golden[(64+row)*640+col]=stripe(row);
+                for(integer col=0;col<32;col=col+1) begin
+                    offset=ASSET_BASE-BASE+row*64+col*2;
+                    if({mem[offset+1],mem[offset]}!==stripe(row))
+                        $fatal(1,"DDR resource changed or upload was not drained");
+                end
             for(integer n=0;n<32;n=n+1) begin
                 x=48+bounce(n*74+scene_frame*4,552);
                 y=112+bounce(n*46+scene_frame*2,320);
@@ -308,12 +331,15 @@ module tb_soc;
         repeat(50) @(negedge clk); reset=0;
         wait(return_frames>=1 && reports_cpu>=1 && reports_hw>=1);
         if(mode_frames[0]<5 || mode_frames[1]!=4 || swap_acks<9 || cpu_reads==0 || cpu_writes==0 ||
-           video_status_reads==0 || video_size_reads==0 || !last_video_valid)
+           video_status_reads==0 || video_size_reads==0 || !last_video_valid ||
+           cpu_asset_reads==0 || hw_asset_reads==0 || asset_write_bytes!=2048)
             $fatal(1,"Missing CPU/HW mode, UART or double-buffer coverage");
         if(graphics.underflow||graphics.read_error) $fatal(1,"SoC scanout error");
         $display("PASS: real CPU/HW/CPU, %0d CPU frames, %0d HW frames, %0d swaps; same scene pixels; UART metrics; no front writes",
                  mode_frames[0],mode_frames[1],swap_acks);
         $display("PASS: %0d complete A frames, %0d complete B frames, no scanout mismatch",page_frames[0],page_frames[1]);
+        $display("PASS: DDR image uploaded once (%0d bytes), immutable across A/B clears; CPU resource bursts=%0d, HW resource bursts=%0d",
+                 asset_write_bytes,cpu_asset_reads,hw_asset_reads);
         $display("SOC TEST PASSED"); $fclose(progress_file); $finish;
     end
     initial forever begin

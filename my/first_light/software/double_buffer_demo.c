@@ -66,6 +66,7 @@ int copy_rect(uint32_t src_x, uint32_t src_y, uint32_t dst_x, uint32_t dst_y,
     select_draw_page();
     mmio_write(GFX_BASE+GFX_OPERATION, 1);
     mmio_write(GFX_BASE+GFX_SRC, draw_buffer+src_y*FRAME_STRIDE+src_x*2);
+    mmio_write(GFX_BASE+GFX_SRC_STRIDE, FRAME_STRIDE);
     mmio_write(GFX_BASE+GFX_DST, draw_buffer+dst_y*FRAME_STRIDE+dst_x*2);
     mmio_write(GFX_BASE+GFX_WIDTH, width);
     mmio_write(GFX_BASE+GFX_HEIGHT, height);

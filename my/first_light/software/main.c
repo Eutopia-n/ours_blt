@@ -66,10 +66,26 @@ int copy_rect(uint32_t src_x, uint32_t src_y, uint32_t dst_x, uint32_t dst_y,
     if (!width || !height || src_x >= 640 || src_y >= 480 || dst_x >= 640 || dst_y >= 480 ||
         width > 640-src_x || width > 640-dst_x || height > 480-src_y || height > 480-dst_y)
         return -1;
+    return copy_image(draw_buffer+src_y*FRAME_STRIDE+src_x*2, FRAME_STRIDE,
+                      dst_x,dst_y,width,height);
+}
+int copy_image(uint32_t source, uint32_t source_stride, uint32_t dst_x,
+               uint32_t dst_y, uint32_t width, uint32_t height) {
+    if (!width || !height || dst_x >= 640 || dst_y >= 480 ||
+        width > 640-dst_x || height > 480-dst_y || (source&1u) ||
+        (source_stride&1u) || source_stride > 65534 || source_stride < width*2)
+        return -1;
+    uint32_t bytes=(height-1)*source_stride+width*2;
+    uint32_t base=ASSET_BASE, size=ASSET_BYTES;
+    if (source>=draw_buffer && source<draw_buffer+FRAMEBUFFER_BYTES &&
+        source_stride==FRAME_STRIDE) { base=draw_buffer; size=FRAMEBUFFER_BYTES; }
+    // Subtraction after the range check avoids wrapping a 32-bit end address.
+    if (source<base || source>=base+size || bytes>base+size-source) return -1;
     if (mmio_read(GFX_BASE+GFX_STATUS) & (GFX_BUSY|GFX_SWAP_PENDING)) return -2;
     select_draw_page();
     mmio_write(GFX_BASE+GFX_OPERATION, 1);
-    mmio_write(GFX_BASE+GFX_SRC, draw_buffer+src_y*FRAME_STRIDE+src_x*2);
+    mmio_write(GFX_BASE+GFX_SRC, source);
+    mmio_write(GFX_BASE+GFX_SRC_STRIDE, source_stride);
     mmio_write(GFX_BASE+GFX_DST, draw_buffer+dst_y*FRAME_STRIDE+dst_x*2);
     mmio_write(GFX_BASE+GFX_WIDTH, width);
     mmio_write(GFX_BASE+GFX_HEIGHT, height);
@@ -104,10 +120,19 @@ static void cpu_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
 }
 static void cpu_copy(uint32_t x, uint32_t y) {
     for (uint32_t row=0; row<32; ++row) {
-        const volatile uint16_t *s=(const volatile uint16_t *)(uintptr_t)(draw_buffer+(64+row)*1280);
+        const volatile uint16_t *s=(const volatile uint16_t *)(uintptr_t)(ASSET_BASE+row*SPRITE_STRIDE);
         volatile uint16_t *d=(volatile uint16_t *)(uintptr_t)(draw_buffer+(y+row)*1280+x*2);
         for (uint32_t col=0; col<32; ++col) d[col]=s[col];
     }
+}
+// Upload the RGB565 image once. Both CPU and hardware subsequently read
+// this same immutable DDR resource; clearing either framebuffer cannot erase it.
+static void init_assets(void) {
+    volatile uint16_t *p=(volatile uint16_t *)(uintptr_t)ASSET_BASE;
+    for (uint32_t row=0;row<32;++row)
+        for (uint32_t col=0;col<32;++col)
+            p[row*32+col]=row<10 ? 0x07ff : row<20 ? 0xf81f : 0xffe0;
+    publish_pixels(); // Drain CPU stores before any hardware source reads.
 }
 static uint32_t bounce(uint32_t phase, uint32_t limit) {
     phase %= limit*2;
@@ -120,15 +145,9 @@ static void scene(uint32_t frame, uint32_t hw) {
     }
     if (hw) { if (fill_rect(0,0,640,480,0x1082)) fail("FAIL fill"); }
     else cpu_fill(0,0,640,480,0x1082);
-    static const uint16_t colors[3]={0x07ff,0xf81f,0xffe0};
-    for (uint32_t n=0;n<3;++n) {
-        uint32_t height=n==2 ? 12 : 10;
-        if (hw) { if (fill_rect(0,64+n*10,32,height,colors[n])) fail("FAIL fill"); }
-        else cpu_fill(0,64+n*10,32,height,colors[n]);
-    }
     for (uint32_t n=0;n<32;++n) {
         uint32_t x=48+bounce(n*74+frame*4,552), y=112+bounce(n*46+frame*2,320);
-        if (hw) { if (copy_rect(0,64,x,y,32,32)) fail("FAIL copy"); }
+        if (hw) { if (copy_image(ASSET_BASE,SPRITE_STRIDE,x,y,32,32)) fail("FAIL copy"); }
         else cpu_copy(x,y);
     }
     publish_pixels();
@@ -188,9 +207,9 @@ static void hud(uint32_t hw) {
 int main(void) {
     mmio_write(SYSTEM_UART_0_IO_CTRL+8, SYSTEM_CLINT_HZ/(115200u*8u)-1u);
     mmio_write(SYSTEM_UART_0_IO_CTRL+12, 7u); // 8 data bits, no parity, one stop bit
-    puts_uart("Ti60 MOTION 32 CPU/HW\r\n");
+    puts_uart("Ti60 DDR ASSET 32 CPU/HW\r\n");
     if (mmio_read(GFX_BASE+GFX_ID)!=0x32444631u) fail("FAIL ID");
-    publish_pixels();
+    init_assets();
     uint32_t hw=0,frame=0,phase_start=cycle_now(),previous=phase_start;
     uint32_t elapsed=0,render=0,count=0;
     for (;;) {

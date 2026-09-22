@@ -20,7 +20,7 @@ module render_subsystem (
     wire [15:0] video_width_pixel, video_height_pixel;
     wire video_mode_valid_pixel, video_mode_toggle_pixel;
     wire [1:0] operation;
-    wire [31:0] src, dst, stride, cycles;
+    wire [31:0] src, dst, stride, src_stride, cycles;
     wire [15:0] width, height, color;
     wire [31:0] fill_araddr, video_araddr, fill_rdata, video_rdata;
     wire [7:0] fill_arlen, video_arlen;
@@ -113,13 +113,13 @@ module render_subsystem (
         .swap_ack(swap_ack_sync[2]),
         .video_width(video_width),.video_height(video_height),.video_mode_valid(video_mode_valid),
         .start(start),.display_enable(display_enable),
-        .dst(dst),.stride(stride),.width(width),.height(height),.color(color),
+        .dst(dst),.stride(stride),.src_stride(src_stride),.width(width),.height(height),.color(color),
         .operation(operation),.src(src),.draw_page(draw_page),.swap_page(swap_page),.swap_toggle(swap_toggle)
     );
     fill_engine fill (
         .clk(clk),.reset(reset),.start(start),.memory_ready(memory_ready),
         .operation(operation),.src(src),.frame_base(draw_frame_base),
-        .dst(dst),.stride(stride),.width(width),.height(height),.color(color),
+        .dst(dst),.stride(stride),.src_stride(src_stride),.width(width),.height(height),.color(color),
         .busy(busy),.done(done),.error(error),.cycles(cycles),
         .awaddr(awaddr),.awlen(awlen),.awvalid(awvalid),.awready(awready),
         .wdata(wdata),.wstrb(wstrb),.wlast(wlast),.wvalid(wvalid),.wready(wready),

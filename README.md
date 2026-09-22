@@ -1,4 +1,4 @@
-# RTL 实验模块
+# Ti60F225 RISC-V + FPGA 2D 渲染引擎
 
 本目录用于维护独立 RTL 模块、配套仿真及软件接口代码。
 
@@ -7,11 +7,12 @@
 ## 当前可运行工程：Ti60F225 2D 渲染
 
 - 开发板：基于 Ti60F225I3 的 Ti60F225 开发板。
-- 功能：RISC-V C 驱动、带内部写数据 FIFO 的 AXI DDR 纯色填充/图像拷贝、双缓冲、640×480 HDMI、32 个运动方块与 CPU/HW 性能对比。
-- 用户反馈的一组实板读数：CPU 20 FPS / 36202 μs，HW 60 FPS / 4778 μs；场景渲染加速比约 7.58 倍。该组读数不代表长期稳定性或最大负载。
-- 当前限制：同一绘制页内拷贝、固定 1280 字节行距；独立图片资源区、Alpha、Color Key 与互动游戏尚未完成。
+- 功能：RISC-V C 驱动、AXI DDR 纯色填充/图像拷贝、16×37 位写 FIFO、独立 DDR 图片资源区、可配置源行距、双缓冲、640×480 HDMI、实际输出分辨率显示，以及 32 个运动 Sprite 的 CPU/HW 性能对比。
+- 图片启动时上传一次到 `0x01200000`，两种模式每帧均从同一资源区读取。硬件每帧执行 1 个 Fill 和 32 个 Copy，目标为后台显存。
+- 最新用户实板反馈：CPU 30 FPS / 26220 μs，HW 60 FPS / 4778 μs；帧率比 2 倍、场景渲染加速比约 5.49 倍。这是单组用户观测，不代表长期稳定性或最大负载。
+- 基础功能已覆盖并完成代码/仿真验证；Alpha、Color Key、互动游戏及最大 Sprite 数量测量尚未完成。图片格式当前为 RGB565，目标行距固定 1280 字节。
 
-入口：[工程说明](my/first_light/README.md)、[动画与验收记录](my/first_light/MOTION_DEMO.md)、[归档下载文件](my/first_light/releases/motion_20260921/first_light.bit)、[实板观测记录](my/first_light/releases/motion_20260921/BOARD_OBSERVATION.md)。
+入口：[工程说明](my/first_light/README.md)、[独立 DDR 资源区与验收记录](my/first_light/DDR_ASSETS.md)、[最新下载文件](my/first_light/releases/ddr_assets_20260922/first_light.bit)、[实板观测记录](my/first_light/releases/ddr_assets_20260922/BOARD_OBSERVATION.md)。此前 FIFO/分辨率版本和旧动画版均保留在 `my/first_light/releases/`。
 
 ### 克隆与复现
 
@@ -21,6 +22,8 @@
 git clone https://github.com/Eutopia-n/ours_blt.git
 cd ours_blt
 python my/first_light/tools/build.py firmware
+python my/first_light/tools/build.py sim-fifo
+python my/first_light/tools/build.py sim-mode
 python my/first_light/tools/build.py sim
 python my/first_light/tools/build.py sim-soc
 python my/first_light/tools/build.py compile
@@ -29,6 +32,8 @@ python my/first_light/tools/build.py compile
 首次克隆不需要运行 prepare；仓库已包含生成后的工程配置、必要 IP 和 RAM 初始化输入。只有重新从随板资料导入时才使用 `prepare --board-root <完整随板资料目录>`，然后重新执行 firmware。工具安装包、大型随板资料和编译缓存不在仓库中。
 
 固件、模块仿真、真实 Sapphire 核联合仿真和完整 FPGA 编译已有通过记录，见工程 reports 和 releases；仿真依赖 ModelSim 与可用许可证。编译命令不会自动下载 FPGA。
+
+最新资源区版本通过 58 组独立图片拷贝及显示期间两页后台拷贝测试；真实 CPU 联合仿真验证一次性 2048 字节上传、9 次换页和 12 个完整扫描帧，最终 setup slack +0.361 ns、hold slack +0.026 ns。已有板级 DDR/HDMI 相邻引脚告警保留，需实板持续运行验收。
 
 ## 目录结构
 
