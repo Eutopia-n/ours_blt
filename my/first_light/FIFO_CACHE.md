@@ -10,7 +10,7 @@ FIFO 位于 `fill_engine` 与 AXI W 通道之间，容量为 16 项，正好容�
 - bit 35:32：`WSTRB`
 - bit 31:0：`WDATA`
 
-FIFO、BitBlt 状态机和 AXI 主接口都使用 100 MHz `user_clk`，复位使用现有同步 `renderer_reset`，没有新增跨时钟通路。APB 寄存器、C 驱动和 HDMI 像素时钟域均未改变。
+FIFO、BitBlt 状态机和 AXI 主接口都使用 100 MHz `user_clk`，复位使用现有同步 `renderer_reset`。FIFO 本身没有新增跨时钟通路，也不改变已有渲染命令接口。同批更新的分辨率测量功能另增加了像素时钟域到 CPU 时钟域的同步、两个只读 APB 寄存器和 C 端文字显示。
 
 ## 握手与反压
 
@@ -25,15 +25,19 @@ FIFO、BitBlt 状态机和 AXI 主接口都使用 100 MHz `user_clk`，复位使
 ## 验证
 
 ```powershell
-python my\first_light\tools\build.py sim-fifo --modelsim D:\ModelSim\win64
-python my\first_light\tools\build.py sim --modelsim D:\ModelSim\win64
-python my\first_light\tools\build.py sim-soc --modelsim D:\ModelSim\win64
-python my\first_light\tools\build.py compile --efinity D:\Efinity
+python my\first_light\tools\build.py firmware
+python my\first_light\tools\build.py sim-fifo
+python my\first_light\tools\build.py sim-mode
+python my\first_light\tools\build.py sim
+python my\first_light\tools\build.py sim-soc
+python my\first_light\tools\build.py compile
 ```
 
 `tb_sync_fifo.sv` 覆盖空、满、上溢拒绝、下溢拒绝、顺序、同时入队/出队和清空。`tb_render.sv` 继续覆盖所有复制对齐、重叠、4 KB 边界、随机 AXI 反压和错误恢复，并额外检查 FIFO 不溢出、不下溢以及 ready 条件下没有 `WVALID` 空拍。
 
-## 2026-09-22 验证记录
+## 2026-09-22 队友提交中的验证记录
+
+以下记录来自 GitHub 分支 `Real-time-resolution-reading-and-FIFO` 的提交 `f6beb7e`，其中性能数值是行为仿真结果，不是开发板实测。本机重新编译后的文件与验证结论见 `SYNC_FIFO_RESOLUTION.md`。
 
 - FIFO 独立仿真：`ALL FIFO TESTS PASSED`，Errors=0、Warnings=0。
 - 渲染回归：33 组图案拷贝及完整 HDMI/双缓冲测试通过；总线始终就绪时 640×2 Block Copy 为 1720 个 100 MHz 核心周期，burst 内没有 `WVALID` 空拍。

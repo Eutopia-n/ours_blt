@@ -1,0 +1,158 @@
+
+Discarded input sections
+
+ .text          0x00000000        0x0 C:\Users\18123\AppData\Local\Temp\ccOfF17N.o
+ .data          0x00000000        0x0 C:\Users\18123\AppData\Local\Temp\ccOfF17N.o
+ .bss           0x00000000        0x0 C:\Users\18123\AppData\Local\Temp\ccOfF17N.o
+ .text          0x00000000        0x0 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .data          0x00000000        0x0 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .bss           0x00000000        0x0 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .comment       0x00000000       0x34 C:\Users\18123\AppData\Local\Temp\ccwMvD0b.debug.temp.o
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+ocr              0xf9000000         0x00001000         xrw
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+LOAD C:\Users\18123\AppData\Local\Temp\ccOfF17N.o
+LOAD C:\Users\18123\AppData\Local\Temp\ccREtVeI.o
+LOAD C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+LOAD C:\Users\18123\AppData\Local\Temp\ccwMvD0b.debug.temp.o
+
+.init           0xf9000000       0x54
+ *(.init)
+ .init          0xf9000000       0x54 C:\Users\18123\AppData\Local\Temp\ccOfF17N.o
+                0xf9000000                _start
+
+.text           0xf9000054      0xcac
+ *(.text .text.*)
+ .text.uart_putc
+                0xf9000054       0x30 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .text.puts_uart
+                0xf9000084       0x34 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .text.hex_uart
+                0xf90000b8       0x64 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .text.fail     0xf900011c       0x1c C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .text.select_draw_page
+                0xf9000138       0x28 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .text.wait_render
+                0xf9000160       0x64 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .text.publish_pixels
+                0xf90001c4       0x1c C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .text.text_at  0xf90001e0      0x118 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .text.decimal  0xf90002f8       0x68 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .text.fatal_trap
+                0xf9000360       0x50 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+                0xf9000360                fatal_trap
+ .text.startup.main
+                0xf90003b0      0x850 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+                0xf90003b0                main
+ *(.rodata .rodata.*)
+ .rodata.hex_uart.str1.4
+                0xf9000c00       0xb5 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+                                 0x11 (size before relaxing)
+ .rodata.fail.str1.4
+                0xf9000cb5        0x0 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+                                  0x3 (size before relaxing)
+ .rodata.fatal_trap.str1.4
+                0xf9000cb5        0x0 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+                                 0x17 (size before relaxing)
+ .rodata.main.str1.4
+                0xf9000cb5        0x0 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+                                 0x89 (size before relaxing)
+ *fill*         0xf9000cb5        0x3 
+ .rodata.font   0xf9000cb8       0x48 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+
+.rela.dyn       0xf9000d00        0x0
+ .rela.init     0xf9000d00        0x0 C:\Users\18123\AppData\Local\Temp\ccOfF17N.o
+
+.data           0xf9000d00        0x4
+ *(.data .data.*)
+ .data.draw_buffer
+                0xf9000d00        0x4 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ *(.sdata .sdata.*)
+
+.bss            0xf9000d04       0x18
+                0xf9000d04                        . = ALIGN (0x4)
+                0xf9000d04                        __bss_start = .
+ *(.bss .bss.*)
+ .bss.samples   0xf9000d04        0x8 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .bss.render_us
+                0xf9000d0c        0x8 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .bss.fps       0xf9000d14        0x8 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ *(.sbss .sbss.*)
+ *(COMMON)
+                0xf9000d1c                        . = ALIGN (0x4)
+                0xf9000d1c                        __bss_end = .
+                0xf9001000                        _stack_top = (ORIGIN (ocr) + LENGTH (ocr))
+                0x00000001                        ASSERT ((__bss_end <= (_stack_top - 0x200)), On-chip firmware leaves less than 512 bytes of stack)
+OUTPUT(C:\Users\18123\Desktop\qiansai\try\my\first_light\software\build\first_light.elf elf32-littleriscv)
+
+.riscv.attributes
+                0x00000000       0x43
+ .riscv.attributes
+                0x00000000       0x41 C:\Users\18123\AppData\Local\Temp\ccOfF17N.o
+ .riscv.attributes
+                0x00000041       0x3f C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+
+.comment        0x00000000       0x33
+ .comment       0x00000000       0x33 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+                                 0x34 (size before relaxing)
+
+.debug_line     0x00000000     0x1a8e
+ .debug_line    0x00000000       0xa8 C:\Users\18123\AppData\Local\Temp\ccOfF17N.o
+ .debug_line    0x000000a8     0x199e C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .debug_line    0x00001a46       0x48 C:\Users\18123\AppData\Local\Temp\ccwMvD0b.debug.temp.o
+
+.debug_line_str
+                0x00000000       0xca
+ .debug_line_str
+                0x00000000       0xca C:\Users\18123\AppData\Local\Temp\ccOfF17N.o
+                                 0x43 (size before relaxing)
+ .debug_line_str
+                0x000000ca        0x0 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+                                 0x97 (size before relaxing)
+ .debug_line_str
+                0x000000ca        0x0 C:\Users\18123\AppData\Local\Temp\ccwMvD0b.debug.temp.o
+                                 0xbc (size before relaxing)
+
+.debug_info     0x00000000     0x193a
+ .debug_info    0x00000000       0x24 C:\Users\18123\AppData\Local\Temp\ccOfF17N.o
+ .debug_info    0x00000024     0x111a C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .debug_info    0x0000113e      0x7fc C:\Users\18123\AppData\Local\Temp\ccwMvD0b.debug.temp.o
+                0x0000113e                main.c.04bf0e6b
+
+.debug_abbrev   0x00000000      0x285
+ .debug_abbrev  0x00000000       0x14 C:\Users\18123\AppData\Local\Temp\ccOfF17N.o
+ .debug_abbrev  0x00000014      0x139 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+ .debug_abbrev  0x0000014d      0x138 C:\Users\18123\AppData\Local\Temp\ccwMvD0b.debug.temp.o
+
+.debug_aranges  0x00000000       0x90
+ .debug_aranges
+                0x00000000       0x20 C:\Users\18123\AppData\Local\Temp\ccOfF17N.o
+ .debug_aranges
+                0x00000020       0x70 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+
+.debug_str      0x00000000      0x49e
+ .debug_str     0x00000000      0x49e C:\Users\18123\AppData\Local\Temp\ccOfF17N.o
+                                 0x4f (size before relaxing)
+ .debug_str     0x0000049e        0x0 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+                                0x129 (size before relaxing)
+ .debug_str     0x0000049e        0x0 C:\Users\18123\AppData\Local\Temp\ccwMvD0b.debug.temp.o
+                                0x3a5 (size before relaxing)
+
+.debug_loclists
+                0x00000000      0xb58
+ .debug_loclists
+                0x00000000      0xb58 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+
+.debug_rnglists
+                0x00000000      0x2fc
+ .debug_rnglists
+                0x00000000      0x2fc C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o
+
+.debug_frame    0x00000000      0x158
+ .debug_frame   0x00000000      0x158 C:\Users\18123\AppData\Local\Temp\cc0DAyXK.ltrans0.ltrans.o

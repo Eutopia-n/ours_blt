@@ -1,0 +1,15 @@
+Model Technology ModelSim SE-64 vlog 10.6e Compiler 2018.06 Jun 23 2018
+Start time: 14:49:24 on Sep 22,2026
+vlog -work sim/work -sv rtl/sync_fifo.v rtl/fill_engine.v rtl/render_regs.v rtl/framebuffer_video.v rtl/video_mode_measure.v rtl/render_subsystem.v sim/tb_render.sv 
+-- Compiling module sync_fifo
+-- Compiling module fill_engine
+-- Compiling module render_regs
+-- Compiling module framebuffer_video
+-- Compiling module video_mode_measure
+-- Compiling module render_subsystem
+-- Compiling module tb_render
+
+Top level modules:
+	tb_render
+End time: 14:49:25 on Sep 22,2026, Elapsed time: 0:00:01
+Errors: 0, Warnings: 0

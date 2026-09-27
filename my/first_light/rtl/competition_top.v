@@ -11,6 +11,7 @@
 //1.initial
 //***************************************************************/
 `include "ddr3_controller/ddr3_parameter.vh"
+`include "rtl/key_toggle.v"
 
 `define Efinity_Debug
 `timescale 1ps/1ps
@@ -49,6 +50,7 @@ parameter                       AXI_DATA_WIDTH     = `AXI_DATA_WIDTH
    output [9:0] tmds_data0_o, tmds_data1_o, tmds_data2_o, tmds_clk_o,
    output tmds_data0_TX_OE, tmds_data1_TX_OE, tmds_data2_TX_OE, tmds_clk_TX_OE,
    output tmds_data0_TX_RST, tmds_data1_TX_RST, tmds_data2_TX_RST, tmds_clk_TX_RST,
+   input key1_n, // KEY1, GPIOR_22/P14; pressed low
    // Clock and reset ports
    input                              axi_clk,      
    input                              core_clk,     // CORE CLK @ 100MHz
@@ -160,6 +162,7 @@ parameter FREQ = 100;			// default is 100 MHz.  Redefine as needed.
   wire [31:0] apb_pwdata, apb_prdata;
   wire apb_psel, apb_penable, apb_pready, apb_pwrite, apb_pslverror;
   wire soc_reset, master_reset;
+  wire key1_state;
   reg [1:0] calibration_sync;
   always @(posedge user_clk or negedge sys_rst)
     if (!sys_rst) calibration_sync <= 0;
@@ -399,6 +402,10 @@ ddr3_top                 u_ddr3_top
 
 
 //***************************************************************************
+key_toggle key1_filter(
+    .clk(user_clk),.reset(soc_reset | master_reset),
+    .key_n(key1_n),.state(key1_state)
+);
 soc u_sapphire_soc(
     .io_systemClk (user_clk),
     .io_ddrA_w_payload_strb (s_axi_wstrb),
@@ -563,7 +570,7 @@ soc u_sapphire_soc(
     .io_ddrMasters_0_aw_ready (gfx_awready),
     .io_ddrMasters_0_aw_valid (gfx_awvalid),
     .system_gpio_0_io_write (soc_gpio_OUT),
-    .system_gpio_0_io_read (soc_gpio_IN),
+    .system_gpio_0_io_read ({soc_gpio_IN[3:1],key1_state}),
     .system_spi_0_io_ss (system_spi_0_io_ss)
 );
 

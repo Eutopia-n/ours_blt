@@ -2,6 +2,7 @@
 module tb_soc;
     reg clk=0,pixel_clk=0,reset=1;
     reg uart_rx=1;
+    reg key_state=0; // Debounced KEY1 toggle from the top-level key_toggle block.
     always #5 clk=~clk;
     always #19.8347107 pixel_clk=~pixel_clk;
     wire soc_reset,master_reset,uart_tx;
@@ -25,18 +26,23 @@ module tb_soc;
         .rdata(rdata),.rresp(rresp),.rlast(rlast),.rvalid(rvalid),.rready(rready),
         .pixel(pixel),.hs(hs),.vs(vs),.de(de)
     );
-    localparam BASE=32'h01000000, PAGE_BYTES=614400, MEM_BYTES=1228800;
+    localparam BASE=32'h01000000, PAGE_BYTES=614400;
+    localparam ASSET_BASE=32'h01200000, ASSET_BYTES=1048576;
+    localparam MEM_BYTES=ASSET_BASE-BASE+ASSET_BYTES;
     reg [7:0] mem[0:MEM_BYTES-1];
     reg writing=0,reading=0;
     integer wa,ra,wl,rl,wb,rb,ws,rs;
     reg [7:0] wid,rid;
     integer commands=0,fill_commands=0,copy_commands=0;
+    integer opaque_copy_commands=0,keyed_copy_commands=0;
     integer cpu_reads=0,cpu_read_bytes=0,copy_reads=0,progress_file;
     integer swap_commands=0,swap_acks=0,page_frames[0:1];
     integer reports_cpu=0,reports_hw=0,mode_frames[0:1];
     integer last_commands=0,last_fills=0,last_copies=0,last_mode=-1,scene_frame=-1;
     integer page_present[0:1],bus_cycle=0,cpu_writes=0;
     integer video_status_reads=0,video_size_reads=0;
+    integer asset_write_bytes=0,cpu_asset_reads=0,hw_asset_reads=0;
+    integer keyed_zero_beats=0,keyed_partial_beats=0;
     reg last_video_valid=0;
     reg [31:0] last_video_size=0;
     reg [15:0] golden[0:307199],snapshot[0:614399];
@@ -57,8 +63,11 @@ module tb_soc;
         if(m_awvalid&&m_awready) begin
             // The upsizer can retain an unaligned first address while WSTRB
             // selects only two bytes. Burst extent starts at the aligned beat.
-            if(m_awaddr<BASE || (m_awaddr&~((1<<m_awsize)-1))+(m_awlen+1)*(1<<m_awsize)>BASE+MEM_BYTES)
-                $fatal(1,"SoC write outside framebuffer: %h",m_awaddr);
+            if(!((m_awaddr>=BASE && (m_awaddr&~((1<<m_awsize)-1))+(m_awlen+1)*(1<<m_awsize)<=BASE+2*PAGE_BYTES) ||
+                 (m_awaddr>=ASSET_BASE && (m_awaddr&~((1<<m_awsize)-1))+(m_awlen+1)*(1<<m_awsize)<=ASSET_BASE+2048)))
+                $fatal(1,"SoC write outside framebuffer/uploaded image: %h",m_awaddr);
+            if(m_awaddr>=ASSET_BASE && (m_awid[7] || swap_commands!=0))
+                $fatal(1,"Only startup CPU code may upload resources");
             if(m_awburst!=1 || m_awsize>4) $fatal(1,"Unsupported AW burst");
             wa=m_awaddr-BASE; wl=m_awlen; wb=0; ws=1<<m_awsize;
             wid=m_awid; writing=1;
@@ -66,15 +75,27 @@ module tb_soc;
         end
         if(m_wvalid&&m_wready) begin
             if(m_wlast!=(wb==wl)) $fatal(1,"SoC WLAST mismatch");
+            if(wid[7] && graphics.operation==2) begin
+                if(m_wstrb==0) keyed_zero_beats=keyed_zero_beats+1;
+                else if(m_wstrb!=16'hffff) keyed_partial_beats=keyed_partial_beats+1;
+            end
             for(integer b=0;b<16;b=b+1)
-                if(m_wstrb[b]) mem[(wa&~15)+b]=m_wdata[8*b+:8];
+                if(m_wstrb[b]) begin
+                    mem[(wa&~15)+b]=m_wdata[8*b+:8];
+                    if(wa>=ASSET_BASE-BASE) asset_write_bytes=asset_write_bytes+1;
+                end
             wa=(wa&~(ws-1))+ws; wb=wb+1;
             if(m_wlast) begin writing=0; m_bvalid<=1; m_bid<=wid; m_bresp<=0; end
         end
         if(m_bvalid&&m_bready) m_bvalid<=0;
         if(m_arvalid&&m_arready) begin
-            if(m_araddr<BASE || (m_araddr&~((1<<m_arsize)-1))+(m_arlen+1)*(1<<m_arsize)>BASE+MEM_BYTES)
-                $fatal(1,"SoC read outside framebuffer: %h",m_araddr);
+            if(!((m_araddr>=BASE && (m_araddr&~((1<<m_arsize)-1))+(m_arlen+1)*(1<<m_arsize)<=BASE+2*PAGE_BYTES) ||
+                 (m_araddr>=ASSET_BASE && (m_araddr&~((1<<m_arsize)-1))+(m_arlen+1)*(1<<m_arsize)<=ASSET_BASE+ASSET_BYTES)))
+                $fatal(1,"SoC read outside framebuffer/resource pools: %h",m_araddr);
+            if(m_araddr>=ASSET_BASE) begin
+                if(m_arid[7]) hw_asset_reads=hw_asset_reads+1;
+                else cpu_asset_reads=cpu_asset_reads+1;
+            end
             if(m_arburst!=1 || m_arsize>4) $fatal(1,"Unsupported AR burst");
             ra=m_araddr-BASE; rl=m_arlen; rb=0; rs=1<<m_arsize;
             rid=m_arid; reading=1;
@@ -102,14 +123,27 @@ module tb_soc;
             if(pwrite&&paddr==16'h8) begin
                 commands=commands+1;
                 if(graphics.operation==0) fill_commands=fill_commands+1;
-                else copy_commands=copy_commands+1;
+                else begin
+                    if((graphics.operation!=1 && graphics.operation!=2) ||
+                       graphics.src!=ASSET_BASE || graphics.src_stride!=64)
+                        $fatal(1,"Demo copy did not use the DDR image");
+                    if(graphics.operation==2) begin
+                        if(graphics.color!=16'hf81f || swap_commands==5)
+                            $fatal(1,"Unexpected keyed copy or transparent color");
+                        keyed_copy_commands=keyed_copy_commands+1;
+                    end else begin
+                        if(swap_commands!=5) $fatal(1,"Opaque copy outside KEY OFF frame");
+                        opaque_copy_commands=opaque_copy_commands+1;
+                    end
+                    copy_commands=copy_commands+1;
+                end
             end
             if(pwrite&&paddr==16'h40) begin
                 swap_commands=swap_commands+1;
                 check_scene();
             end
         end
-        if(graphics.display_enable && m_awvalid && m_awready &&
+        if(graphics.display_enable && m_awvalid && m_awready && m_awaddr<BASE+2*PAGE_BYTES &&
            ((m_awaddr>=BASE+PAGE_BYTES)==graphics.display_page_sync[1]))
             $fatal(1,"Firmware rendered to the front page");
     end
@@ -146,8 +180,13 @@ module tb_soc;
         integer p;
         p=phase%(2*limit); bounce=p>limit ? 2*limit-p : p;
     endfunction
-    function automatic [15:0] stripe(input integer y);
-        stripe=y<10 ? 16'h07ff : y<20 ? 16'hf81f : 16'hffe0;
+    function automatic [15:0] sprite(input integer x,y);
+        integer margin;
+        begin
+            margin=y<16 ? 15-y : y-16;
+            sprite=(x<margin || x>=32-margin) ? 16'hf81f :
+                   (y<16 ? 16'h07ff : 16'hffe0);
+        end
     endfunction
     function automatic [7:0] resolution_char(input integer index,input bit measured);
         begin
@@ -172,21 +211,36 @@ module tb_soc;
                 "I":glyph_bits=16'h7497; "R":glyph_bits=16'h7bac;
                 "S":glyph_bits=16'h79cf; "T":glyph_bits=16'h7492;
                 "W":glyph_bits=16'h5bfd; "X":glyph_bits=16'h5aad;
+                "F":glyph_bits=16'h79a4; "K":glyph_bits=16'h5bad;
+                "N":glyph_bits=16'h5f7d; "O":glyph_bits=16'h7b6f;
+                "Y":glyph_bits=16'h5a92;
                 default:glyph_bits=0;
+            endcase
+        end
+    endfunction
+    function automatic [7:0] key_char(input integer index,input bit keyed);
+        begin
+            case(index)
+                0:key_char="K"; 1:key_char="E"; 2:key_char="Y";
+                3:key_char=" "; 4:key_char="O";
+                5:key_char=keyed ? "N" : "F";
+                default:key_char=keyed ? " " : "F";
             endcase
         end
     endfunction
     // Independently rasterize the scene, then compare every non-HUD pixel
     // at submission. Save the entire page for subsequent scanout checks.
     task check_scene;
-        integer mode,page,x,y,base,offset,res_x,res_len,char_index,row,col,dx,dy;
+        integer mode,page,x,y,base,offset,res_x,res_len,char_index,row,col,dx,dy,key_len;
         reg [15:0] actual,bits;
         reg [7:0] character;
+        reg keyed;
         begin
             mode=commands!=last_commands; page=graphics.swap_page;
+            keyed=(swap_commands!=2 && swap_commands!=6);
             if(mode!=(swap_commands>=5 && swap_commands<=8))
                 $fatal(1,"Unexpected renderer mode: present=%0d mode=%0d",swap_commands,mode);
-            if(mode && (fill_commands-last_fills!=4 || copy_commands-last_copies!=32))
+            if(mode && (fill_commands-last_fills!=1 || copy_commands-last_copies!=32))
                 $fatal(1,"Incomplete hardware scene");
             if(writing || m_bvalid) $fatal(1,"Present before DDR writes completed");
             if(mode!=last_mode) begin
@@ -197,13 +251,20 @@ module tb_soc;
             last_fills=fill_commands; last_copies=copy_commands;
             mode_frames[mode]=mode_frames[mode]+1;
             for(integer n=0;n<307200;n=n+1) golden[n]=16'h1082;
+            if(asset_write_bytes!=2048) $fatal(1,"Image was not uploaded exactly once: %0d bytes",asset_write_bytes);
             for(integer row=0;row<32;row=row+1)
-                for(integer col=0;col<32;col=col+1) golden[(64+row)*640+col]=stripe(row);
+                for(integer col=0;col<32;col=col+1) begin
+                    offset=ASSET_BASE-BASE+row*64+col*2;
+                    if({mem[offset+1],mem[offset]}!==sprite(col,row))
+                        $fatal(1,"DDR resource changed or upload was not drained");
+                end
             for(integer n=0;n<32;n=n+1) begin
                 x=48+bounce(n*74+scene_frame*4,552);
                 y=112+bounce(n*46+scene_frame*2,320);
                 for(integer row=0;row<32;row=row+1)
-                    for(integer col=0;col<32;col=col+1) golden[(y+row)*640+x+col]=stripe(row);
+                    for(integer col=0;col<32;col=col+1)
+                        if(!keyed || sprite(col,row)!=16'hf81f)
+                            golden[(y+row)*640+x+col]=sprite(col,row);
             end
             if(last_video_valid && last_video_size!=={16'd480,16'd640})
                 $fatal(1,"Firmware read invalid measured size %h",last_video_size);
@@ -216,6 +277,15 @@ module tb_soc;
                     if(bits&(1<<(14-row*3-col)))
                         for(dy=0;dy<3;dy=dy+1) for(dx=0;dx<3;dx=dx+1)
                             golden[(56+row*3+dy)*640+res_x+char_index*12+col*3+dx]=16'hffff;
+            end
+            key_len=keyed ? 6 : 7;
+            for(char_index=0;char_index<key_len;char_index=char_index+1) begin
+                character=key_char(char_index,keyed);
+                bits=glyph_bits(character);
+                for(row=0;row<5;row=row+1) for(col=0;col<3;col=col+1)
+                    if(bits&(1<<(14-row*3-col)))
+                        for(dy=0;dy<3;dy=dy+1) for(dx=0;dx<3;dx=dx+1)
+                            golden[(56+row*3+dy)*640+12+char_index*12+col*3+dx]=16'hffff;
             end
             base=page*PAGE_BYTES;
             for(integer n=0;n<307200;n=n+1) begin
@@ -231,6 +301,11 @@ module tb_soc;
                 if(actual!==golden[y*640+x])
                     $fatal(1,"Resolution HUD pixel (%0d,%0d): %h != %h",x,y,actual,golden[y*640+x]);
             end
+            for(y=56;y<64;y=y+1) for(x=12;x<96;x=x+1) begin
+                actual={mem[base+(y*640+x)*2+1],mem[base+(y*640+x)*2]};
+                if(actual!==golden[y*640+x])
+                    $fatal(1,"Key HUD pixel (%0d,%0d): %h != %h",x,y,actual,golden[y*640+x]);
+            end
             // The top-left pixel of C/H must identify the active column.
             offset=base+8*1280+12*2;
             if({mem[offset+1],mem[offset]}!==(mode ? 16'h8410 : 16'hffff))
@@ -239,8 +314,8 @@ module tb_soc;
             if({mem[offset+1],mem[offset]}!==(mode ? 16'hffff : 16'h8410))
                 $fatal(1,"HW HUD active color mismatch");
             page_present[page]=swap_commands;
-            $fdisplay(progress_file,"PASS scene: present=%0d mode=%0d frame=%0d page=%0d time=%0t",
-                      swap_commands,mode,scene_frame,page,$time); $fflush(progress_file);
+            $fdisplay(progress_file,"PASS scene: present=%0d mode=%0d keyed=%0d frame=%0d page=%0d time=%0t",
+                      swap_commands,mode,keyed,scene_frame,page,$time); $fflush(progress_file);
         end
     endtask
     task send_char(input reg [7:0] value);
@@ -253,7 +328,11 @@ module tb_soc;
     initial begin
         // Send before acknowledgement so production firmware sees the
         // character on its next loop; no fake timers or test-only firmware.
+        wait(mode_frames[0]==1); key_state=~key_state;
+        wait(mode_frames[0]==2); key_state=~key_state;
         wait(mode_frames[0]==4); send_char("h");
+        wait(mode_frames[1]==1); key_state=~key_state;
+        wait(mode_frames[1]==2); key_state=~key_state;
         wait(mode_frames[1]==4); send_char("c");
     end
     integer px=0,py=0;
@@ -275,7 +354,8 @@ module tb_soc;
                 if(px==0 && py==0) begin
                     scan_page=graphics.display_page_active;
                     scan_present=page_present[scan_page];
-                    if(scan_present==1 || scan_present==5 || scan_present==9) begin
+                    if(scan_present==1 || scan_present==2 || scan_present==5 ||
+                       scan_present==6 || scan_present==9) begin
                         preview_file=$fopen($sformatf("reports/motion_%0d.ppm",scan_present),"wb");
                         $fwrite(preview_file,"P6\n640 480\n255\n");
                     end
@@ -308,12 +388,21 @@ module tb_soc;
         repeat(50) @(negedge clk); reset=0;
         wait(return_frames>=1 && reports_cpu>=1 && reports_hw>=1);
         if(mode_frames[0]<5 || mode_frames[1]!=4 || swap_acks<9 || cpu_reads==0 || cpu_writes==0 ||
-           video_status_reads==0 || video_size_reads==0 || !last_video_valid)
+           video_status_reads==0 || video_size_reads==0 || !last_video_valid ||
+           cpu_asset_reads==0 || hw_asset_reads==0 || asset_write_bytes!=2048 ||
+           keyed_zero_beats==0 || keyed_partial_beats==0 ||
+           opaque_copy_commands!=32 || keyed_copy_commands!=96)
             $fatal(1,"Missing CPU/HW mode, UART or double-buffer coverage");
         if(graphics.underflow||graphics.read_error) $fatal(1,"SoC scanout error");
         $display("PASS: real CPU/HW/CPU, %0d CPU frames, %0d HW frames, %0d swaps; same scene pixels; UART metrics; no front writes",
                  mode_frames[0],mode_frames[1],swap_acks);
         $display("PASS: %0d complete A frames, %0d complete B frames, no scanout mismatch",page_frames[0],page_frames[1]);
+        $display("PASS: DDR image uploaded once (%0d bytes), immutable across A/B clears; CPU resource bursts=%0d, HW resource bursts=%0d",
+                 asset_write_bytes,cpu_asset_reads,hw_asset_reads);
+        $display("PASS: Sapphire 32-to-128-bit bridge propagated %0d all-key and %0d partial key write masks",
+                 keyed_zero_beats,keyed_partial_beats);
+        $display("PASS: KEY1 switched both CPU and HW before/after views; opaque copies=%0d, keyed copies=%0d",
+                 opaque_copy_commands,keyed_copy_commands);
         $display("SOC TEST PASSED"); $fclose(progress_file); $finish;
     end
     initial forever begin
