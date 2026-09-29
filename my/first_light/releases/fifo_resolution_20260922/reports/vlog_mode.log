@@ -1,0 +1,10 @@
+Model Technology ModelSim SE-64 vlog 10.6e Compiler 2018.06 Jun 23 2018
+Start time: 14:49:22 on Sep 22,2026
+vlog -work sim/work -sv rtl/video_mode_measure.v sim/tb_video_mode_measure.sv 
+-- Compiling module video_mode_measure
+-- Compiling module tb_video_mode_measure
+
+Top level modules:
+	tb_video_mode_measure
+End time: 14:49:22 on Sep 22,2026, Elapsed time: 0:00:00
+Errors: 0, Warnings: 0

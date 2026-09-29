@@ -1,5 +1,5 @@
 Model Technology ModelSim SE-64 vlog 2020.4 Compiler 2020.10 Oct 13 2020
-Start time: 12:39:26 on Sep 22,2026
+Start time: 14:07:57 on Sep 27,2026
 vlog -work sim/work -sv rtl/sync_fifo.v rtl/fill_engine.v rtl/render_regs.v rtl/framebuffer_video.v rtl/video_mode_measure.v rtl/render_subsystem.v sim/tb_render.sv 
 -- Compiling module sync_fifo
 -- Compiling module fill_engine
@@ -11,5 +11,5 @@ vlog -work sim/work -sv rtl/sync_fifo.v rtl/fill_engine.v rtl/render_regs.v rtl/
 
 Top level modules:
 	tb_render
-End time: 12:39:27 on Sep 22,2026, Elapsed time: 0:00:01
+End time: 14:07:57 on Sep 27,2026, Elapsed time: 0:00:00
 Errors: 0, Warnings: 0

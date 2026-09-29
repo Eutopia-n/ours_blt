@@ -4,4 +4,4 @@
 
 独立工程位于 [first_light](first_light/README.md)，Efinity 入口为 `first_light/first_light.xml`。
 
-最新说明与验收结果见 [MOTION_DEMO.md](first_light/MOTION_DEMO.md)。双缓冲与 Block Copy 历史记录见 [DOUBLE_BUFFER.md](first_light/DOUBLE_BUFFER.md)、[BLOCK_COPY.md](first_light/BLOCK_COPY.md)，第一阶段历史验收见 [VALIDATION.md](first_light/VALIDATION.md)。原有独立模块保留在仓库根目录 rtl/、sim/ 和 efinity/；本仓库不包含整套随板示例。
+当前颜色键控实现、KEY1 按键开关与仿真/编译记录见 [COLOR_KEY.md](first_light/COLOR_KEY.md)。先前连续动画、双缓冲与 Block Copy 记录见 [MOTION_DEMO.md](first_light/MOTION_DEMO.md)、[DOUBLE_BUFFER.md](first_light/DOUBLE_BUFFER.md)、[BLOCK_COPY.md](first_light/BLOCK_COPY.md)。原有独立模块保留在仓库根目录 rtl/、sim/ 和 efinity/；本仓库不包含整套随板示例。

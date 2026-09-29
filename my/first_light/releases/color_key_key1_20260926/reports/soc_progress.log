@@ -1,0 +1,39 @@
+UART: Ti60 DDR ASSET 32 CPU/HW
+
+time=10000000000 commands=0 CPU read bytes=64 display=0
+time=20000000000 commands=0 CPU read bytes=64 display=0
+PASS scene: present=1 mode=0 keyed=1 frame=0 page=0 time=28911475000
+time=30000000000 commands=0 CPU read bytes=2240 display=0
+time=40000000000 commands=0 CPU read bytes=2240 display=1
+time=50000000000 commands=0 CPU read bytes=2240 display=1
+time=60000000000 commands=0 CPU read bytes=4288 display=1
+PASS scene: present=2 mode=0 keyed=0 frame=1 page=1 time=63476395000
+time=70000000000 commands=0 CPU read bytes=4416 display=1
+time=80000000000 commands=0 CPU read bytes=4416 display=1
+time=90000000000 commands=0 CPU read bytes=6464 display=1
+PASS scene: present=3 mode=0 keyed=1 frame=2 page=0 time=96798205000
+time=100000000000 commands=0 CPU read bytes=6592 display=1
+time=110000000000 commands=0 CPU read bytes=6592 display=1
+time=120000000000 commands=0 CPU read bytes=6592 display=1
+time=130000000000 commands=0 CPU read bytes=8704 display=1
+PASS scene: present=4 mode=0 keyed=1 frame=3 page=1 time=130120615000
+UART: CPU FPS 29 US 28491
+
+PASS scene: present=5 mode=1 keyed=1 frame=0 page=0 time=139387285000
+time=140000000000 commands=33 CPU read bytes=8896 display=1
+time=150000000000 commands=33 CPU read bytes=8896 display=1
+PASS scene: present=6 mode=1 keyed=0 frame=1 page=1 time=156033325000
+time=160000000000 commands=66 CPU read bytes=9024 display=1
+time=170000000000 commands=67 CPU read bytes=9024 display=1
+PASS scene: present=7 mode=1 keyed=1 frame=2 page=0 time=172687655000
+time=180000000000 commands=99 CPU read bytes=9152 display=1
+PASS scene: present=8 mode=1 keyed=1 frame=3 page=1 time=189350775000
+time=190000000000 commands=132 CPU read bytes=9280 display=1
+time=200000000000 commands=132 CPU read bytes=9280 display=1
+UART: HW FPS 60 US 4370
+
+time=210000000000 commands=132 CPU read bytes=9280 display=1
+time=220000000000 commands=132 CPU read bytes=9280 display=1
+time=230000000000 commands=132 CPU read bytes=11392 display=1
+PASS scene: present=9 mode=0 keyed=1 frame=0 page=0 time=230176045000
+time=240000000000 commands=132 CPU read bytes=11456 display=1

@@ -24,6 +24,7 @@ static void fail(const char *message) {
     puts_uart(message); puts_uart("\r\n"); for (;;) {}
 }
 static uint32_t draw_buffer = FRAMEBUFFER;
+static uint32_t key_enabled = 1;
 static uint32_t draw_page(void) { return draw_buffer == FRAMEBUFFER_B ? 1u : 0u; }
 static int wait_display_page(uint32_t page) {
     uint32_t start = cycle_now();
@@ -52,7 +53,7 @@ int fill_rect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint16_t 
         return -1;
     if (mmio_read(GFX_BASE+GFX_STATUS) & (GFX_BUSY|GFX_SWAP_PENDING)) return -2;
     select_draw_page();
-    mmio_write(GFX_BASE+GFX_OPERATION, 0);
+    mmio_write(GFX_BASE+GFX_OPERATION, GFX_OP_FILL);
     mmio_write(GFX_BASE+GFX_DST, draw_buffer+y*FRAME_STRIDE+x*2);
     mmio_write(GFX_BASE+GFX_WIDTH, width);
     mmio_write(GFX_BASE+GFX_HEIGHT, height);
@@ -66,16 +67,45 @@ int copy_rect(uint32_t src_x, uint32_t src_y, uint32_t dst_x, uint32_t dst_y,
     if (!width || !height || src_x >= 640 || src_y >= 480 || dst_x >= 640 || dst_y >= 480 ||
         width > 640-src_x || width > 640-dst_x || height > 480-src_y || height > 480-dst_y)
         return -1;
+    return copy_image(draw_buffer+src_y*FRAME_STRIDE+src_x*2, FRAME_STRIDE,
+                      dst_x,dst_y,width,height);
+}
+static int copy_image_mode(uint32_t source, uint32_t source_stride, uint32_t dst_x,
+                           uint32_t dst_y, uint32_t width, uint32_t height,
+                           uint16_t key, uint32_t operation) {
+    if (!width || !height || dst_x >= 640 || dst_y >= 480 ||
+        width > 640-dst_x || height > 480-dst_y || (source&1u) ||
+        (source_stride&1u) || source_stride > 65534 || source_stride < width*2)
+        return -1;
+    uint32_t bytes=(height-1)*source_stride+width*2;
+    uint32_t base=ASSET_BASE, size=ASSET_BYTES;
+    if (source>=draw_buffer && source<draw_buffer+FRAMEBUFFER_BYTES &&
+        source_stride==FRAME_STRIDE) { base=draw_buffer; size=FRAMEBUFFER_BYTES; }
+    // Subtraction after the range check avoids wrapping a 32-bit end address.
+    if (source<base || source>=base+size || bytes>base+size-source) return -1;
     if (mmio_read(GFX_BASE+GFX_STATUS) & (GFX_BUSY|GFX_SWAP_PENDING)) return -2;
     select_draw_page();
-    mmio_write(GFX_BASE+GFX_OPERATION, 1);
-    mmio_write(GFX_BASE+GFX_SRC, draw_buffer+src_y*FRAME_STRIDE+src_x*2);
+    mmio_write(GFX_BASE+GFX_OPERATION, operation);
+    if (operation == GFX_OP_KEYED_COPY) mmio_write(GFX_BASE+GFX_COLOR, key);
+    mmio_write(GFX_BASE+GFX_SRC, source);
+    mmio_write(GFX_BASE+GFX_SRC_STRIDE, source_stride);
     mmio_write(GFX_BASE+GFX_DST, draw_buffer+dst_y*FRAME_STRIDE+dst_x*2);
     mmio_write(GFX_BASE+GFX_WIDTH, width);
     mmio_write(GFX_BASE+GFX_HEIGHT, height);
     mmio_write(GFX_BASE+GFX_STRIDE, FRAME_STRIDE);
     mmio_write(GFX_BASE+GFX_COMMAND, 1);
     return wait_render();
+}
+int copy_image(uint32_t source, uint32_t source_stride, uint32_t dst_x,
+               uint32_t dst_y, uint32_t width, uint32_t height) {
+    return copy_image_mode(source, source_stride, dst_x, dst_y, width, height,
+                           0, GFX_OP_COPY);
+}
+int copy_image_keyed(uint32_t source, uint32_t source_stride, uint32_t dst_x,
+                     uint32_t dst_y, uint32_t width, uint32_t height,
+                     uint16_t key) {
+    return copy_image_mode(source, source_stride, dst_x, dst_y, width, height,
+                           key, GFX_OP_KEYED_COPY);
 }
 int present_frame(void) {
     uint32_t page = draw_page();
@@ -96,40 +126,69 @@ static void publish_pixels(void) {
     (void)*(volatile uint32_t *)(uintptr_t)draw_buffer;
     __asm__ volatile ("fence iorw, iorw" ::: "memory");
 }
+#define ASSET_MAGIC 0x37375341u /* "AS77" */
+#define ASSET_VERSION 1u
+#define ASSET_TABLE_BYTES (77u*8u)
+#define ASSET_PIXEL_OFFSET (16u+ASSET_TABLE_BYTES)
+#define POSE_TICKS 8333333u
+typedef struct {
+    uint32_t offset;
+    uint8_t width, height;
+    int8_t dx, dy;
+} sprite_frame_t;
+static int asset_valid(void) {
+    const volatile uint32_t *h=(const volatile uint32_t *)(uintptr_t)ASSET_BASE;
+    __asm__ volatile (".word 0x500f" ::: "memory");
+    uint32_t length=h[2];
+    if(h[0]!=ASSET_MAGIC || h[1]!=ASSET_VERSION ||
+       length<=ASSET_PIXEL_OFFSET || length>ASSET_BYTES || (length&1u)) return 0;
+    const volatile sprite_frame_t *f=(const volatile sprite_frame_t *)(uintptr_t)(ASSET_BASE+16);
+    for(uint32_t i=0;i<77;++i)
+        if(!f[i].width || !f[i].height || f[i].offset<ASSET_PIXEL_OFFSET ||
+           f[i].offset>length ||
+           (uint32_t)f[i].width*f[i].height*2u>length-f[i].offset) return 0;
+    return 1;
+}
 static void cpu_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c) {
     for (uint32_t row=0; row<h; ++row) {
         volatile uint16_t *p=(volatile uint16_t *)(uintptr_t)(draw_buffer+(y+row)*1280+x*2);
         for (uint32_t col=0; col<w; ++col) p[col]=c;
     }
 }
-static void cpu_copy(uint32_t x, uint32_t y) {
-    for (uint32_t row=0; row<32; ++row) {
-        const volatile uint16_t *s=(const volatile uint16_t *)(uintptr_t)(draw_buffer+(64+row)*1280);
+static void cpu_copy(uint32_t source,uint32_t x,uint32_t y,uint32_t width,uint32_t height) {
+    for (uint32_t row=0; row<height; ++row) {
+        const volatile uint16_t *s=(const volatile uint16_t *)(uintptr_t)(source+row*width*2u);
         volatile uint16_t *d=(volatile uint16_t *)(uintptr_t)(draw_buffer+(y+row)*1280+x*2);
-        for (uint32_t col=0; col<32; ++col) d[col]=s[col];
+        for (uint32_t col=0; col<width; ++col) {
+            uint16_t pixel=s[col];
+            if (!key_enabled || pixel!=0xf81f) d[col]=pixel;
+        }
     }
 }
-static uint32_t bounce(uint32_t phase, uint32_t limit) {
-    phase %= limit*2;
-    return phase>limit ? limit*2-phase : phase;
-}
-static void scene(uint32_t frame, uint32_t hw) {
+static void scene(uint32_t pose,uint32_t x,uint32_t hw) {
+    *(volatile uint32_t *)(uintptr_t)0x013fff00u =
+        0x77000000u | (hw<<21) | (key_enabled<<20) | (x<<8) | pose;
+    const volatile sprite_frame_t *frames=(const volatile sprite_frame_t *)(uintptr_t)(ASSET_BASE+16);
+    sprite_frame_t f=frames[pose];
+    uint32_t dst_x=(uint32_t)((int32_t)x+f.dx);
+    uint32_t dst_y=(uint32_t)(320+f.dy);
+    uint32_t source=ASSET_BASE+f.offset;
     if (!hw) {
         // Sapphire BSP 0x500F invalidates stale reads left by hardware writes.
         __asm__ volatile (".word 0x500f" ::: "memory");
     }
     if (hw) { if (fill_rect(0,0,640,480,0x1082)) fail("FAIL fill"); }
     else cpu_fill(0,0,640,480,0x1082);
-    static const uint16_t colors[3]={0x07ff,0xf81f,0xffe0};
-    for (uint32_t n=0;n<3;++n) {
-        uint32_t height=n==2 ? 12 : 10;
-        if (hw) { if (fill_rect(0,64+n*10,32,height,colors[n])) fail("FAIL fill"); }
-        else cpu_fill(0,64+n*10,32,height,colors[n]);
-    }
-    for (uint32_t n=0;n<32;++n) {
-        uint32_t x=48+bounce(n*74+frame*4,552), y=112+bounce(n*46+frame*2,320);
-        if (hw) { if (copy_rect(0,64,x,y,32,32)) fail("FAIL copy"); }
-        else cpu_copy(x,y);
+    if (hw) {
+        if(fill_rect(0,277,640,20,0x07e0)) fail("FAIL fill");
+        if(fill_rect(0,321,640,20,0x001f)) fail("FAIL fill");
+        int result=key_enabled ? copy_image_keyed(source,(uint32_t)f.width*2u,dst_x,dst_y,f.width,f.height,0xf81f)
+                               : copy_image(source,(uint32_t)f.width*2u,dst_x,dst_y,f.width,f.height);
+        if(result) fail("FAIL copy");
+    } else {
+        cpu_fill(0,277,640,20,0x07e0);
+        cpu_fill(0,321,640,20,0x001f);
+        cpu_copy(source,dst_x,dst_y,f.width,f.height);
     }
     publish_pixels();
 }
@@ -172,7 +231,7 @@ static void resolution_hud(void) {
     text_at(640-12-glyphs*12,56,label,0xffff);
 }
 static uint32_t fps[2],render_us[2],samples[2];
-static void hud(uint32_t hw) {
+static void hud(uint32_t hw,uint32_t pose) {
     for (uint32_t n=0;n<2;++n) {
         uint32_t x=12+n*320;
         uint16_t color=n==hw ? 0xffff : 0x8410;
@@ -182,32 +241,50 @@ static void hud(uint32_t hw) {
         text_at(x,32,"US",color);
         decimal(number,render_us[n]); text_at(x+36,32,samples[n] ? number : "-",color);
     }
+    text_at(12,56,key_enabled ? "KEY ON" : "KEY OFF",0xffff);
+    char number[11];
+    decimal(number,pose+1u);
+    text_at(164,56,"FRAME",0xffff);
+    text_at(236,56,number,0xffff);
     resolution_hud();
     publish_pixels();
 }
 int main(void) {
     mmio_write(SYSTEM_UART_0_IO_CTRL+8, SYSTEM_CLINT_HZ/(115200u*8u)-1u);
     mmio_write(SYSTEM_UART_0_IO_CTRL+12, 7u); // 8 data bits, no parity, one stop bit
-    puts_uart("Ti60 MOTION 32 CPU/HW\r\n");
+    puts_uart("Ti60 SPRITE 77 CPU/HW\r\n");
     if (mmio_read(GFX_BASE+GFX_ID)!=0x32444631u) fail("FAIL ID");
-    publish_pixels();
-    uint32_t hw=0,frame=0,phase_start=cycle_now(),previous=phase_start;
+    if(!asset_valid()) fail("FAIL ASSET");
+    uint32_t hw=0,pose=0,pose_phase=0,phase_start=cycle_now(),previous=phase_start;
+    uint32_t pose_previous=phase_start,key_last=mmio_read(SYSTEM_GPIO_0_IO_CTRL)&1u;
     uint32_t elapsed=0,render=0,count=0;
     for (;;) {
         uint32_t next=hw;
+        uint32_t key_now=mmio_read(SYSTEM_GPIO_0_IO_CTRL)&1u;
+        if(key_now!=key_last) { key_enabled^=1u; key_last=key_now; }
         uint32_t rx=mmio_read(SYSTEM_UART_0_IO_CTRL);
         if(rx&0x10000u) {
             if((rx&255u)=='h') next=1;
             if((rx&255u)=='c') next=0;
+            if((rx&255u)=='m') {pose=38;pose_phase=0;}
+            if((rx&255u)=='z') {pose=76;pose_phase=0;}
+            if((rx&255u)=='0') {pose=0;pose_phase=0;}
         } else if ((uint32_t)(cycle_now()-phase_start)>=400000000u) next=hw^1u;
         if(next!=hw) {
-            hw=next; frame=0; count=0; elapsed=0; render=0;
+            hw=next; count=0; elapsed=0; render=0;
             phase_start=cycle_now(); previous=phase_start;
         }
         uint32_t start=cycle_now();
-        scene(frame++,hw);
+        pose_phase+=start-pose_previous;
+        pose_previous=start;
+        while(pose_phase>=POSE_TICKS) {
+            pose_phase-=POSE_TICKS;
+            pose=(pose+1u)%77u;
+        }
+        uint32_t x=120u+(pose*400u)/77u+(pose_phase*400u)/(77u*POSE_TICKS);
+        scene(pose,x,hw);
         render+=cycle_now()-start;
-        hud(hw);
+        hud(hw,pose);
         if(present_frame()) fail("FAIL present");
         uint32_t now=cycle_now();
         elapsed+=now-previous; previous=now;

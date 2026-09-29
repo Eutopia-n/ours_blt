@@ -7,7 +7,7 @@ import sys
 
 ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
-parser.add_argument('step',choices=['prepare','firmware','sim','sim-fifo','sim-mode','sim-soc','interface','map','compile','inspect'])
+parser.add_argument('step',choices=['prepare','firmware','sim','sim-fifo','sim-mode','sim-key','sim-soc','sim-boot-uart','interface','map','compile','inspect'])
 parser.add_argument('--efinity',default='S:/Efinity')
 parser.add_argument('--modelsim',default='S:/ModelSim/win64')
 parser.add_argument('--demo',choices=['motion','double-buffer'],default='motion')
@@ -29,13 +29,23 @@ if args.step=='prepare':
 elif args.step=='firmware':
     out=ROOT/'software/build'; out.mkdir(exist_ok=True)
     gcc=EF/'toolchain/bin/riscv-none-elf-gcc.exe'
-    run([gcc,'-march=rv32im_zicsr_zifencei','-mabi=ilp32','-Os','-g','-flto',
-         '-ffreestanding','-fno-builtin','-msmall-data-limit=0','-nostdlib',
-         '-Wall','-Wextra','-Werror','-ffunction-sections','-fdata-sections',
-         '-Wl,--gc-sections','-Wl,-Map,software/build/first_light.map',
-         '-Tsoftware/link.ld','software/start.S',
-         'software/main.c' if args.demo=='motion' else 'software/double_buffer_demo.c',
-         '-o',out/'first_light.elf'],'firmware.log')
+    flags=['-march=rv32im_zicsr_zifencei','-mabi=ilp32','-Os','-g','-flto',
+           '-ffreestanding','-fno-builtin','-msmall-data-limit=0','-nostdlib',
+           '-Wall','-Wextra','-Werror','-ffunction-sections','-fdata-sections',
+           '-Wl,--gc-sections']
+    if args.demo=='motion':
+        run([gcc,*flags,'-Wl,-Map,software/build/animation.map','-Tsoftware/link_ddr.ld',
+             'software/start.S','software/main.c','-o',out/'animation.elf'],'firmware_app.log')
+        run([EF/'toolchain/bin/riscv-none-elf-objcopy.exe','-O','binary',
+             out/'animation.elf',out/'animation.bin'],'objcopy_app.log')
+        run([EF/'toolchain/bin/riscv-none-elf-size.exe',out/'animation.elf'],'firmware_app_size.log')
+        if len((out/'animation.bin').read_bytes())>65536:
+            raise SystemExit('DDR animation program exceeds its 64 KiB region')
+        source='software/boot.c'
+    else:
+        source='software/double_buffer_demo.c'
+    run([gcc,*flags,'-Wl,-Map,software/build/first_light.map','-Tsoftware/link.ld',
+         'software/start.S',source,'-o',out/'first_light.elf'],'firmware.log')
     run([EF/'toolchain/bin/riscv-none-elf-objcopy.exe','-O','binary',
          out/'first_light.elf',out/'first_light.bin'],'objcopy.log')
     run([EF/'toolchain/bin/riscv-none-elf-size.exe',out/'first_light.elf'],'firmware_size.log')
@@ -59,6 +69,31 @@ elif args.step=='sim-fifo':
          '-do','onerror {quit -code 1 -force}; run -all; quit -code 0 -force'],'simulation_fifo.log')
     if 'ALL FIFO TESTS PASSED' not in (ROOT/'reports/simulation_fifo.log').read_text(errors='replace'):
         raise SystemExit('FIFO simulation did not reach the success marker')
+elif args.step=='sim-key':
+    sim=Path(args.modelsim)
+    if not (ROOT/'sim/work').exists():
+        run([sim/'vlib.exe','sim/work'],'vlib.log')
+    run([sim/'vlog.exe','-work','sim/work','-sv','rtl/key_toggle.v',
+         'sim/tb_key_toggle.sv'],'vlog_key.log')
+    run([sim/'vsim.exe','-batch','-t','1ps','-lib','sim/work','tb_key_toggle',
+         '-do','onerror {quit -code 1 -force}; run -all; quit -code 0 -force'],'simulation_key.log')
+    if 'KEY TOGGLE TEST PASSED' not in (ROOT/'reports/simulation_key.log').read_text(errors='replace'):
+        raise SystemExit('KEY1 simulation did not reach the success marker')
+elif args.step=='sim-boot-uart':
+    sim=Path(args.modelsim)
+    run([sys.executable,ROOT/'tools/prepare_soc_sim.py'],'prepare_soc_sim.log')
+    if not (ROOT/'sim/work').exists():
+        run([sim/'vlib.exe','sim/work'],'vlib.log')
+    run([sim/'vlog.exe','-work','sim/work','-sv','rtl/sync_fifo.v','rtl/fill_engine.v',
+         'rtl/render_regs.v','rtl/framebuffer_video.v','rtl/video_mode_measure.v',
+         'rtl/render_subsystem.v','+incdir+sim','sim/soc_modelsim.v',
+         'sim/tb_soc_sprite77.sv'],'vlog_boot_uart.log')
+    run([sim/'vsim.exe','-batch','-t','1ps','-lib','sim/work','tb_soc_sprite77',
+         '+BOOT_UART_ONLY',
+         '-do','onerror {quit -code 1 -force}; run -all; quit -code 0 -force'],
+        'simulation_boot_uart.log')
+    if 'BOOT UART TEST PASSED' not in (ROOT/'reports/simulation_boot_uart.log').read_text(errors='replace'):
+        raise SystemExit('Boot UART simulation did not reach the success marker')
 elif args.step=='sim-mode':
     sim=Path(args.modelsim)
     if not (ROOT/'sim/work').exists():
@@ -72,7 +107,7 @@ elif args.step=='sim-mode':
 elif args.step in ['sim','sim-soc']:
     sim=Path(args.modelsim)
     soc_test=args.step=='sim-soc'
-    test='tb_soc' if soc_test else 'tb_render'
+    test=('tb_soc_sprite77' if args.demo=='motion' else 'tb_soc') if soc_test else 'tb_render'
     suffix='_soc' if soc_test else ''
     extra=[]
     if soc_test:
@@ -91,7 +126,7 @@ elif args.step in ['sim','sim-soc']:
     if not soc_test:
         run([sys.executable,ROOT/'tools/export_preview.py'],'preview.log')
     elif args.demo=='motion':
-        run([sys.executable,ROOT/'tools/export_preview.py','motion_1','motion_5','motion_9'],'preview_soc.log')
+        run([sys.executable,ROOT/'tools/export_preview.py','motion_1','motion_2','motion_5','motion_6','motion_9'],'preview_soc.log')
 elif args.step=='inspect':
     for pattern in ['outflow/*.err.log','outflow/*.timing.rpt','outflow/*.map.rpt']:
         for file in ROOT.glob(pattern):
