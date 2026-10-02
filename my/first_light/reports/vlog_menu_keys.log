@@ -1,0 +1,10 @@
+Model Technology ModelSim SE-64 vlog 2020.4 Compiler 2020.10 Oct 13 2020
+Start time: 20:43:50 on Sep 29,2026
+vlog -work sim/work -sv rtl/key_toggle.v sim/tb_menu_keys.sv 
+-- Compiling module key_toggle
+-- Compiling module tb_menu_keys
+
+Top level modules:
+	tb_menu_keys
+End time: 20:43:51 on Sep 29,2026, Elapsed time: 0:00:01
+Errors: 0, Warnings: 0

@@ -1,5 +1,5 @@
 # vsim -batch -t 1ps -lib sim/work tb_render -do "onerror {quit -code 1 -force}; run -all; quit -code 0 -force" 
-# Start time: 14:07:57 on Sep 27,2026
+# Start time: 18:18:37 on Oct 02,2026
 # ** Note: (vsim-3812) Design is being optimized...
 # //  ModelSim SE-64 2020.4 Oct 13 2020
 # //
@@ -23,14 +23,15 @@
 # PASS: 33 patterned copies, all alignments, sizes, overlap, read/write error recovery
 # PASS: 58 DDR asset copies, independent pitches, all halfword alignments, 4K/pool boundaries, invalid ranges/strides, recovery; 10641 resource bursts
 # PASS: 8 keyed copies, mixed/zero strobes, alignment, overlap, 4K and invalid operation
+# ALPHA RENDER TEST PASSED: foreground/background reads, RGB565 blend, all alignments, endpoints, overlap, 4K, errors and recovery
 # PASS: fill, odd pixel strobes, invalid command, write error, all 307200 DDR pixels
 # PASS: measured HDMI active raster is 640x480; registers are read-only
-# PASS: two complete HDMI raster frames, random AXI stalls, 4K boundaries (42542 bursts)
-# PASS: concurrent scanout/copy, 4012 arbitration contention cycles; AXI stable under stalls
+# PASS: two complete HDMI raster frames, random AXI stalls, 4K boundaries (52258 bursts)
+# PASS: concurrent scanout/copy, 3977 arbitration contention cycles; AXI stable under stalls
 # PASS: double buffer: 10 complete frames, 5 swap acknowledgements; A/B repaint, repeated/same-page/late/disabled swaps, no mixed pixels or front-page writes
 # PASS: AXI read error reporting
 # ALL TESTS PASSED
-# ** Note: $finish    : sim/tb_render.sv(540)
-#    Time: 235253530 ns  Iteration: 1  Instance: /tb_render
-# End time: 14:08:25 on Sep 27,2026, Elapsed time: 0:00:28
+# ** Note: $finish    : sim/tb_render.sv(594)
+#    Time: 251914930 ns  Iteration: 1  Instance: /tb_render
+# End time: 18:19:04 on Oct 02,2026, Elapsed time: 0:00:27
 # Errors: 0, Warnings: 0

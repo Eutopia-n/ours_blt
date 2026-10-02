@@ -1,6 +1,6 @@
 # vsim -batch -t 1ps -lib sim/work tb_soc_sprite77 -do "onerror {quit -code 1 -force}; run -all; quit -code 0 -force" 
-# Start time: 17:29:32 on Sep 27,2026
-# ** Note: (vsim-8009) Loading existing optimized design _opt14
+# Start time: 21:54:41 on Sep 29,2026
+# ** Note: (vsim-8009) Loading existing optimized design _opt15
 # //  ModelSim SE-64 2020.4 Oct 13 2020
 # //
 # //  Copyright 1991-2020 Mentor Graphics Corporation
@@ -21,19 +21,23 @@
 # run -all
 # ASSET CACHED
 # 
-# Ti60 SPRITE 77 CPU/HW
+# Ti60 BASIC/ADVANCED MENU
 # 
-# CPU FPS 20 US 34725
+# PASS menu selection 1
+# PASS menu selection 2
+# ADVANCED DEMO
 # 
-# HW FPS 60 US 4005
+# CPU FPS 20 US 35000
 # 
-# PASS: real CPU/HW/CPU, 7 CPU frames, 4 HW frames, 10 swaps; same scene pixels; UART metrics; no front writes
-# PASS: 10 complete A frames, 10 complete B frames, no scanout mismatch
-# PASS: 964632 DDR asset bytes preloaded and immutable across A/B clears; CPU resource bursts=29791, HW resource bursts=1178
+# HW FPS 60 US 4012
+# 
+# PASS: real CPU/HW/CPU, 7 CPU frames, 4 HW frames, 12 swaps; same scene pixels; UART metrics; no front writes
+# PASS: 13 complete A frames, 13 complete B frames, no scanout mismatch
+# PASS: 964632 DDR asset bytes preloaded and immutable across A/B clears; CPU resource bursts=31416, HW resource bursts=1178
 # PASS: Sapphire 32-to-128-bit bridge propagated 2587 all-key and 1032 partial key write masks
 # PASS: KEY1 switched both CPU and HW before/after views; poses 0/38/76/wrap; opaque copies=1, keyed copies=3
 # SOC TEST PASSED
-# ** Note: $finish    : sim/tb_soc_sprite77.sv(548)
-#    Time: 669974075 ns  Iteration: 2  Instance: /tb_soc_sprite77
-# End time: 17:46:59 on Sep 27,2026, Elapsed time: 0:17:27
+# ** Note: $finish    : sim/tb_soc_sprite77.sv(610)
+#    Time: 770208665 ns  Iteration: 2  Instance: /tb_soc_sprite77
+# End time: 22:22:09 on Sep 29,2026, Elapsed time: 0:27:28
 # Errors: 0, Warnings: 0

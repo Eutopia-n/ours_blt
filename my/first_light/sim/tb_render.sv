@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 module tb_render;
-    reg clk=0, pixel_clk=0, reset=1, memory_ready=1;
+    reg clk=0, pixel_clk=0, reset=1, memory_ready=1, key2_down=0;
     always #5 clk=~clk;
     always #19.8347107 pixel_clk=~pixel_clk;
     reg [15:0] paddr=0;
@@ -172,7 +172,7 @@ module tb_render;
         reg [31:0] status;
         integer tries;
         write_reg(48,operation); write_reg(52,source); write_reg(76,pitch);
-        if(operation==2) write_reg(28,{16'd0,key});
+        if(operation==2 || operation==3) write_reg(28,{16'd0,key});
         write_reg(12,destination); write_reg(16,w); write_reg(20,h);
         write_reg(24,1280); write_reg(8,1);
         if(!expect_error && w==640 && h==480) write_reg(76,64,1);
@@ -203,6 +203,32 @@ module tb_render;
             if(mem[n]!==golden[n]) $fatal(1,"Keyed copy src=%h pitch=%0d dst=(%0d,%0d) %0dx%0d byte=%0d got=%h expected=%h",
                 source,pitch,dx,dy,w,h,n,mem[n],golden[n]);
         checked_keyed=checked_keyed+1;
+    endtask
+    function automatic [15:0] blend_ref(input [15:0] f,b,input integer a);
+        integer r,g,v;
+        r=((f>>11)*a+(b>>11)*(256-a)+128)/256;
+        g=(((f>>5)&63)*a+((b>>5)&63)*(256-a)+128)/256;
+        v=((f&31)*a+(b&31)*(256-a)+128)/256;
+        blend_ref=(r<<11)|(g<<5)|v;
+    endfunction
+    task checked_alpha(input [31:0] source,pitch,
+                       input integer dx,dy,w,h,a,input bit keyed=0);
+        integer s,d;
+        for(integer n=0;n<MEM_BYTES;n=n+1) golden[n]=mem[n];
+        for(integer y=0;y<h;y=y+1) for(integer x=0;x<w;x=x+1) begin
+            s=source-BASE+y*pitch+x*2;
+            snapshot[y*w+x]={mem[s+1],mem[s]};
+        end
+        for(integer y=0;y<h;y=y+1) for(integer x=0;x<w;x=x+1) begin
+            d=draw_base-BASE+(dy+y)*1280+(dx+x)*2;
+            if(!keyed || snapshot[y*w+x]!=16'hf81f)
+                {golden[d+1],golden[d]}=blend_ref(snapshot[y*w+x],{mem[d+1],mem[d]},a);
+        end
+        write_reg(80,a); write_reg(84,keyed);
+        raw_copy_op(source,pitch,draw_base+dy*1280+dx*2,w,h,3,16'hf81f);
+        for(integer n=0;n<MEM_BYTES;n=n+1)
+            if(mem[n]!==golden[n]) $fatal(1,"Alpha a=%0d keyed=%0d src=%h dst=(%0d,%0d) byte=%0d got=%h expected=%h",
+                a,keyed,source,dx,dy,n,mem[n],golden[n]);
     endtask
     task checked_asset(input [31:0] source,pitch,input integer dx,dy,w,h);
         integer s,d;
@@ -459,12 +485,40 @@ module tb_render;
         checked_key_copy(BASE+101*1280+51*2,1280,52,101,31,3,16'hf81f);
         checked_key_copy(BASE+101*1280+51*2,1280,50,102,31,3,16'hf81f);
         read_reg(48,status); if(status!==2) $fatal(1,"Keyed operation readback mismatch");
-        write_reg(48,3,1);
+        write_reg(48,4,1);
         old_writes=bursts; old_reads=read_bursts;
         raw_key_copy(ASSET_BASE+4090,66,BASE,0,1,16'hf81f,1);
         if(bursts!=old_writes || read_bursts!=old_reads)
             $fatal(1,"Invalid keyed copy generated AXI traffic");
         $display("PASS: %0d keyed copies, mixed/zero strobes, alignment, overlap, 4K and invalid operation",checked_keyed);
+        write_reg(80,257,1); write_reg(84,2,1); write_reg(88,1,1);
+        key2_down=1; read_reg(88,status); if(status!=1) $fatal(1,"KEY2 held readback");
+        key2_down=0; read_reg(88,status); if(status!=0) $fatal(1,"KEY2 released readback");
+        for(integer a=0;a<=256;a=a+128) begin
+            checked_alpha(ASSET_BASE+4090,66,1,201,31,4,a,1);
+            checked_alpha(ASSET_BASE+4088,66,2,209,33,3,a,0);
+        end
+        checked_alpha(ASSET_BASE+4090,66,0,219,33,3,251,0);
+        checked_alpha(ASSET_BASE+4088,66,1,229,31,4,5,1);
+        checked_alpha(ASSET_BASE+8192,64,17,316,32,32,128,1); // All-key row.
+        checked_alpha(BASE+101*1280+51*2,1280,52,101,31,3,128,1);
+        checked_alpha(BASE+101*1280+51*2,1280,50,102,31,3,173,0);
+        checked_alpha(ASSET_BASE,1280,0,0,640,480,128,0);
+        checked_alpha(ASSET_BASE+ASSET_BYTES-2,2,639,479,1,1,128,0);
+        old_reads=read_bursts; old_writes=bursts;
+        raw_copy_op(ASSET_BASE,64,BASE,0,1,3,16'hf81f,1);
+        if(old_reads!=read_bursts || old_writes!=bursts) $fatal(1,"Empty Alpha generated AXI traffic");
+        inject_read_error=1; raw_copy_op(ASSET_BASE,64,BASE,32,2,3,16'hf81f,1);
+        inject_read_error=0;
+        fork
+            begin wait(dut.fill.read_background); inject_read_error=1; end
+            raw_copy_op(ASSET_BASE,64,BASE,32,2,3,16'hf81f,1);
+        join
+        inject_read_error=0;
+        inject_write_error=1; raw_copy_op(ASSET_BASE,64,BASE,32,2,3,16'hf81f,1);
+        inject_write_error=0;
+        checked_alpha(ASSET_BASE,64,1,401,32,2,128,1);
+        $display("ALPHA RENDER TEST PASSED: foreground/background reads, RGB565 blend, all alignments, endpoints, overlap, 4K, errors and recovery");
         fill(0,0,640,480,16'h1082);
         fill(64,60,192,120,16'hf800);
         fill(301,161,127,99,16'h07e0);

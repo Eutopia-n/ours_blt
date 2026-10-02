@@ -1,6 +1,6 @@
 `default_nettype none
 module render_subsystem (
-    input wire clk, reset, pixel_clk, memory_ready,
+    input wire clk, reset, pixel_clk, memory_ready, key2_down,
     input wire [15:0] paddr, input wire psel, penable, pwrite,
     input wire [31:0] pwdata,
     output wire [31:0] prdata, output wire pready, pslverror,
@@ -22,6 +22,8 @@ module render_subsystem (
     wire [1:0] operation;
     wire [31:0] src, dst, stride, src_stride, cycles;
     wire [15:0] width, height, color;
+    wire [8:0] alpha_opacity;
+    wire alpha_key_enable;
     wire [31:0] fill_araddr, video_araddr, fill_rdata, video_rdata;
     wire [7:0] fill_arlen, video_arlen;
     wire fill_arvalid, fill_arready, fill_rvalid, fill_rready;
@@ -112,6 +114,7 @@ module render_subsystem (
         .video_underflow(underflow),.video_error(read_error),.display_page_active(display_page_sync[1]),
         .swap_ack(swap_ack_sync[2]),
         .video_width(video_width),.video_height(video_height),.video_mode_valid(video_mode_valid),
+        .key2_down(key2_down),.alpha_opacity(alpha_opacity),.alpha_key_enable(alpha_key_enable),
         .start(start),.display_enable(display_enable),
         .dst(dst),.stride(stride),.src_stride(src_stride),.width(width),.height(height),.color(color),
         .operation(operation),.src(src),.draw_page(draw_page),.swap_page(swap_page),.swap_toggle(swap_toggle)
@@ -119,6 +122,7 @@ module render_subsystem (
     fill_engine fill (
         .clk(clk),.reset(reset),.start(start),.memory_ready(memory_ready),
         .operation(operation),.src(src),.frame_base(draw_frame_base),
+        .alpha_opacity(alpha_opacity),.alpha_key_enable(alpha_key_enable),
         .dst(dst),.stride(stride),.src_stride(src_stride),.width(width),.height(height),.color(color),
         .busy(busy),.done(done),.error(error),.cycles(cycles),
         .awaddr(awaddr),.awlen(awlen),.awvalid(awvalid),.awready(awready),

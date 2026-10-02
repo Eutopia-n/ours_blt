@@ -1,0 +1,108 @@
+UART: ASSET CACHED
+
+time=10000000000 commands=0 CPU read bytes=47488 display=0
+UART: Ti60 BASIC/ADVANCED MENU
+
+time=20000000000 commands=0 CPU read bytes=47488 display=0
+time=30000000000 commands=0 CPU read bytes=47488 display=0
+time=40000000000 commands=0 CPU read bytes=50112 display=0
+time=50000000000 commands=0 CPU read bytes=50816 display=0
+time=60000000000 commands=0 CPU read bytes=56704 display=0
+UART: BASIC DEMO
+
+time=70000000000 commands=0 CPU read bytes=64128 display=1
+time=80000000000 commands=0 CPU read bytes=64128 display=1
+time=90000000000 commands=0 CPU read bytes=64128 display=1
+time=100000000000 commands=0 CPU read bytes=72128 display=1
+PASS BASIC scene 1: mode=0 count=16 changed=0
+time=110000000000 commands=0 CPU read bytes=111104 display=1
+time=120000000000 commands=0 CPU read bytes=128128 display=1
+time=130000000000 commands=0 CPU read bytes=128128 display=1
+time=140000000000 commands=0 CPU read bytes=128128 display=1
+time=150000000000 commands=0 CPU read bytes=132096 display=1
+time=160000000000 commands=0 CPU read bytes=216704 display=1
+PASS BASIC scene 2: mode=0 count=64 changed=95873
+time=170000000000 commands=0 CPU read bytes=312320 display=1
+time=180000000000 commands=0 CPU read bytes=312320 display=1
+time=190000000000 commands=0 CPU read bytes=312320 display=1
+time=200000000000 commands=0 CPU read bytes=312320 display=1
+time=210000000000 commands=0 CPU read bytes=395520 display=1
+time=220000000000 commands=0 CPU read bytes=480832 display=1
+time=230000000000 commands=0 CPU read bytes=565376 display=1
+PASS BASIC scene 3: mode=0 count=128 changed=124220
+time=240000000000 commands=0 CPU read bytes=611392 display=1
+time=250000000000 commands=0 CPU read bytes=611392 display=1
+time=260000000000 commands=224 CPU read bytes=620928 display=1
+PROFILE blocks=256 engine_us=8926 submit_to_ready_us=10123 register_writes=909
+PASS BASIC scene 4: mode=1 count=128 changed=72795
+time=270000000000 commands=258 CPU read bytes=638912 display=1
+PROFILE blocks=256 engine_us=8966 submit_to_ready_us=10254 register_writes=909
+PASS BASIC scene 5: mode=1 count=128 changed=31402
+time=280000000000 commands=514 CPU read bytes=656448 display=1
+PRESENT blocks=256 interval_us=16661
+time=290000000000 commands=587 CPU read bytes=663808 display=1
+PROFILE blocks=256 engine_us=9055 submit_to_ready_us=10341 register_writes=909
+PASS BASIC scene 6: mode=1 count=128 changed=25618
+time=300000000000 commands=771 CPU read bytes=679424 display=1
+PRESENT blocks=256 interval_us=16661
+time=310000000000 commands=993 CPU read bytes=688640 display=1
+PROFILE blocks=256 engine_us=8978 submit_to_ready_us=10264 register_writes=909
+PASS BASIC scene 7: mode=1 count=128 changed=25781
+PRESENT blocks=256 interval_us=16661
+time=320000000000 commands=1029 CPU read bytes=708928 display=1
+PROFILE blocks=256 engine_us=8940 submit_to_ready_us=10228 register_writes=909
+PASS BASIC scene 8: mode=1 count=128 changed=30740
+time=330000000000 commands=1285 CPU read bytes=726400 display=1
+PRESENT blocks=256 interval_us=16661
+time=340000000000 commands=1361 CPU read bytes=733760 display=1
+PROFILE blocks=256 engine_us=8954 submit_to_ready_us=10243 register_writes=909
+PASS BASIC scene 9: mode=1 count=128 changed=26157
+time=350000000000 commands=1542 CPU read bytes=749376 display=1
+PRESENT blocks=256 interval_us=16661
+time=360000000000 commands=1542 CPU read bytes=805248 display=1
+time=370000000000 commands=1542 CPU read bytes=805248 display=1
+time=380000000000 commands=1542 CPU read bytes=805248 display=1
+time=390000000000 commands=1542 CPU read bytes=850240 display=1
+time=400000000000 commands=1542 CPU read bytes=934848 display=1
+time=410000000000 commands=1542 CPU read bytes=1019328 display=1
+time=420000000000 commands=1542 CPU read bytes=1104832 display=1
+time=430000000000 commands=1542 CPU read bytes=1189888 display=1
+time=440000000000 commands=1542 CPU read bytes=1274560 display=1
+time=450000000000 commands=1542 CPU read bytes=1359680 display=1
+PASS BASIC scene 10: mode=0 count=256 changed=129906
+time=460000000000 commands=1542 CPU read bytes=1393088 display=1
+UART: BASIC HW BLOCKS 256 FPS 60.0 US 9266 OPS/S 15368
+
+time=470000000000 commands=1543 CPU read bytes=1401984 display=1
+time=480000000000 commands=1911 CPU read bytes=1408128 display=1
+PROFILE blocks=512 engine_us=14370 submit_to_ready_us=15837 register_writes=1805
+PASS BASIC scene 11: mode=1 count=256 changed=88703
+time=490000000000 commands=2124 CPU read bytes=1432768 display=1
+time=500000000000 commands=2566 CPU read bytes=1439552 display=1
+PROFILE blocks=512 engine_us=14537 submit_to_ready_us=16102 register_writes=1805
+PASS BASIC scene 12: mode=1 count=256 changed=33023
+PRESENT blocks=512 interval_us=16661
+time=510000000000 commands=2790 CPU read bytes=1465344 display=1
+PROFILE blocks=512 engine_us=14397 submit_to_ready_us=15964 register_writes=1805
+PASS BASIC scene 13: mode=1 count=256 changed=30857
+PRESENT blocks=512 interval_us=16661
+time=520000000000 commands=3082 CPU read bytes=1492352 display=1
+time=530000000000 commands=3444 CPU read bytes=1498368 display=1
+PROFILE blocks=512 engine_us=14490 submit_to_ready_us=16059 register_writes=1805
+PASS BASIC scene 14: mode=1 count=256 changed=33884
+PRESENT blocks=512 interval_us=16661
+time=540000000000 commands=3663 CPU read bytes=1525504 display=1
+time=550000000000 commands=4105 CPU read bytes=1532288 display=1
+PROFILE blocks=512 engine_us=14515 submit_to_ready_us=16080 register_writes=1805
+PASS BASIC scene 15: mode=1 count=256 changed=37244
+PRESENT blocks=512 interval_us=16661
+time=560000000000 commands=4328 CPU read bytes=1558016 display=1
+PROFILE blocks=512 engine_us=14453 submit_to_ready_us=16021 register_writes=1805
+PASS BASIC scene 16: mode=1 count=256 changed=33257
+PRESENT blocks=512 interval_us=16661
+time=570000000000 commands=4620 CPU read bytes=1619840 display=1
+time=580000000000 commands=4620 CPU read bytes=1687360 display=1
+time=590000000000 commands=4620 CPU read bytes=1687360 display=1
+time=600000000000 commands=4620 CPU read bytes=1687360 display=1
+time=610000000000 commands=4620 CPU read bytes=1739264 display=1
+time=620000000000 commands=4620 CPU read bytes=1823936 display=1

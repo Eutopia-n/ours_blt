@@ -1,0 +1,47 @@
+# vsim -batch -t 1ps -lib sim/work tb_soc_sprite77 "+BASIC_MOVING" -do "onerror {quit -code 1 -force}; run -all; quit -code 0 -force" 
+# Start time: 11:22:03 on Oct 02,2026
+# ** Note: (vsim-3813) Design is being optimized due to module recompilation...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_soc_sprite77(fast)
+# 
+# onerror {quit -code 1 -force}
+# run -all
+# ASSET CACHED
+# 
+# Ti60 BASIC/ADVANCED MENU
+# 
+# PASS menu selection 1
+# BASIC DEMO
+# 
+# PASS BASIC scene 1: mode=0, 16 fills + 16 copies, changed pixels=0
+# PASS BASIC scene 2: mode=0, 16 fills + 16 copies, changed pixels=15456
+# PASS BASIC scene 3: mode=0, 64 fills + 64 copies, changed pixels=91934
+# PASS BASIC scene 4: mode=0, 128 fills + 128 copies, changed pixels=124185
+# PASS BASIC scene 5: mode=0, 256 fills + 256 copies, changed pixels=131903
+# PASS BASIC scene 6: mode=0, 512 fills + 512 copies, changed pixels=131133
+# PASS BASIC scene 7: mode=1, 512 fills + 512 copies, changed pixels=107075
+# PASS measured 1024-block HUD: CPU=164435 us HW=27430 us ratio10=59
+# PASS BASIC scene 8: mode=1, 512 fills + 512 copies, changed pixels=56671
+# PASS BASIC scene 9: mode=0, 256 fills + 256 copies, changed pixels=130027
+# PASS menu selection 11
+# PASS menu selection 12
+# ADVANCED DEMO
+# 
+# BASIC MOVING SOC TEST PASSED
+# ** Note: $finish    : sim/tb_soc_sprite77.sv(812)
+#    Time: 936391660 ns  Iteration: 1  Instance: /tb_soc_sprite77
+# End time: 11:57:14 on Oct 02,2026, Elapsed time: 0:35:11
+# Errors: 0, Warnings: 0

@@ -1,5 +1,11 @@
 # Ti60F225 RISC-V + FPGA 2D 渲染引擎
 
+当前新增 KEY2 透明度：高级展示短按 +2，长按 500 ms 后每 100 ms 连加，0～100 循环；CPU/FPGA Alpha 混合与验证见 [说明](my/first_light/ALPHA_KEY2.md)。上板必须使用配套新 bitstream 和应用。
+
+当前工作版已将初级 32×32 Fill/Copy 演示和高级 77 帧不规则 Sprite / 颜色键控演示
+合入同一个工程，增加 KEY0～KEY3 控制的一级菜单。构建与操作见
+[菜单说明](my/first_light/MENU.md)。下文也保留此前版本的测试记录。
+
 本目录用于维护独立 RTL 模块、配套仿真及软件接口代码。
 
 当前可上板的集成工程位于 `my/first_light/`，必要原厂依赖独立放在该工程的 vendor 目录并标明来源，原有独立模块保留。
@@ -7,10 +13,11 @@
 ## 当前可运行工程：Ti60F225 2D 渲染
 
 - 开发板：基于 Ti60F225I3 的 Ti60F225 开发板。
-- 功能：RISC-V C 驱动、AXI DDR 纯色填充/图像拷贝/颜色键控拷贝、16×37 位写 FIFO、独立 DDR 图片资源区、可配置源行距、双缓冲、640×480 HDMI、实际输出分辨率显示，以及 32 个运动 Sprite 的 CPU/HW 性能对比。
-- 32×32 RGB565 菱形 Sprite 启动时上传一次到 `0x01200000`，CPU/HW 两种模式每帧均从同一资源区读取。按开发板 KEY1 可在同一 bitstream 中开启/关闭去背；硬件对应执行 32 个键控/普通 Copy，目标为后台显存。
+- 功能：RISC-V C 驱动、AXI DDR 纯色填充/图像拷贝/颜色键控拷贝、双缓冲、640×480 HDMI，以及初级 32 / 128 / 256 三档混合 Fill/Copy 方块随机运动与碰边反弹、高级 77 帧不规则 Sprite 的 CPU/HW 对比。
+- 基础展示内 KEY1 按 32 → 128 → 256 → 32 循环数量，KEY0 手动切换 CPU/FPGA，显示每帧操作数、实际 OPS/S、FPS、渲染耗时及 CPU/HW 耗时比。
+- 菜单使用两枚方形按钮：KEY0 左选、KEY1 右选、KEY2 确认、KEY3 从展示返回。高级展示中的 KEY1 继续控制去背。
 - 此前非键控资源区版本的用户实板反馈：CPU 30 FPS / 26220 μs，HW 60 FPS / 4778 μs；这是旧版本的单组观测，不代表颜色键控版本的实板性能。
-- 基础功能和 Color Key 已完成代码、仿真与编译验证，颜色键控版本尚待上板。Alpha、互动游戏及最大 Sprite 数量测量尚未完成。图片格式为 RGB565，目标行距固定 1280 字节。
+- 旧版 77 帧高级展示曾完成实板验收；本菜单整合版已完成固件编译和 FPGA 全流程编译，实板菜单操作仍待验收。图片格式为 RGB565，目标行距固定 1280 字节。
 
 入口：[工程说明](my/first_light/README.md)、[颜色键控验证记录](my/first_light/COLOR_KEY.md)、[KEY1 版 bitstream](my/first_light/releases/color_key_key1_20260926/first_light.bit)、[旧版实板观测记录](my/first_light/releases/ddr_assets_20260922/BOARD_OBSERVATION.md)。此前版本保留在 `my/first_light/releases/`。
 

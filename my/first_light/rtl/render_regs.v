@@ -9,11 +9,13 @@ module render_regs (
     input wire [31:0] cycles,
     input wire video_underflow, video_error, display_page_active, swap_ack,
     input wire [15:0] video_width, video_height,
-    input wire video_mode_valid,
+    input wire video_mode_valid, key2_down,
     output reg start, output reg display_enable,
     output reg [1:0] operation, output reg [31:0] src, dst, stride, src_stride,
     output reg draw_page, output reg swap_page, output reg swap_toggle,
-    output reg [15:0] width, height, color
+    output reg [15:0] width, height, color,
+    output reg [8:0] alpha_opacity,
+    output reg alpha_key_enable
 );
     wire transfer = psel && penable;
     wire wr = transfer && pwrite;
@@ -22,16 +24,19 @@ module render_regs (
         paddr == 16 || paddr == 20 || paddr == 24 || paddr == 28 ||
         paddr == 32 || paddr == 36 || paddr == 40 || paddr == 44 ||
         paddr == 48 || paddr == 52 || paddr == 56 || paddr == 60 ||
-        paddr == 64 || paddr == 68 || paddr == 72 || paddr == 76;
+        paddr == 64 || paddr == 68 || paddr == 72 || paddr == 76 ||
+        paddr == 80 || paddr == 84 || paddr == 88;
     wire writable = paddr == 8 || paddr == 12 || paddr == 16 || paddr == 20 ||
         paddr == 24 || paddr == 28 || paddr == 32 || paddr == 48 || paddr == 52 ||
-        paddr == 56 || paddr == 60 || paddr == 64 || paddr == 76;
+        paddr == 56 || paddr == 60 || paddr == 64 || paddr == 76 ||
+        paddr == 80 || paddr == 84;
     assign pready = 1'b1;
     assign pslverror = transfer && (!known || paddr[1:0] != 0 ||
         (pwrite && (!writable || busy || start ||
          (swap_pending && (paddr == 60 || paddr == 64 || paddr == 8)) ||
          (paddr == 8 && pwdata != 1) || (paddr == 32 && pwdata > 1) ||
-         (paddr == 48 && pwdata > 2) || (paddr == 56 && pwdata > 1) ||
+         (paddr == 48 && pwdata > 3) || (paddr == 56 && pwdata > 1) ||
+         (paddr == 80 && pwdata > 256) || (paddr == 84 && pwdata > 1) ||
          (paddr == 60 && pwdata > 1) || (paddr == 64 && pwdata != 1))));
     always @* begin
         case (paddr)
@@ -56,6 +61,9 @@ module render_regs (
         68: prdata = {video_height,video_width};
         72: prdata = {31'd0,video_mode_valid};
         76: prdata = src_stride;
+        80: prdata = {23'd0,alpha_opacity};
+        84: prdata = {31'd0,alpha_key_enable};
+        88: prdata = {31'd0,key2_down};
         default: prdata = 0;
         endcase
     end
@@ -66,6 +74,7 @@ module render_regs (
             src_stride <= 1280; // Preserve old framebuffer-only firmware.
             draw_page <= 0; swap_page <= 0; swap_toggle <= 0;
             width <= 0; height <= 0; color <= 0;
+            alpha_opacity <= 256; alpha_key_enable <= 0;
         end else begin
             start <= 0;
             if (wr && !pslverror) case (paddr)
@@ -82,6 +91,8 @@ module render_regs (
             60: swap_page <= pwdata[0];
             64: swap_toggle <= ~swap_toggle;
             76: src_stride <= pwdata;
+            80: alpha_opacity <= pwdata[8:0];
+            84: alpha_key_enable <= pwdata[0];
             default: ;
             endcase
         end

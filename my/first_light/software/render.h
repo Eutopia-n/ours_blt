@@ -23,9 +23,13 @@
 #define GFX_VIDEO_SIZE   0x44u
 #define GFX_VIDEO_STATUS 0x48u
 #define GFX_SRC_STRIDE   0x4cu
+#define GFX_ALPHA        0x50u
+#define GFX_ALPHA_KEY    0x54u
+#define GFX_KEY2_DOWN    0x58u
 #define GFX_OP_FILL       0u
 #define GFX_OP_COPY       1u
 #define GFX_OP_KEYED_COPY 2u
+#define GFX_OP_ALPHA_COPY 3u
 #define GFX_VIDEO_VALID  1u
 #define GFX_BUSY       1u
 #define GFX_DONE       2u
@@ -74,6 +78,9 @@ int copy_image(uint32_t source, uint32_t source_stride, uint32_t dst_x,
 int copy_image_keyed(uint32_t source, uint32_t source_stride, uint32_t dst_x,
                      uint32_t dst_y, uint32_t width, uint32_t height,
                      uint16_t key);
+int copy_image_alpha(uint32_t source, uint32_t source_stride, uint32_t dst_x,
+                     uint32_t dst_y, uint32_t width, uint32_t height,
+                     uint32_t opacity, uint32_t keyed, uint16_t key);
 /* Wait for frame-boundary acknowledgement, including same-page requests.
  * On success the retired front page becomes the new draw target.
  * A timeout does not cancel the request: stop rendering and diagnose/reset. */

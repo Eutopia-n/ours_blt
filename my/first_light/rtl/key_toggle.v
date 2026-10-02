@@ -6,10 +6,12 @@ module key_toggle #(
     input wire clk,
     input wire reset,
     input wire key_n,
-    output reg state
+    output reg state,
+    output wire down
 );
     localparam integer COUNT_WIDTH = STABLE_CYCLES > 1 ? $clog2(STABLE_CYCLES) : 1;
     reg key_meta, key_sync, stable_n;
+    assign down = !stable_n;
     reg [COUNT_WIDTH-1:0] count;
 
     always @(posedge clk or posedge reset) begin

@@ -1,6 +1,14 @@
-# Ti60 2D 引擎：77 帧横移动画与 CPU/HW 渲染对比
+# Ti60 2D 引擎：初级 / 高级功能菜单
 
-当前版本使用用户提供的原图生成 77 帧 RGB565 动画，以 UART 装载到 DDR。**队友在另一台 Windows 电脑上运行时，直接复制整个 [77 帧上板包](releases/sprite77_20260927/README.md) 并按其中的 PowerShell 步骤操作；COM 号必须在各自电脑上查询。**构建与板级验收步骤见 [SPRITE77.md](SPRITE77.md)。颜色键控设计见 [COLOR_KEY.md](COLOR_KEY.md)；此前资源区版本见 [DDR_ASSETS.md](DDR_ASSETS.md)，FIFO 原理见 [FIFO_CACHE.md](FIFO_CACHE.md)。
+当前新增 KEY2 透明度：高级展示短按 +2，长按 500 ms 后每 100 ms 连加，0～100 循环；CPU/FPGA Alpha 混合与验证见 [说明](ALPHA_KEY2.md)。上板必须使用配套新 bitstream 和应用。
+
+当前整合版的菜单、按键分配、构建和上板步骤见 [MENU.md](MENU.md)。
+基础展示保留 32 / 128 / 256 三档，方块随机初始化位置、方向、速度并碰边反弹，纯色填充与棋盘格拷贝共用活动区域。
+KEY1 按 32 → 128 → 256 → 32 循环数量，KEY0 手动切换 CPU/FPGA；保留操作吞吐量、CPU/HW 耗时比和连续运动。
+最新上板包入口为 [KEY2 透明度包](releases/alpha_key2_20261002/README.md)。当前输出仍为 640×480。
+下文保留 77 帧高级功能的原有设计与历史验收记录；其中的旧发布包不含菜单。
+
+高级展示使用用户提供的原图生成 77 帧 RGB565 动画，以 UART 装载到 DDR。[旧 77 帧上板包](releases/sprite77_20260927/README.md) 仅供复现历史版本；体验当前菜单请使用上方最新包。COM 号必须在各自电脑上查询。历史构建与板级验收步骤见 [SPRITE77.md](SPRITE77.md)。颜色键控设计见 [COLOR_KEY.md](COLOR_KEY.md)；此前资源区版本见 [DDR_ASSETS.md](DDR_ASSETS.md)，FIFO 原理见 [FIFO_CACHE.md](FIFO_CACHE.md)。
 
 此前非键控版本的用户实板数据为 CPU 30 FPS / 26220 μs、HW 60 FPS / 4778 μs，见 [历史观测记录](releases/ddr_assets_20260922/BOARD_OBSERVATION.md)。本版在 2026-09-27 经 COM15 上传后持续运行，实板 UART 报告 CPU 20 FPS、HW 60 FPS；用户确认 HDMI 动画和 KEY1 去背切换，详见 [本版验收记录](SPRITE77.md)。冷启动后需运行 `tools/upload_sprite77.py` 上传动画程序与素材。
 
@@ -22,11 +30,11 @@
 - 加速器写通道包含 16×37 位同步 FIFO，缓存 `{WLAST,WSTRB,WDATA}`；拷贝时连续预取行 RAM，在 `WREADY` 连续有效时每周期发送一个 beat。
 - 640×480 HDMI 视频输出；实际像素时钟约 25.208333 MHz，800×525 总时序，对应约 60.01984 Hz。此数值是设计刷新率，不是实测渲染性能。
 - C 固件及驱动、渲染模块仿真、实际 Sapphire 核执行固件的联合仿真入口。
-- 同一场景的 CPU 逐像素基线与硬件 Fill/Copy 两条路径，默认每 4 秒切换，UART 小写 `c`/`h` 可提前切换。按 KEY1 翻转去背状态；屏幕左侧显示 `KEY ON`/`KEY OFF`。两种开关相互独立，不需要重新下载 bitstream。
+- 初级与高级两种场景都有 CPU 逐像素基线与硬件 Fill/Copy 路径，默认每 4 秒切换，UART 小写 `c`/`h` 可提前切换。高级展示中按 KEY1 翻转去背状态；屏幕左侧显示 `KEY ON`/`KEY OFF`。
 - 两列显示最近测得的 CPU/HW FPS 与每帧渲染微秒数，当前模式为白字，另一列为灰字；每 4 帧更新一次。
 - 根据送入 HDMI 编码器的实际 DE/HS/VS，每帧测量有效宽高；RISC-V 经只读 APB 寄存器读取并显示 `RES 宽X高`，检测完成前显示 `RES WAIT`。
 
-本阶段采用两个固定 framebuffer 连续换页，明确的写 FIFO、独立资源区拷贝和 Color Key 均已实现。资源可拷贝到 A/B 两页，但不开放任意地址或 A→B 显存跨页拷贝。Alpha 和互动游戏尚未实现。77 帧动画、KEY1 两态及 CPU/HW 帧率已完成初步板级验收；视频留存和错误位单独读取见 `SPRITE77.md`。
+本阶段采用两个固定 framebuffer 连续换页，明确的写 FIFO、独立资源区拷贝和 Color Key 均已实现。资源可拷贝到 A/B 两页，但不开放任意地址或 A→B 显存跨页拷贝。Alpha 混合已新增，详见 ALPHA_KEY2.md；互动游戏尚未实现。77 帧动画、KEY1 两态及 CPU/HW 帧率已完成初步板级验收；视频留存和错误位单独读取见 `SPRITE77.md`。
 
 ## 2. 为什么这样连接
 
@@ -53,7 +61,7 @@ Sapphire 的 4 KiB 片内 RAM 装入 UART 引导程序；超出该空间的动�
 | `rtl/render_regs.v` | APB 寄存器与状态接口 |
 | `rtl/framebuffer_video.v` | DDR 扫描读取、行缓存、行场同步 |
 | `rtl/video_mode_measure.v` | 从实际 DE/HS/VS 测量每帧有效宽高 |
-| `rtl/key_toggle.v` | KEY1 同步、15 ms 消抖和按下事件保持 |
+| `rtl/key_toggle.v` | KEY0～KEY3 同步、15 ms 消抖和按下事件保持 |
 | `rtl/render_subsystem.v` | 模块连接、显示/拷贝读通道仲裁 |
 | `software/main.c` | DDR 动画程序、C 驱动、CPU/HW 基线与计时、像素字体 |
 | `software/boot.c`、`software/link_ddr.ld` | 片内 UART 引导和 DDR 动画程序链接布局 |
@@ -64,6 +72,7 @@ Sapphire 的 4 KiB 片内 RAM 装入 UART 引导程序；超出该空间的动�
 | `sim/tb_render.sv` | 像素、总线反压、错误处理、行场时序检查 |
 | `sim/tb_sync_fifo.sv` | FIFO 顺序、满空边界、同时读写及清空测试 |
 | `sim/tb_key_toggle.sv` | KEY1 短脉冲、抖动、长按、释放和复位测试 |
+| `sim/tb_menu_keys.sv` | 四路菜单按键独立消抖、短脉冲和复位测试 |
 | `sim/tb_video_mode_measure.sv` | 分辨率测量的正常、边界和空帧独立测试 |
 | `sim/tb_soc.sv` | 官方 Sapphire 仿真模型运行真实固件 |
 | `tools/build.py` | 编译与仿真入口，不执行硬件下载 |

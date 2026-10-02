@@ -3,6 +3,12 @@ from pathlib import Path
 import re
 import struct
 import zlib
+import argparse
+
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--compact-asset',action='store_true',
+                    help='Load one real sprite frame shared by 77 descriptors for load-focused simulation')
+args=parser.parse_args()
 
 ROOT = Path(__file__).resolve().parents[1]
 source = (ROOT/'vendor/soc/soc.v').read_text(encoding='utf-8')
@@ -20,7 +26,7 @@ mapping = dict(io_systemClk='clk', io_memoryClk='clk', io_ddrMasters_0_clk='clk'
                io_asyncReset='reset', io_systemReset='soc_reset',
                io_ddrMasters_0_reset='master_reset', system_uart_0_io_rxd='uart_rx',
                system_uart_0_io_txd='uart_tx',
-               system_gpio_0_io_read="{3'd0,key_state}")
+               system_gpio_0_io_read='key_state')
 for field in ['PADDR','PENABLE','PRDATA','PREADY','PSEL','PSLVERROR','PWDATA','PWRITE']:
     mapping['io_apbSlave_0_'+field] = field.lower()
 for channel in ['aw','w','b','ar','r']:
@@ -54,8 +60,16 @@ asset=(ROOT/'assets/sprite77.raw')
 if app.is_file() and asset.is_file():
     program=app.read_bytes()
     image=asset.read_bytes()
+    suffix='_compact' if args.compact_asset else ''
+    if args.compact_asset:
+        offset,width,height,dx,dy=struct.unpack_from('<IBBbb',image,16)
+        frame=image[offset:offset+width*height*2]
+        table=struct.pack('<IBBbb',632,width,height,dx,dy)*77
+        body=table+frame
+        image=struct.pack('<IIII',0x37375341,1,16+len(body),zlib.crc32(body))+body
+        print('Load-test asset:',len(image),'bytes; real first frame, 77 shared descriptors')
     app_header=struct.pack('<IIII',0x37505041,len(program),zlib.crc32(program),
                            struct.unpack_from('<I',image,12)[0])
-    (ROOT/'sim/app_image.memh').write_text(''.join(f'{b:02x}\n' for b in app_header+program))
-    (ROOT/'sim/sprite77.memh').write_text(''.join(f'{b:02x}\n' for b in image))
+    (ROOT/f'sim/app_image{suffix}.memh').write_text(''.join(f'{b:02x}\n' for b in app_header+program))
+    (ROOT/f'sim/sprite77{suffix}.memh').write_text(''.join(f'{b:02x}\n' for b in image))
 print('Generated real SoC simulation wiring:', len(ports), 'ports')

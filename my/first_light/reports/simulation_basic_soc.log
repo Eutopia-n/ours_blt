@@ -1,0 +1,44 @@
+# vsim -batch -t 1ps -lib sim/work tb_soc_sprite77 "+BASIC_RANDOM" -do "onerror {quit -code 1 -force}; run -all; quit -code 0 -force" 
+# Start time: 15:53:08 on Oct 01,2026
+# ** Note: (vsim-3813) Design is being optimized due to module recompilation...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_soc_sprite77(fast)
+# 
+# onerror {quit -code 1 -force}
+# run -all
+# ASSET CACHED
+# 
+# Ti60 BASIC/ADVANCED MENU
+# 
+# PASS menu selection 1
+# BASIC DEMO
+# 
+# PASS BASIC random scene 1: mode=0, 16 fills + 16 opaque patterned copies, changed pixels=0
+# PASS BASIC random scene 2: mode=1, 16 fills + 16 opaque patterned copies, changed pixels=0
+# PASS menu selection 4
+# BASIC DEMO
+# 
+# PASS BASIC random scene 3: mode=0, 16 fills + 16 opaque patterned copies, changed pixels=55072
+# PASS BASIC random scene 4: mode=1, 16 fills + 16 opaque patterned copies, changed pixels=0
+# PASS menu selection 7
+# PASS menu selection 8
+# ADVANCED DEMO
+# 
+# BASIC RANDOM SOC TEST PASSED
+# ** Note: $finish    : sim/tb_soc_sprite77.sv(669)
+#    Time: 636481 us  Iteration: 1  Instance: /tb_soc_sprite77
+# End time: 16:09:41 on Oct 01,2026, Elapsed time: 0:16:33
+# Errors: 0, Warnings: 0

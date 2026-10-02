@@ -64,7 +64,10 @@ ports = '''   // HDMI TX serializer ports imported from the board HDMI demo.
    output [9:0] tmds_data0_o, tmds_data1_o, tmds_data2_o, tmds_clk_o,
    output tmds_data0_TX_OE, tmds_data1_TX_OE, tmds_data2_TX_OE, tmds_clk_TX_OE,
    output tmds_data0_TX_RST, tmds_data1_TX_RST, tmds_data2_TX_RST, tmds_clk_TX_RST,
+   input key0_n, // KEY0, GPIOL_07/C4; pressed low
    input key1_n, // KEY1, GPIOR_22/P14; pressed low
+   input key2_n, // KEY2, GPIOR_21/N14; pressed low
+   input key3_n, // KEY3, GPIOL_03/A3; pressed low
 '''
 assert marker in top
 top = top.replace(marker, ports+marker, 1)
@@ -73,7 +76,8 @@ decl = '''
   wire [31:0] apb_pwdata, apb_prdata;
   wire apb_psel, apb_penable, apb_pready, apb_pwrite, apb_pslverror;
   wire soc_reset, master_reset;
-  wire key1_state;
+  wire [3:0] key_state;
+  wire key2_down;
   reg [1:0] calibration_sync;
   always @(posedge user_clk or negedge sys_rst)
     if (!sys_rst) calibration_sync <= 0;
@@ -103,7 +107,7 @@ mapping.update(io_asyncReset='!calibration_sync[1]',io_systemReset='soc_reset',
     io_ddrA_b_payload_resp='s_axi_bresp',io_ddrA_aw_payload_prot='s_axi_awprot',
     io_ddrA_aw_payload_cache='s_axi_awcache',io_ddrA_ar_payload_prot='s_axi_arprot',
     io_ddrA_ar_payload_cache='s_axi_arcache',
-    system_gpio_0_io_read='{soc_gpio_IN[3:1],key1_state}')
+    system_gpio_0_io_read='key_state')
 for channel in ['aw','w','b','ar','r']:
     for field in ['valid','ready']:
         mapping[f'io_ddrMasters_0_{channel}_{field}'] = f'gfx_{channel}{field}'
@@ -127,17 +131,21 @@ for direction,width,name in soc_ports:
         # I2C open-drain input defaults to released/high; interrupts and bus responses are low.
         value = "1'b1" if name.startswith('system_i2c') else ("'b0" if width else "1'b0")
     instance.append(f'    .{name} ({value})')
-key_filter = '''key_toggle key1_filter(
-    .clk(user_clk),.reset(soc_reset | master_reset),
-    .key_n(key1_n),.state(key1_state)
-);
+key_filter = '''key_toggle key0_filter(.clk(user_clk),.reset(soc_reset | master_reset),
+    .key_n(key0_n),.state(key_state[0]));
+key_toggle key1_filter(.clk(user_clk),.reset(soc_reset | master_reset),
+    .key_n(key1_n),.state(key_state[1]));
+key_toggle key2_filter(.clk(user_clk),.reset(soc_reset | master_reset),
+    .key_n(key2_n),.state(key_state[2]),.down(key2_down));
+key_toggle key3_filter(.clk(user_clk),.reset(soc_reset | master_reset),
+    .key_n(key3_n),.state(key_state[3]));
 '''
 top = top[:start]+key_filter+'soc u_sapphire_soc(\n'+',\n'.join(instance)+'\n);'+top[finish:]
 start = top.index('apb3_top u_apb3_top(')
 finish = top.index(');',start)+2
 graphics = '''render_subsystem graphics (
     .clk(user_clk),.reset(renderer_reset),.pixel_clk(hdmi_tx_slow_clk),
-    .memory_ready(calibration_sync[1]),
+    .memory_ready(calibration_sync[1]),.key2_down(key2_down),
     .paddr(apb_paddr),.psel(apb_psel),.penable(apb_penable),.pwrite(apb_pwrite),
     .pwdata(apb_pwdata),.prdata(apb_prdata),.pready(apb_pready),.pslverror(apb_pslverror),
     .awaddr(gfx_awaddr),.awlen(gfx_awlen),.awvalid(gfx_awvalid),.awready(gfx_awready),
@@ -193,18 +201,23 @@ db.find(p('pll_info')).append(pll)
 for lvds in hdmi.find(p('lvds_info')): db.find(p('lvds_info')).append(copy.deepcopy(lvds))
 # ROW_WIDTH=14: the vendor peripheral file also contains two unused address pins.
 gpio=db.find(p('gpio_info'))
-key_gpio=ET.Element(p('comp_gpio'),name='key1_n',gpio_def='GPIOR_22',mode='input',
-                    bus_name='',io_standard='3.3 V LVCMOS')
-ET.SubElement(key_gpio,p('input_config'),name='key1_n',name_ddio_lo='',
-              conn_type='normal',is_register='false',clock_name='',
-              is_clock_inverted='false',pull_option='none',
-              is_schmitt_trigger='false',ddio_type='none',is_bus_hold='false',
-              delay='0',is_serial='false',is_dyn_delay='false',fastclk_name='',
-              pullup_ena_name='key1_n_PULL_UP_ENA',dyn_delay_en_name='key1_n_DLY_ENA',
-              dyn_delay_reset_name='key1_n_DLY_RST',dyn_delay_ctrl_name='key1_n_DLY_CTRL',
-              clkmux_buf_name='')
+key_pins=['GPIOL_07','GPIOR_22','GPIOR_21','GPIOL_03']
+for node in list(gpio):
+    if node.get('gpio_def') in key_pins: gpio.remove(node)
 bus_at=next((i for i,node in enumerate(gpio) if node.tag==p('bus')),len(gpio))
-gpio.insert(bus_at,key_gpio)
+for number,pin in enumerate(key_pins):
+    name=f'key{number}_n'
+    key_gpio=ET.Element(p('comp_gpio'),name=name,gpio_def=pin,mode='input',
+                        bus_name='',io_standard='3.3 V LVCMOS')
+    ET.SubElement(key_gpio,p('input_config'),name=name,name_ddio_lo='',
+                  conn_type='normal',is_register='false',clock_name='',
+                  is_clock_inverted='false',pull_option='none',
+                  is_schmitt_trigger='false',ddio_type='none',is_bus_hold='false',
+                  delay='0',is_serial='false',is_dyn_delay='false',fastclk_name='',
+                  pullup_ena_name=name+'_PULL_UP_ENA',dyn_delay_en_name=name+'_DLY_ENA',
+                  dyn_delay_reset_name=name+'_DLY_RST',dyn_delay_ctrl_name=name+'_DLY_CTRL',
+                  clkmux_buf_name='')
+    gpio.insert(bus_at+number,key_gpio)
 for node in list(gpio):
     if node.get('name') in ['ddr_addr[14]','ddr_addr[15]']: gpio.remove(node)
     if node.tag==p('bus') and node.get('name')=='ddr_addr': node.set('msb','13')

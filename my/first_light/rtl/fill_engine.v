@@ -1,6 +1,7 @@
 // RGB565 solid fill, framebuffer block copy and DDR asset-to-framebuffer copy.
 // One outstanding AXI read or write burst, at most 16 beats.
 // Byte strobes preserve neighbouring pixels for odd X / odd rectangle widths.
+`include "rtl/alpha_blend.v"
 `default_nettype none
 module fill_engine #(
     parameter [31:0] FB_BASE = 32'h01000000,
@@ -14,6 +15,7 @@ module fill_engine #(
     input wire [31:0] frame_base,
     input wire [31:0] dst, input wire [15:0] width, height,
     input wire [31:0] stride, src_stride, input wire [15:0] color,
+    input wire [8:0] alpha_opacity, input wire alpha_key_enable,
     output wire busy, output reg done, output reg error,
     output reg [31:0] cycles,
     output reg [31:0] awaddr, output wire [7:0] awlen,
@@ -29,9 +31,11 @@ module fill_engine #(
     localparam IDLE=0, F_PREP=1, F_FIFO=2, F_ADDR=3, F_DATA=4, F_RESP=5,
                C_RPREP=6, C_RADDR=7, C_RDATA=8,
                C_WPREP=9, C_WPRIME=10, C_WFIFO=11,
-               C_WADDR=12, C_WDATA=13, C_WRESP=14;
-    reg [3:0] state;
-    reg copy_mode, keyed_copy;
+               C_WADDR=12, C_WDATA=13, C_WRESP=14,
+               A_PRIME=15, A_MIX=16, A_WAIT=17;
+    reg [4:0] state;
+    reg copy_mode, keyed_copy, alpha_mode, read_background;
+    reg [8:0] command_opacity;
     reg [31:0] source_row_addr;
     reg [31:0] source_row_step;
     reg [9:0] copy_width;
@@ -55,12 +59,22 @@ module fill_engine #(
     reg [15:0] copy_buf_lo [0:511];
     reg [15:0] copy_buf_hi [0:511];
     reg [15:0] copy_qlo, copy_qhi;
+    // Transform destination-aligned background in place before any row write.
+    reg [31:0] background_buf [0:511];
+    reg [31:0] background_q;
+    wire [31:0] mixed_data;
+    wire mixed_valid;
     wire [8:0] copy_lo_index = copy_prefetch_index[8:0] +
         ((copy_src_half && !copy_dst_half) ? 9'd1 : 9'd0);
     wire [8:0] copy_hi_index = copy_prefetch_index[8:0] -
         ((!copy_src_half && copy_dst_half) ? 9'd1 : 9'd0);
     wire [31:0] copy_data = copy_src_half == copy_dst_half ?
         {copy_qhi,copy_qlo} : {copy_qlo,copy_qhi};
+    alpha_blend blend (
+        .clk(clk),.reset(reset),.in_valid(state == A_MIX),
+        .foreground(copy_data),.background(background_q),
+        .opacity(command_opacity),.out_valid(mixed_valid),.result(mixed_data)
+    );
     wire read_beat_error = rresp != 0 || rlast != (copy_read_beat == copy_read_burst_words-1);
     wire [32:0] row_offset = (({17'd0,height}-33'd1) << 10) +
                             (({17'd0,height}-33'd1) << 8);
@@ -119,7 +133,7 @@ module fill_engine #(
     wire [31:0] fifo_entry_mask =
         {{16{fifo_entry_strb[2]}},{16{fifo_entry_strb[0]}}};
     wire [31:0] fifo_entry_data = copy_mode ?
-        (copy_data & fifo_entry_mask) : {command_color,command_color};
+        ((alpha_mode ? background_q : copy_data) & fifo_entry_mask) : {command_color,command_color};
     wire fifo_entry_last = fifo_load_count == fifo_burst_words-1'b1;
     assign fifo_input = {fifo_entry_last,fifo_entry_strb,fifo_entry_data};
 
@@ -146,10 +160,15 @@ module fill_engine #(
     always @(posedge clk) begin
         copy_qlo <= copy_buf_lo[copy_lo_index];
         copy_qhi <= copy_buf_hi[copy_hi_index];
-        if (rvalid && rready) begin
+        background_q <= background_buf[copy_prefetch_index[8:0]];
+        if (rvalid && rready && !read_background) begin
             copy_buf_lo[copy_read_word_index[8:0]] <= rdata[15:0];
             copy_buf_hi[copy_read_word_index[8:0]] <= rdata[31:16];
         end
+        if (rvalid && rready && read_background)
+            background_buf[copy_read_word_index[8:0]] <= rdata;
+        else if (state == A_WAIT && mixed_valid)
+            background_buf[copy_prefetch_index[8:0]] <= mixed_data;
     end
     always @(posedge clk) begin
         if (reset) begin
@@ -157,6 +176,7 @@ module fill_engine #(
             awaddr <= 0; araddr <= 0; row_addr <= 0; source_row_addr <= 0;
             source_row_step <= 1280; copy_width <= 0;
             rows_left <= 0; row_step <= 1280; copy_mode <= 0; keyed_copy <= 0;
+            alpha_mode <= 0; read_background <= 0; command_opacity <= 256;
             command_color <= 0; words_left <= 0; row_words <= 0;
             word_index <= 0; burst_words <= 0; beat <= 0;
             first_high <= 0; last_low <= 0;
@@ -171,7 +191,7 @@ module fill_engine #(
             case (state)
             IDLE: if (start) begin
                 done <= 0; error <= 0; cycles <= 0;
-                if (!memory_ready || (operation > 2) || dst[0] || width == 0 || height == 0 ||
+                if (!memory_ready || (operation == 3 && alpha_opacity > 256) || dst[0] || width == 0 || height == 0 ||
                     width > 640 || height > 480 || stride != 1280 ||
                     dst < frame_base || end_address > {1'b0,frame_base}+{1'b0,FB_BYTES} ||
                     (operation != 0 && (src[0] || src_stride[0] ||
@@ -180,7 +200,9 @@ module fill_engine #(
                     error <= 1; done <= 1;
                 end else begin
                     copy_mode <= operation != 0;
-                    keyed_copy <= operation == 2;
+                    keyed_copy <= operation == 2 || (operation == 3 && alpha_key_enable);
+                    alpha_mode <= operation == 3; read_background <= 0;
+                    command_opacity <= alpha_opacity;
                     row_addr <= dst; awaddr <= {dst[31:2],2'b00};
                     rows_left <= height; command_color <= color;
                     first_high <= dst[1]; last_low <= dst[1] ^ width[0];
@@ -260,13 +282,34 @@ module fill_engine #(
                     if (error || read_beat_error) begin
                         done <= 1; state <= IDLE;
                     end else if (copy_read_words_left == {5'd0,copy_read_burst_words}) begin
-                        copy_write_word_index <= 0; state <= C_WPREP;
+                        copy_write_word_index <= 0;
+                        if (alpha_mode && !read_background) begin
+                            // Read the current back page using the existing
+                            // display-priority AXI arbiter, one burst at a time.
+                            read_background <= 1;
+                            araddr <= {row_addr[31:2],2'b00};
+                            copy_read_words_left <= copy_write_row_words;
+                            copy_read_word_index <= 0;
+                            state <= C_RPREP;
+                        end else if (alpha_mode) begin
+                            copy_prefetch_index <= 0; state <= A_PRIME;
+                        end else state <= C_WPREP;
                     end else begin
                         araddr <= araddr + ({27'd0,copy_read_burst_words} << 2);
                         copy_read_words_left <= copy_read_words_left - {5'd0,copy_read_burst_words};
                         state <= C_RPREP;
                     end
                 end else copy_read_beat <= copy_read_beat + 1'b1;
+            end
+            A_PRIME: state <= A_MIX;
+            A_MIX: state <= A_WAIT;
+            A_WAIT: if (mixed_valid) begin
+                if (copy_prefetch_index == copy_write_row_words-1'b1)
+                    state <= C_WPREP;
+                else begin
+                    copy_prefetch_index <= copy_prefetch_index + 1'b1;
+                    state <= A_PRIME;
+                end
             end
             C_WPREP: begin
                 copy_write_burst_words <= write_words_to_4k < copy_write_proposed ? write_words_to_4k[4:0] : copy_write_proposed[4:0];
@@ -324,6 +367,7 @@ module fill_engine #(
                         copy_read_words_left <= next_read_words;
                         copy_write_words_left <= copy_write_row_words;
                         copy_read_word_index <= 0; copy_write_word_index <= 0;
+                        read_background <= 0;
                         state <= C_RPREP;
                     end
                 end else begin

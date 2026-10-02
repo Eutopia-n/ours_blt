@@ -1,0 +1,2 @@
+ALPHA BLEND TEST PASSED: 4112 pairs, all 257 coefficients, endpoints, bubbles and reset
+sim/tb_alpha_blend.sv:46: $finish called at 41340000 (1ps)

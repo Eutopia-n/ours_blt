@@ -1,0 +1,1 @@
+BASIC MOTION TEST PASSED: 8000 mixed layouts, four levels (32/128/256/512), four directions and speed bounds; frame-rate independent trajectories, wall/corner/multiple bounces, zero delta; throughput, KEY1 wrap and KEY0 renderer toggle

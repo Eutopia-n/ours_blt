@@ -50,7 +50,10 @@ parameter                       AXI_DATA_WIDTH     = `AXI_DATA_WIDTH
    output [9:0] tmds_data0_o, tmds_data1_o, tmds_data2_o, tmds_clk_o,
    output tmds_data0_TX_OE, tmds_data1_TX_OE, tmds_data2_TX_OE, tmds_clk_TX_OE,
    output tmds_data0_TX_RST, tmds_data1_TX_RST, tmds_data2_TX_RST, tmds_clk_TX_RST,
+   input key0_n, // KEY0, GPIOL_07/C4; pressed low
    input key1_n, // KEY1, GPIOR_22/P14; pressed low
+   input key2_n, // KEY2, GPIOR_21/N14; pressed low
+   input key3_n, // KEY3, GPIOL_03/A3; pressed low
    // Clock and reset ports
    input                              axi_clk,      
    input                              core_clk,     // CORE CLK @ 100MHz
@@ -162,7 +165,8 @@ parameter FREQ = 100;			// default is 100 MHz.  Redefine as needed.
   wire [31:0] apb_pwdata, apb_prdata;
   wire apb_psel, apb_penable, apb_pready, apb_pwrite, apb_pslverror;
   wire soc_reset, master_reset;
-  wire key1_state;
+  wire [3:0] key_state;
+  wire key2_down;
   reg [1:0] calibration_sync;
   always @(posedge user_clk or negedge sys_rst)
     if (!sys_rst) calibration_sync <= 0;
@@ -402,10 +406,14 @@ ddr3_top                 u_ddr3_top
 
 
 //***************************************************************************
-key_toggle key1_filter(
-    .clk(user_clk),.reset(soc_reset | master_reset),
-    .key_n(key1_n),.state(key1_state)
-);
+key_toggle key0_filter(.clk(user_clk),.reset(soc_reset | master_reset),
+    .key_n(key0_n),.state(key_state[0]));
+key_toggle key1_filter(.clk(user_clk),.reset(soc_reset | master_reset),
+    .key_n(key1_n),.state(key_state[1]));
+key_toggle key2_filter(.clk(user_clk),.reset(soc_reset | master_reset),
+    .key_n(key2_n),.state(key_state[2]),.down(key2_down));
+key_toggle key3_filter(.clk(user_clk),.reset(soc_reset | master_reset),
+    .key_n(key3_n),.state(key_state[3]));
 soc u_sapphire_soc(
     .io_systemClk (user_clk),
     .io_ddrA_w_payload_strb (s_axi_wstrb),
@@ -570,14 +578,14 @@ soc u_sapphire_soc(
     .io_ddrMasters_0_aw_ready (gfx_awready),
     .io_ddrMasters_0_aw_valid (gfx_awvalid),
     .system_gpio_0_io_write (soc_gpio_OUT),
-    .system_gpio_0_io_read ({soc_gpio_IN[3:1],key1_state}),
+    .system_gpio_0_io_read (key_state),
     .system_spi_0_io_ss (system_spi_0_io_ss)
 );
 
 
 render_subsystem graphics (
     .clk(user_clk),.reset(renderer_reset),.pixel_clk(hdmi_tx_slow_clk),
-    .memory_ready(calibration_sync[1]),
+    .memory_ready(calibration_sync[1]),.key2_down(key2_down),
     .paddr(apb_paddr),.psel(apb_psel),.penable(apb_penable),.pwrite(apb_pwrite),
     .pwdata(apb_pwdata),.prdata(apb_prdata),.pready(apb_pready),.pslverror(apb_pslverror),
     .awaddr(gfx_awaddr),.awlen(gfx_awlen),.awvalid(gfx_awvalid),.awready(gfx_awready),

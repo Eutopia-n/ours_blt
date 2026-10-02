@@ -1,85 +1,80 @@
-time=10000000000 commands=0 CPU read bytes=65216 display=0
-time=20000000000 commands=0 CPU read bytes=132672 display=0
-time=30000000000 commands=0 CPU read bytes=201472 display=0
-time=40000000000 commands=0 CPU read bytes=267904 display=0
-time=50000000000 commands=0 CPU read bytes=335808 display=0
-time=60000000000 commands=0 CPU read bytes=403648 display=0
-time=70000000000 commands=0 CPU read bytes=470528 display=0
-time=80000000000 commands=0 CPU read bytes=540160 display=0
-time=90000000000 commands=0 CPU read bytes=607552 display=0
-time=100000000000 commands=0 CPU read bytes=674752 display=0
-time=110000000000 commands=0 CPU read bytes=743744 display=0
-time=120000000000 commands=0 CPU read bytes=809344 display=0
-time=130000000000 commands=0 CPU read bytes=874560 display=0
-time=140000000000 commands=0 CPU read bytes=940736 display=0
-time=150000000000 commands=0 CPU read bytes=1006656 display=0
-time=160000000000 commands=0 CPU read bytes=1070976 display=0
-time=170000000000 commands=0 CPU read bytes=1138368 display=0
-time=180000000000 commands=0 CPU read bytes=1204544 display=0
-time=190000000000 commands=0 CPU read bytes=1271680 display=0
-time=200000000000 commands=0 CPU read bytes=1337088 display=0
-time=210000000000 commands=0 CPU read bytes=1403520 display=0
-time=220000000000 commands=0 CPU read bytes=1469824 display=0
-time=230000000000 commands=0 CPU read bytes=1538624 display=0
-time=240000000000 commands=0 CPU read bytes=1607168 display=0
-time=250000000000 commands=0 CPU read bytes=1672256 display=0
-time=260000000000 commands=0 CPU read bytes=1738688 display=0
 UART: ASSET CACHED
 
-time=270000000000 commands=0 CPU read bytes=1794240 display=0
-UART: Ti60 SPRITE 77 CPU/HW
+time=10000000000 commands=0 CPU read bytes=48832 display=0
+UART: Ti60 ALPHA KEY2 20261002
 
-time=280000000000 commands=0 CPU read bytes=1794240 display=0
-time=290000000000 commands=0 CPU read bytes=1794240 display=0
-time=300000000000 commands=0 CPU read bytes=1794304 display=0
-PASS scene: present=1 mode=0 keyed=1 pose=0 x=120 page=0 time=303150305000
-time=310000000000 commands=0 CPU read bytes=1808576 display=0
-time=320000000000 commands=0 CPU read bytes=1809088 display=1
-time=330000000000 commands=0 CPU read bytes=1809088 display=1
-time=340000000000 commands=0 CPU read bytes=1809088 display=1
-time=350000000000 commands=0 CPU read bytes=1809088 display=1
-PASS scene: present=2 mode=0 keyed=0 pose=0 x=123 page=1 time=353338295000
-time=360000000000 commands=0 CPU read bytes=1822208 display=1
-time=370000000000 commands=0 CPU read bytes=1822464 display=1
-time=380000000000 commands=0 CPU read bytes=1822464 display=1
-time=390000000000 commands=0 CPU read bytes=1822464 display=1
-time=400000000000 commands=0 CPU read bytes=1822464 display=1
-PASS scene: present=3 mode=0 keyed=1 pose=1 x=126 page=0 time=403268255000
-time=410000000000 commands=0 CPU read bytes=1836096 display=1
-time=420000000000 commands=0 CPU read bytes=1836352 display=1
-time=430000000000 commands=0 CPU read bytes=1836352 display=1
-time=440000000000 commands=0 CPU read bytes=1836352 display=1
-time=450000000000 commands=0 CPU read bytes=1836352 display=1
-PASS scene: present=4 mode=0 keyed=1 pose=38 x=320 page=1 time=453566195000
-time=460000000000 commands=0 CPU read bytes=1852480 display=1
-UART: CPU FPS 20 US 34725
+time=20000000000 commands=0 CPU read bytes=48832 display=0
+time=30000000000 commands=0 CPU read bytes=48832 display=0
+time=40000000000 commands=0 CPU read bytes=50112 display=0
+time=50000000000 commands=0 CPU read bytes=50496 display=0
+time=60000000000 commands=0 CPU read bytes=51456 display=0
+time=70000000000 commands=0 CPU read bytes=51904 display=1
+time=80000000000 commands=0 CPU read bytes=51904 display=1
+time=90000000000 commands=0 CPU read bytes=51904 display=1
+time=100000000000 commands=0 CPU read bytes=52352 display=1
+time=110000000000 commands=0 CPU read bytes=52608 display=1
+UART: ADVANCED DEMO
 
-time=470000000000 commands=1 CPU read bytes=1853376 display=1
-PASS scene: present=5 mode=1 keyed=1 pose=39 x=323 page=0 time=472726865000
-time=480000000000 commands=4 CPU read bytes=1854720 display=1
-PASS scene: present=6 mode=1 keyed=0 pose=39 x=324 page=1 time=489366695000
-time=490000000000 commands=8 CPU read bytes=1855680 display=1
-time=500000000000 commands=8 CPU read bytes=1855680 display=1
-PASS scene: present=7 mode=1 keyed=1 pose=39 x=325 page=0 time=506020355000
-time=510000000000 commands=12 CPU read bytes=1856640 display=1
-time=520000000000 commands=13 CPU read bytes=1856768 display=1
-PASS scene: present=8 mode=1 keyed=1 pose=76 x=515 page=1 time=522693305000
-time=530000000000 commands=16 CPU read bytes=1857600 display=1
-UART: HW FPS 60 US 4005
+time=120000000000 commands=0 CPU read bytes=55360 display=1
+time=130000000000 commands=0 CPU read bytes=55360 display=1
+time=140000000000 commands=0 CPU read bytes=55360 display=1
+time=150000000000 commands=0 CPU read bytes=55360 display=1
+PASS scene: present=1 mode=0 keyed=1 pose=0 x=120 page=0 time=154065495000
+time=160000000000 commands=0 CPU read bytes=70144 display=1
+time=170000000000 commands=0 CPU read bytes=71296 display=1
+time=180000000000 commands=0 CPU read bytes=71296 display=1
+time=190000000000 commands=0 CPU read bytes=71296 display=1
+time=200000000000 commands=0 CPU read bytes=71296 display=1
+PASS scene: present=2 mode=0 keyed=1 pose=0 x=123 page=1 time=204029985000
+time=210000000000 commands=0 CPU read bytes=85056 display=1
+time=220000000000 commands=0 CPU read bytes=86272 display=1
+time=230000000000 commands=0 CPU read bytes=86272 display=1
+time=240000000000 commands=0 CPU read bytes=86272 display=1
+time=250000000000 commands=0 CPU read bytes=86272 display=1
+PASS scene: present=3 mode=0 keyed=1 pose=1 x=126 page=0 time=254023095000
+time=260000000000 commands=0 CPU read bytes=100032 display=1
+time=270000000000 commands=0 CPU read bytes=101248 display=1
+time=280000000000 commands=0 CPU read bytes=101248 display=1
+time=290000000000 commands=0 CPU read bytes=101248 display=1
+time=300000000000 commands=0 CPU read bytes=101248 display=1
+PASS scene: present=4 mode=0 keyed=1 pose=1 x=129 page=1 time=305263485000
+time=310000000000 commands=0 CPU read bytes=128768 display=1
+CMD op=0 src=01000000 dst=01000000 a=256 time=318021655000
+time=320000000000 commands=1 CPU read bytes=130240 display=1
+CMD op=0 src=01000000 dst=01056900 a=256 time=321503525000
+CMD op=0 src=01000000 dst=01064500 a=256 time=321649735000
+CMD op=3 src=01200278 dst=0104a1cc a=251 time=321800715000
+PASS scene: present=5 mode=1 keyed=1 pose=2 x=132 page=0 time=323469885000
+time=330000000000 commands=4 CPU read bytes=133056 display=1
+CMD op=0 src=01200278 dst=01096000 a=251 time=334681185000
+CMD op=0 src=01200278 dst=010ec900 a=251 time=338163115000
+CMD op=0 src=01200278 dst=010fa500 a=251 time=338309325000
+CMD op=3 src=01200278 dst=010e01ce a=246 time=338458155000
+time=340000000000 commands=8 CPU read bytes=136512 display=1
+PASS scene: present=6 mode=1 keyed=1 pose=2 x=133 page=1 time=340125135000
+time=350000000000 commands=8 CPU read bytes=136896 display=1
+CMD op=0 src=01200278 dst=01000000 a=246 time=351341925000
+CMD op=0 src=01200278 dst=01056900 a=246 time=354823815000
+CMD op=0 src=01200278 dst=01064500 a=246 time=354970025000
+CMD op=3 src=01200278 dst=0104a1d0 a=246 time=355118865000
+PASS scene: present=7 mode=1 keyed=0 pose=2 x=134 page=0 time=356794235000
+time=360000000000 commands=12 CPU read bytes=140608 display=1
+time=370000000000 commands=12 CPU read bytes=142016 display=1
+time=380000000000 commands=12 CPU read bytes=142016 display=1
+time=390000000000 commands=12 CPU read bytes=142016 display=1
+time=400000000000 commands=12 CPU read bytes=142016 display=1
+PASS scene: present=8 mode=0 keyed=0 pose=2 x=135 page=1 time=407085735000
+time=410000000000 commands=12 CPU read bytes=181312 display=1
+time=420000000000 commands=12 CPU read bytes=181824 display=1
+time=430000000000 commands=12 CPU read bytes=181824 display=1
+time=440000000000 commands=12 CPU read bytes=181824 display=1
+time=450000000000 commands=12 CPU read bytes=182464 display=1
+time=460000000000 commands=12 CPU read bytes=182784 display=1
+UART: ADVANCED DEMO
 
-time=540000000000 commands=16 CPU read bytes=1858048 display=1
-time=550000000000 commands=16 CPU read bytes=1858048 display=1
-time=560000000000 commands=16 CPU read bytes=1858048 display=1
-time=570000000000 commands=16 CPU read bytes=1876096 display=1
-PASS scene: present=9 mode=0 keyed=1 pose=76 x=516 page=0 time=570598045000
-time=580000000000 commands=16 CPU read bytes=1876288 display=1
-time=590000000000 commands=16 CPU read bytes=1876480 display=1
-time=600000000000 commands=16 CPU read bytes=1876480 display=1
-time=610000000000 commands=16 CPU read bytes=1876480 display=1
-time=620000000000 commands=16 CPU read bytes=1894592 display=1
-PASS scene: present=10 mode=0 keyed=1 pose=76 x=519 page=1 time=620562755000
-time=630000000000 commands=16 CPU read bytes=1894720 display=1
-time=640000000000 commands=16 CPU read bytes=1894976 display=1
-time=650000000000 commands=16 CPU read bytes=1894976 display=1
-time=660000000000 commands=16 CPU read bytes=1894976 display=1
-PASS scene: present=11 mode=0 keyed=1 pose=0 x=123 page=0 time=669974075000
+time=470000000000 commands=12 CPU read bytes=185216 display=1
+time=480000000000 commands=12 CPU read bytes=185216 display=1
+time=490000000000 commands=12 CPU read bytes=185216 display=1
+time=500000000000 commands=12 CPU read bytes=185216 display=1
+PASS scene: present=9 mode=0 keyed=0 pose=0 x=120 page=1 time=504234135000
+time=510000000000 commands=12 CPU read bytes=199296 display=1

@@ -103,40 +103,72 @@ def wait_prompt(port, deadline: float) -> str:
                        "DDR calibration and 115200 8N1")
 
 
-def transfer(port, data: bytes, retries: int, wait_timeout: float = 45) -> None:
+def transfer_once(port, data: bytes, wait_timeout: float) -> bool:
+    print("Waiting for ASSET READY or ASSET CACHED...", flush=True)
+    status = wait_prompt(port, time.monotonic() + wait_timeout)
+    if status == "ASSET CACHED":
+        print("Valid DDR application/assets were retained; upload is unnecessary.", flush=True)
+        return True
+    start = time.monotonic()
+    for offset in range(0, len(data), 4096):
+        block = data[offset:offset + 4096]
+        if port.write(block) != len(block):
+            raise OSError("UART wrote only part of a packet block")
+        if offset // 65536 != (offset + len(block)) // 65536:
+            print(f"  {offset + len(block)}/{len(data)} bytes sent", flush=True)
+    port.flush()
+    print(f"Transfer finished in {time.monotonic() - start:.1f}s; verifying board response", flush=True)
+    limit = time.monotonic() + 30
+    while time.monotonic() < limit:
+        line = port.readline().decode("ascii", "replace").strip()
+        if line:
+            print(line, flush=True)
+        if line == "ASSET OK":
+            print("Upload verified; the DDR application is running.", flush=True)
+            return True
+        if line == "ASSET ERR":
+            return False
+    raise TimeoutError("Packet sent, but no ASSET OK received from the board")
+
+
+def close_port(port, interrupted: bool) -> None:
+    # Cancel queued bytes so the boot ROM can time out the partial packet.
+    # Cleanup may also fail on a disconnected device; retain the original error.
+    methods = ("cancel_write", "reset_output_buffer", "close") if interrupted else ("close",)
+    for name in methods:
+        method = getattr(port, name, None)
+        if method is not None:
+            try:
+                method()
+            except OSError as exc:
+                print(f"Serial cleanup ({name}): {exc}", flush=True)
+
+
+def transfer(open_port, data: bytes, retries: int, wait_timeout: float = 45) -> None:
+    """Each attempt owns a fresh COM handle, including after read/open failures."""
+    last_error = "Board rejected packet (ASSET ERR)"
     for attempt in range(1, retries + 1):
-        print("Waiting for ASSET READY or ASSET CACHED...", flush=True)
-        status = wait_prompt(port, time.monotonic() + wait_timeout)
-        if status == "ASSET CACHED":
-            print("Valid DDR animation was retained across reset; upload is unnecessary.")
-            return
-        print(f"Sending packet {attempt}/{retries}...", flush=True)
-        start = time.monotonic()
+        port = None
+        interrupted = False
+        print(f"Upload attempt {attempt}/{retries}: opening serial port...", flush=True)
         try:
-            for offset in range(0, len(data), 4096):
-                block = data[offset:offset + 4096]
-                if port.write(block) != len(block):
-                    raise OSError("UART wrote only part of a packet block")
-                if offset // 65536 != (offset + len(block)) // 65536:
-                    print(f"  {offset + len(block)}/{len(data)} bytes sent", flush=True)
-            port.flush()
-        except OSError as exc:
-            # The boot ROM times out a truncated packet and advertises READY
-            # again. Wait for that response before retrying from byte zero.
-            print(f"UART transfer interrupted: {exc}")
-            continue
-        print(f"Transfer finished in {time.monotonic() - start:.1f}s; verifying board response")
-        limit = time.monotonic() + 30
-        while time.monotonic() < limit:
-            line = port.readline().decode("ascii", "replace").strip()
-            if line:
-                print(line)
-            if line == "ASSET OK":
-                print("Animation is running. KEY1 toggles color keying.")
+            port = open_port()
+            if transfer_once(port, data, wait_timeout):
                 return
-            if line == "ASSET ERR":
-                break
-    raise SystemExit("Upload failed after all retries; inspect board UART and power")
+            last_error = "Board rejected packet (ASSET ERR)"
+        except OSError as exc:
+            interrupted = True
+            last_error = str(exc)
+            print(f"UART attempt interrupted: {exc}", flush=True)
+        finally:
+            if port is not None:
+                close_port(port, interrupted)
+        if attempt < retries:
+            print("Reopening serial port in 3s; waiting for a new READY before restarting from byte zero.", flush=True)
+            time.sleep(3)
+    raise SystemExit(f"Upload failed after {retries} attempts: {last_error}\n"
+                     "Close other serial tools/uploaders and check the board USB connection. "
+                     "If the board lost power/configuration, reload the JTAG bitstream before retrying.")
 
 
 def main() -> None:
@@ -167,8 +199,8 @@ def main() -> None:
     print("Validating animation packet...", flush=True)
     data = packet()
     print(f"Prepared {len(data)} UART bytes; opening {args.port} at 115200 8N1", flush=True)
-    with serial.Serial(args.port, 115200, timeout=1, write_timeout=10) as port:
-        transfer(port, data, args.retries, args.wait_timeout)
+    transfer(lambda: serial.Serial(args.port, 115200, timeout=1, write_timeout=10),
+             data, args.retries, args.wait_timeout)
 
 
 if __name__ == "__main__":
