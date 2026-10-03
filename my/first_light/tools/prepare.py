@@ -226,7 +226,7 @@ save(peri,ROOT/'first_light.peri.xml')
 project=ET.parse(PAR/'ddr_demo_ti60.xml'); pr=project.getroot()
 for key in list(pr.attrib):
     if key not in ['name','description','sw_version']: del pr.attrib[key]
-pr.set('name','first_light'); pr.set('description','RISC-V AXI solid fill and DDR HDMI first light')
+pr.set('name','spi_flash_autoboot_5x7_font'); pr.set('description','RISC-V 2D Render Engine with SPI Flash Auto Boot and 5x7 HUD Font')
 di=pr.find(e('design_info'))
 for node in list(di):
     if node.tag==e('design_file'): di.remove(node)

@@ -329,26 +329,50 @@ module tb_soc_sprite77;
             endcase
         end
     endfunction
-    function automatic [15:0] glyph_bits(input [7:0] character);
+    function automatic [34:0] glyph_bits(input [7:0] character);
         begin
             case(character)
-                "0":glyph_bits=16'h7b6f; "1":glyph_bits=16'h2492;
-                "2":glyph_bits=16'h73e7; "3":glyph_bits=16'h73cf;
-                "4":glyph_bits=16'h5bc9; "5":glyph_bits=16'h79cf;
-                "6":glyph_bits=16'h79ef; "7":glyph_bits=16'h7249;
-                "8":glyph_bits=16'h7bef; "9":glyph_bits=16'h7bcf;
-                "A":glyph_bits=16'h2bed; "E":glyph_bits=16'h79a7;
-                "I":glyph_bits=16'h7497; "R":glyph_bits=16'h7bac;
-                "S":glyph_bits=16'h79cf; "T":glyph_bits=16'h7492;
-                "W":glyph_bits=16'h5bfd; "X":glyph_bits=16'h5aad;
-                "F":glyph_bits=16'h79a4; "K":glyph_bits=16'h5bad;
-                "N":glyph_bits=16'h5f7d; "O":glyph_bits=16'h7b6f;
-                "M":glyph_bits=16'h5fed;
-                "Y":glyph_bits=16'h5a92;
-                "P":glyph_bits=16'h7be4; "C":glyph_bits=16'h7927;
-                "H":glyph_bits=16'h5bed; "L":glyph_bits=16'h4927;
-                "D":glyph_bits=16'h6b6e; "B":glyph_bits=16'h6bae;
-                "%":glyph_bits=16'h52a5; "+":glyph_bits=16'h05d0;
+                "0":glyph_bits={5'he,5'h11,5'h13,5'h15,5'h19,5'h11,5'he};
+                "1":glyph_bits={5'h4,5'hc,5'h4,5'h4,5'h4,5'h4,5'he};
+                "2":glyph_bits={5'he,5'h11,5'h1,5'h2,5'h4,5'h8,5'h1f};
+                "3":glyph_bits={5'h1e,5'h1,5'h1,5'he,5'h1,5'h1,5'h1e};
+                "4":glyph_bits={5'h2,5'h6,5'ha,5'h12,5'h1f,5'h2,5'h2};
+                "5":glyph_bits={5'h1f,5'h10,5'h10,5'h1e,5'h1,5'h1,5'h1e};
+                "6":glyph_bits={5'h6,5'h8,5'h10,5'h1e,5'h11,5'h11,5'he};
+                "7":glyph_bits={5'h1f,5'h1,5'h2,5'h4,5'h8,5'h8,5'h8};
+                "8":glyph_bits={5'he,5'h11,5'h11,5'he,5'h11,5'h11,5'he};
+                "9":glyph_bits={5'he,5'h11,5'h11,5'hf,5'h1,5'h2,5'h1c};
+                "A":glyph_bits={5'he,5'h11,5'h11,5'h1f,5'h11,5'h11,5'h11};
+                "B":glyph_bits={5'h1e,5'h11,5'h11,5'h1e,5'h11,5'h11,5'h1e};
+                "C":glyph_bits={5'hf,5'h10,5'h10,5'h10,5'h10,5'h10,5'hf};
+                "D":glyph_bits={5'h1e,5'h11,5'h11,5'h11,5'h11,5'h11,5'h1e};
+                "E":glyph_bits={5'h1f,5'h10,5'h10,5'h1e,5'h10,5'h10,5'h1f};
+                "F":glyph_bits={5'h1f,5'h10,5'h10,5'h1e,5'h10,5'h10,5'h10};
+                "G":glyph_bits={5'he,5'h11,5'h10,5'h17,5'h11,5'h11,5'he};
+                "H":glyph_bits={5'h11,5'h11,5'h11,5'h1f,5'h11,5'h11,5'h11};
+                "I":glyph_bits={5'he,5'h4,5'h4,5'h4,5'h4,5'h4,5'he};
+                "J":glyph_bits={5'h7,5'h2,5'h2,5'h2,5'h2,5'h12,5'hc};
+                "K":glyph_bits={5'h11,5'h12,5'h14,5'h18,5'h14,5'h12,5'h11};
+                "L":glyph_bits={5'h10,5'h10,5'h10,5'h10,5'h10,5'h10,5'h1f};
+                "M":glyph_bits={5'h11,5'h1b,5'h15,5'h15,5'h11,5'h11,5'h11};
+                "N":glyph_bits={5'h11,5'h19,5'h15,5'h13,5'h11,5'h11,5'h11};
+                "O":glyph_bits={5'he,5'h11,5'h11,5'h11,5'h11,5'h11,5'he};
+                "P":glyph_bits={5'h1e,5'h11,5'h11,5'h1e,5'h10,5'h10,5'h10};
+                "Q":glyph_bits={5'he,5'h11,5'h11,5'h11,5'h15,5'h12,5'hd};
+                "R":glyph_bits={5'h1e,5'h11,5'h11,5'h1e,5'h14,5'h12,5'h11};
+                "S":glyph_bits={5'hf,5'h10,5'h10,5'he,5'h1,5'h1,5'h1e};
+                "T":glyph_bits={5'h1f,5'h4,5'h4,5'h4,5'h4,5'h4,5'h4};
+                "U":glyph_bits={5'h11,5'h11,5'h11,5'h11,5'h11,5'h11,5'he};
+                "V":glyph_bits={5'h11,5'h11,5'h11,5'h11,5'h11,5'ha,5'h4};
+                "W":glyph_bits={5'h11,5'h11,5'h11,5'h15,5'h15,5'h15,5'ha};
+                "X":glyph_bits={5'h11,5'h11,5'ha,5'h4,5'ha,5'h11,5'h11};
+                "Y":glyph_bits={5'h11,5'h11,5'ha,5'h4,5'h4,5'h4,5'h4};
+                "Z":glyph_bits={5'h1f,5'h1,5'h2,5'h4,5'h8,5'h10,5'h1f};
+                "%":glyph_bits={5'h11,5'h2,5'h4,5'h8,5'h11,5'h0,5'h0};
+                "+":glyph_bits={5'h0,5'h4,5'h4,5'h1f,5'h4,5'h4,5'h0};
+                "-":glyph_bits={5'h0,5'h0,5'h0,5'h1f,5'h0,5'h0,5'h0};
+                ".":glyph_bits={5'h0,5'h0,5'h0,5'h0,5'h0,5'h6,5'h6};
+                "/":glyph_bits={5'h1,5'h2,5'h4,5'h8,5'h10,5'h0,5'h0};
                 default:glyph_bits=0;
             endcase
         end
@@ -385,13 +409,14 @@ module tb_soc_sprite77;
             $display("PASS menu selection %0d",swap_commands);
         end
     endtask
-    function automatic [15:0] screen_glyph(input integer base,x,y);
-        reg [15:0] bits,px;
+    function automatic [34:0] screen_glyph(input integer base,x,y);
+        reg [34:0] bits;
+        reg [15:0] px;
         begin
             bits=0;
-            for(integer r=0;r<5;r=r+1) for(integer c=0;c<3;c=c+1) begin
-                px={mem[base+((y+r*3)*640+x+c*3)*2+1],mem[base+((y+r*3)*640+x+c*3)*2]};
-                if(px!=16'h1082) bits[14-r*3-c]=1;
+            for(integer r=0;r<7;r=r+1) for(integer c=0;c<5;c=c+1) begin
+                px={mem[base+((y+r*2)*640+x+c*2)*2+1],mem[base+((y+r*2)*640+x+c*2)*2]};
+                if(px!=16'h1082) bits[34-r*5-c]=1;
             end
             screen_glyph=bits;
         end
@@ -524,7 +549,7 @@ module tb_soc_sprite77;
             read_number(base,448,80,copy_count,digits);
             if(total!=count*2 || fill_count!=count || copy_count!=count)
                 $fatal(1,"BASIC HUD operation counts are not the executed workload");
-            if(screen_glyph(base,48,56)!=16'h12a4 || screen_glyph(base,48,104)!=16'h12a4)
+            if(screen_glyph(base,48,56)!=glyph_bits("/") || screen_glyph(base,48,104)!=glyph_bits("/"))
                 $fatal(1,"BASIC metric separator glyph is incorrect");
             if(stress_test && ((controls_test && (basic_frames==0 || basic_frames==2 || basic_frames==3 ||
                                 basic_frames==4 || basic_frames==6)) ||
@@ -532,9 +557,9 @@ module tb_soc_sprite77;
                                basic_frames==8)) ||
                                (perf_test && (basic_frames==0 ||
                                 basic_frames==8 || basic_frames==15 || basic_frames==23)))) begin
-                if(screen_glyph(base,112,8)!=16'h01c0 || screen_glyph(base,432,8)!=16'h01c0 ||
-                   screen_glyph(base,88,56)!=16'h01c0 || screen_glyph(base,408,56)!=16'h01c0 ||
-                   screen_glyph(base,108,104)!=16'h01c0)
+                if(screen_glyph(base,112,8)!=glyph_bits("-") || screen_glyph(base,432,8)!=glyph_bits("-") ||
+                   screen_glyph(base,88,56)!=glyph_bits("-") || screen_glyph(base,408,56)!=glyph_bits("-") ||
+                   screen_glyph(base,108,104)!=glyph_bits("-"))
                     $fatal(1,"BASIC reused statistics after load change");
             end
             if(controls_test) begin
@@ -560,7 +585,7 @@ module tb_soc_sprite77;
                 read_number(base,408,56,ops,digits);
                 if(ops<1 || ops>256*61) $fatal(1,"Invalid HW operation throughput");
                 read_number(base,108,104,ratio,digits);
-                if(screen_glyph(base,108+digits*12,104)!=16'h0002) $fatal(1,"Missing ratio decimal point");
+                if(screen_glyph(base,108+digits*12,104)!=glyph_bits(".")) $fatal(1,"Missing ratio decimal point");
                 read_number(base,120+digits*12,104,frac,digits);
                 if(ratio*10+frac!=cpu_us*10/hw_us) $fatal(1,"Incorrect displayed CPU/HW ratio");
                 $display("PASS measured %0d-block HUD: CPU=%0d us HW=%0d us ratio10=%0d",count*2,cpu_us,hw_us,ratio*10+frac);
@@ -580,13 +605,13 @@ module tb_soc_sprite77;
     // Independently rasterize the scene, then compare every non-HUD pixel
     // at submission. Save the entire page for subsequent scanout checks.
     task golden_text(input integer x,y,input string label);
-        reg [15:0] bits;
+        reg [34:0] bits;
         for(integer c=0;c<label.len();c++) begin
             bits=glyph_bits(label.getc(c));
-            for(integer r=0;r<5;r++) for(integer k=0;k<3;k++)
-                if(bits&(1<<(14-r*3-k)))
-                    for(integer dy=0;dy<3;dy++) for(integer dx=0;dx<3;dx++)
-                        golden[(y+r*3+dy)*640+x+c*12+k*3+dx]=16'hffff;
+            for(integer r=0;r<7;r++) for(integer k=0;k<5;k++)
+                if(bits&(35'd1<<(34-r*5-k)))
+                    for(integer dy=0;dy<2;dy++) for(integer dx=0;dx<2;dx++)
+                        golden[(y+r*2+dy)*640+x+c*12+k*2+dx]=16'hffff;
         end
     endtask
     function automatic [15:0] alpha_reference(input [15:0] f,b,input integer t);
@@ -602,7 +627,8 @@ module tb_soc_sprite77;
         integer number_len,frame_number,digit,transparency;
         integer pose,entry,width,height,dst_x,dst_y;
         reg [31:0] state;
-        reg [15:0] actual,bits;
+        reg [15:0] actual;
+        reg [34:0] bits;
         reg [7:0] character;
         reg keyed;
         begin
@@ -661,19 +687,19 @@ module tb_soc_sprite77;
             for(char_index=0;char_index<res_len;char_index=char_index+1) begin
                 character=resolution_char(char_index,last_video_valid);
                 bits=glyph_bits(character);
-                for(row=0;row<5;row=row+1) for(col=0;col<3;col=col+1)
-                    if(bits&(1<<(14-row*3-col)))
-                        for(dy=0;dy<3;dy=dy+1) for(dx=0;dx<3;dx=dx+1)
-                            golden[(56+row*3+dy)*640+res_x+char_index*12+col*3+dx]=16'hffff;
+                for(row=0;row<7;row=row+1) for(col=0;col<5;col=col+1)
+                    if(bits&(35'd1<<(34-row*5-col)))
+                        for(dy=0;dy<2;dy=dy+1) for(dx=0;dx<2;dx=dx+1)
+                            golden[(56+row*2+dy)*640+res_x+char_index*12+col*2+dx]=16'hffff;
             end
             key_len=keyed ? 6 : 7;
             for(char_index=0;char_index<key_len;char_index=char_index+1) begin
                 character=key_char(char_index,keyed);
                 bits=glyph_bits(character);
-                for(row=0;row<5;row=row+1) for(col=0;col<3;col=col+1)
-                    if(bits&(1<<(14-row*3-col)))
-                        for(dy=0;dy<3;dy=dy+1) for(dx=0;dx<3;dx=dx+1)
-                            golden[(56+row*3+dy)*640+12+char_index*12+col*3+dx]=16'hffff;
+                for(row=0;row<7;row=row+1) for(col=0;col<5;col=col+1)
+                    if(bits&(35'd1<<(34-row*5-col)))
+                        for(dy=0;dy<2;dy=dy+1) for(dx=0;dx<2;dx=dx+1)
+                            golden[(56+row*2+dy)*640+12+char_index*12+col*2+dx]=16'hffff;
             end
             for(char_index=0;char_index<5;char_index=char_index+1) begin
                 case(char_index)
@@ -681,10 +707,10 @@ module tb_soc_sprite77;
                     3:character="M"; default:character="E";
                 endcase
                 bits=glyph_bits(character);
-                for(row=0;row<5;row=row+1) for(col=0;col<3;col=col+1)
-                    if(bits&(1<<(14-row*3-col)))
-                        for(dy=0;dy<3;dy=dy+1) for(dx=0;dx<3;dx=dx+1)
-                            golden[(56+row*3+dy)*640+164+char_index*12+col*3+dx]=16'hffff;
+                for(row=0;row<7;row=row+1) for(col=0;col<5;col=col+1)
+                    if(bits&(35'd1<<(34-row*5-col)))
+                        for(dy=0;dy<2;dy=dy+1) for(dx=0;dx<2;dx=dx+1)
+                            golden[(56+row*2+dy)*640+164+char_index*12+col*2+dx]=16'hffff;
             end
             frame_number=pose+1;
             number_len=frame_number>=10 ? 2 : 1;
@@ -692,10 +718,10 @@ module tb_soc_sprite77;
                 digit=number_len==2 && char_index==0 ? frame_number/10 : frame_number%10;
                 character=8'd48+digit;
                 bits=glyph_bits(character);
-                for(row=0;row<5;row=row+1) for(col=0;col<3;col=col+1)
-                    if(bits&(1<<(14-row*3-col)))
-                        for(dy=0;dy<3;dy=dy+1) for(dx=0;dx<3;dx=dx+1)
-                            golden[(56+row*3+dy)*640+236+char_index*12+col*3+dx]=16'hffff;
+                for(row=0;row<7;row=row+1) for(col=0;col<5;col=col+1)
+                    if(bits&(35'd1<<(34-row*5-col)))
+                        for(dy=0;dy<2;dy=dy+1) for(dx=0;dx<2;dx=dx+1)
+                            golden[(56+row*2+dy)*640+236+char_index*12+col*2+dx]=16'hffff;
             end
             base=page*PAGE_BYTES;
             for(integer n=0;n<307200;n=n+1) begin

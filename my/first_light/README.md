@@ -1,4 +1,6 @@
-# Ti60 2D 引擎：初级 / 高级功能菜单
+# SPI Flash Auto Boot 5x7 Font Engine
+
+本工程名称：**SPI Flash Auto Boot 5x7 Font Engine**。它在 Ti60F225 上实现 2D 图形渲染、SPI Flash 自动启动和 5×7 HUD 字体显示；工程文件仍保留 `first_light` 路径名，以兼容现有 Efinity 构建脚本。
 
 当前新增 KEY2 透明度：高级展示短按 +2，长按 500 ms 后每 100 ms 连加，0～100 循环；CPU/FPGA Alpha 混合与验证见 [说明](ALPHA_KEY2.md)。上板必须使用配套新 bitstream 和应用。
 
@@ -8,9 +10,9 @@ KEY1 按 32 → 128 → 256 → 32 循环数量，KEY0 手动切换 CPU/FPGA；�
 最新上板包入口为 [KEY2 透明度包](releases/alpha_key2_20261002/README.md)。当前输出仍为 640×480。
 下文保留 77 帧高级功能的原有设计与历史验收记录；其中的旧发布包不含菜单。
 
-高级展示使用用户提供的原图生成 77 帧 RGB565 动画，以 UART 装载到 DDR。[旧 77 帧上板包](releases/sprite77_20260927/README.md) 仅供复现历史版本；体验当前菜单请使用上方最新包。COM 号必须在各自电脑上查询。历史构建与板级验收步骤见 [SPRITE77.md](SPRITE77.md)。颜色键控设计见 [COLOR_KEY.md](COLOR_KEY.md)；此前资源区版本见 [DDR_ASSETS.md](DDR_ASSETS.md)，FIFO 原理见 [FIFO_CACHE.md](FIFO_CACHE.md)。
+高级展示使用用户提供的原图生成 77 帧 RGB565 动画。当前本地版本优先从 SPI Flash 自动加载动画程序和素材，UART 仅作为 Flash 用户镜像未写入或校验失败时的调试回退方式。[旧 77 帧上板包](releases/sprite77_20260927/README.md) 仍以 UART 装载到 DDR，仅供复现历史版本；体验当前菜单请使用上方最新包。历史构建与板级验收步骤见 [SPRITE77.md](SPRITE77.md)。颜色键控设计见 [COLOR_KEY.md](COLOR_KEY.md)；此前资源区版本见 [DDR_ASSETS.md](DDR_ASSETS.md)，FIFO 原理见 [FIFO_CACHE.md](FIFO_CACHE.md)。
 
-此前非键控版本的用户实板数据为 CPU 30 FPS / 26220 μs、HW 60 FPS / 4778 μs，见 [历史观测记录](releases/ddr_assets_20260922/BOARD_OBSERVATION.md)。本版在 2026-09-27 经 COM15 上传后持续运行，实板 UART 报告 CPU 20 FPS、HW 60 FPS；用户确认 HDMI 动画和 KEY1 去背切换，详见 [本版验收记录](SPRITE77.md)。冷启动后需运行 `tools/upload_sprite77.py` 上传动画程序与素材。
+此前非键控版本的用户实板数据为 CPU 30 FPS / 26220 μs、HW 60 FPS / 4778 μs，见 [历史观测记录](releases/ddr_assets_20260922/BOARD_OBSERVATION.md)。本版在实板上报告 CPU 20 FPS、HW 60 FPS；用户确认 HDMI 动画和 KEY1 去背切换，详见 [本版验收记录](SPRITE77.md)。使用当前 SPI Flash 用户镜像时，冷启动不再需要运行 `tools/upload_sprite77.py`；只有采用旧 UART 调试流程时才需要上传。
 
 适用对象：基于 Ti60F225I3 的 Ti60F225 开发板。工程使用仓库提供的 DDR3、Sapphire RISC-V 和 HDMI 示例作为板级基础。
 
@@ -21,7 +23,7 @@ KEY1 按 32 → 128 → 256 → 32 循环数量，KEY0 手动切换 CPU/FPGA；�
 - 独立 Efinity 工程 `first_light.xml`，顶层为 `competition_top`，器件为 Ti60F225 / I3。
 - RGB565 矩形纯色填充，支持奇数 X、奇数宽度、AXI 写响应错误上报。
 - RGB565 图像块拷贝：支持同页显存内重叠拷贝，以及独立 DDR 资源区到所选绘制页的拷贝；源行距可单独配置，目标行距固定 1280 字节。键控模式按可配置的 RGB565 透明色逐像素保留背景。
-- 图片资源区为 `0x01200000～0x012FFFFF`（1 MiB）。冷启动后通过 UART 上传 77 帧 RGB565 Sprite；品红 `0xF81F` 为键色，CPU/HW 都从该区域读取。
+- 图片资源区为 `0x01200000～0x012FFFFF`（1 MiB）。冷启动时 bootloader 从 SPI Flash 用户区校验并搬运 77 帧 RGB565 Sprite；Flash 不可用时可通过 UART 回退上传。品红 `0xF81F` 为键色，CPU/HW 都从该区域读取。
 - 每次最多 16 个 32 位 beat，遇到 4 KB 边界自动拆分，最终 B 响应返回后才置 DONE。
 - 两个 DDR framebuffer：A=`0x01000000`、B=`0x01096000`，每页 640×480、RGB565、每像素 2 字节、每行 1280 字节，每页 614400 字节。
 - 双缓冲换页：RISC-V 在后台页完成渲染后写入换页请求，视频端只在垂直消隐的帧边界采纳请求，避免一帧中途改变显示基址。
@@ -46,7 +48,7 @@ CPU 通过现有的 APB 外设窗口发送少量配置；像素数据走独立�
 
 DDR 与像素时钟不同，所以显示端不能直接跨时钟读取一组普通寄存器。本工程使用双时钟 RAM 作为行缓存，请求与完成信号采用翻转位及两级同步。每条有效显示行开始前检查缓存行号；取数失败时输出黑色并记录错误，避免把错误行当作正常画面。
 
-Sapphire 的 4 KiB 片内 RAM 装入 UART 引导程序；超出该空间的动画程序与 77 帧素材在冷启动后同一次上传到 DDR。不依赖 SPI Flash 中已有的软件。片内程序保留 512 字节栈空间并由链接脚本检查越界；实际大小以 `reports/firmware_size.log` 为准。
+Sapphire 的 4 KiB 片内 RAM 装入引导程序；它优先从 SPI Flash 用户区校验动画程序与 77 帧素材并搬运到 DDR，校验失败时再等待 UART 上传。不依赖外部文件系统。片内程序保留 512 字节栈空间并由链接脚本检查越界；实际大小以 `reports/firmware_size.log` 为准。
 
 ## 3. 文件入口
 
@@ -179,11 +181,11 @@ VIDEO_SIZE 测量的是 FPGA 输出的有效画面，当前应为 `0x01E00280`�
 
 ## 7. 上板预期与定位方法
 
-使用 Efinity Programmer 的易失性 JTAG 配置方式加载 `outflow/first_light.bit`；断电后需重新配置 FPGA，并再次向 DDR 上传程序和素材。在同一次上电运行期间，KEY1 切换去背以及 CPU/HW 自动切换都不需要重新下载 bitstream。队友应优先使用已打包的 [发布版操作说明](releases/sprite77_20260927/README.md)：在发布包目录运行 `python .\tools\upload_sprite77.py --list-ports`，找到本机开发板 COM 号，再运行 `python .\tools\upload_sprite77.py --port COM7`，其中 `COM7` 只是示例，必须替换为实际号码。HDMI 连接板上的 TX 接口，串口参数为 115200、8N1。旧版保存在各 `releases/` 子目录。
+使用 Efinity Programmer 的易失性 JTAG 配置方式加载 `outflow/first_light.bit`；JTAG 只更新 FPGA 当前配置，断电后需要重新配置。若已将 `flash_user.hex` 写入 SPI Flash 用户区，则重新配置或上电后 bootloader 会自动把程序和素材搬运到 DDR，无需再次串口上传。在同一次上电运行期间，KEY1 切换去背以及 CPU/HW 自动切换都不需要重新下载 bitstream。若使用旧 UART 调试流程，在发布包目录运行 `python .\tools\upload_sprite77.py --list-ports`，找到本机开发板 COM 号，再运行 `python .\tools\upload_sprite77.py --port COM7`，其中 `COM7` 只是示例，必须替换为实际号码。HDMI 连接板上的 TX 接口，串口参数为 115200、8N1。旧版保存在各 `releases/` 子目录。
 
-默认 `KEY ON` 显示一个不规则边缘的人物或球棒帧，轮廓外露出深灰及彩色背景条。按一次 KEY1 后，屏幕变为 `KEY OFF`，品红色矩形外围盖住背景；再按一次恢复去背。人物每秒目标播放 12 个动作并向右移动，到右端后循环。两列 CPU/HW FPS 与 US、`FRAME 1`～`FRAME 77`、`RES 640X480` 均显示，白字列约每 4 秒切换。串口先显示 `ASSET READY`，上传成功后显示 `ASSET OK` 和 `Ti60 SPRITE 77 CPU/HW`，随后输出实测值。完整验收步骤见 `SPRITE77.md`。
+默认 `KEY ON` 显示一个不规则边缘的人物或球棒帧，轮廓外露出深灰及彩色背景条。按一次 KEY1 后，屏幕变为 `KEY OFF`，品红色矩形外围盖住背景；再按一次恢复去背。人物每秒目标播放 12 个动作并向右移动，到右端后循环。两列 CPU/HW FPS 与 US、`FRAME 1`～`FRAME 77`、`RES 640X480` 均显示，白字列约每 4 秒切换。Flash 自动启动时串口显示 `FLASH BOOT`、`ASSET OK` 和 `Ti60 SPRITE 77 CPU/HW`，随后输出实测值；UART 回退时仍会先显示 `ASSET READY`。完整验收步骤见 `SPRITE77.md`。
 
-当前若一直显示 `ASSET READY`，请检查 COM 号并运行上传脚本；`ASSET ERR` 表示传输或校验失败，脚本会从包头重试；`FAIL ASSET` 或 `FAIL copy` 应先检查素材头、帧表、状态寄存器与 DDR 读写。以下表格保留历史静态程序的故障信息；若仍看到 PASS DOUBLE BUFFER 和静态图案，说明下载的是旧版。
+当前若一直显示 `ASSET READY`，说明 Flash 用户镜像未被采用，应检查 SPI Flash 用户区和启动日志，必要时再运行 UART 上传脚本；`ASSET ERR` 表示传输或校验失败，脚本会从包头重试；`FAIL ASSET` 或 `FAIL copy` 应先检查素材头、帧表、状态寄存器与 DDR 读写。以下表格保留历史静态程序的故障信息；若仍看到 PASS DOUBLE BUFFER 和静态图案，说明下载的是旧版。
 
 | 如果出现问题 | 下一步具体检查 |
 |---|---|
@@ -199,7 +201,11 @@ VIDEO_SIZE 测量的是 FPGA 输出的有效画面，当前应为 `0x01E00280`�
 
 HDMI 与 DDR 沿用原板连接，接口检查还保留一条相邻 HSIO 引脚可能串扰的布局告警，细节见 `VALIDATION.md`。不能随意改引脚来消除告警；实际信号完整性需要接板验证。
 
-## 8. 官方源文件来源
+## 8. 本地 SPI Flash 自动启动
+
+本地版本的片内 bootloader 会优先读取板上 GD25LQ64 的用户区 `0x380000`。用户区由 `python .\tools\build.py firmware` 自动生成，包含 `animation.bin`、完整 `assets/sprite77.raw` 和 CRC；校验成功后自动搬运到 DDR，串口输出 `FLASH BOOT`，接显示器即可播放。Flash 用户镜像的详细布局、烧录顺序以及 JTAG 临时下载的区别见 [SPI_FLASH_AUTO_BOOT.md](SPI_FLASH_AUTO_BOOT.md)。Flash 用户镜像由本地构建生成；源代码、打包脚本和 5×7 字体修改随本分支提交，生成的二进制可按需写入开发板 SPI Flash。
+
+## 9. 官方源文件来源
 
 - DDR 与 SoC：`08_ti60f225_soc_demo/09_Ti60F225_co_debug_demo`。
 - HDMI 外设、P/N 取反和 TMDS 编码器：`03_hdmi_tx_demo/hdmi_tx_demo_v2`。

@@ -7,13 +7,22 @@ import sys
 
 ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
-parser.add_argument('step',choices=['prepare','firmware','sim','sim-fifo','sim-mode','sim-key','sim-menu-keys','sim-alpha','sim-alpha-soc','sim-soc','sim-menu-soc','sim-basic-soc','sim-stress-soc','sim-moving-soc','sim-perf-soc','sim-controls-soc','sim-boot-uart','interface','map','compile','inspect'])
-parser.add_argument('--efinity',default='S:/Efinity')
+parser.add_argument('step',choices=['prepare','firmware','flash-bundle','sim','sim-fifo','sim-mode','sim-key','sim-menu-keys','sim-alpha','sim-alpha-soc','sim-soc','sim-menu-soc','sim-basic-soc','sim-stress-soc','sim-moving-soc','sim-perf-soc','sim-controls-soc','sim-boot-uart','interface','map','compile','inspect'])
+parser.add_argument('--efinity',default=None,
+                    help='Efinity RISC-V IDE root; auto-detects the standard C:/Efinity install')
 parser.add_argument('--modelsim',default='S:/ModelSim/win64')
 parser.add_argument('--demo',choices=['motion','double-buffer'],default='motion')
 parser.add_argument('--board-root',type=Path,help='Complete board examples, only needed for prepare')
 args=parser.parse_args()
-EF=Path(args.efinity)
+if args.efinity:
+    EF=Path(args.efinity)
+    FLOW_EF=EF
+else:
+    riscv_candidates=[Path('C:/Efinity/efinity-riscv-ide-2026.1'),Path('S:/Efinity')]
+    flow_candidates=[Path('C:/Efinity/2026.1'),Path('S:/Efinity')]
+    EF=next((p for p in riscv_candidates if (p/'toolchain/bin/riscv-none-elf-gcc.exe').exists()),
+            riscv_candidates[0])
+    FLOW_EF=next((p for p in flow_candidates if (p/'bin/efx_run.bat').exists()),flow_candidates[0])
 board_root=args.board_root.resolve() if args.board_root else None
 os.chdir(ROOT)
 (ROOT/'reports').mkdir(exist_ok=True)
@@ -59,6 +68,10 @@ elif args.step=='firmware':
         # Efinity and ModelSim resolve readmemb relative to the build working directory.
         (ROOT/name).write_text(content)
     print('Embedded firmware into 4 KiB on-chip RAM (no SPI flash programming).')
+    if args.demo=='motion':
+        run([sys.executable,ROOT/'tools/make_flash_bundle.py'],'flash_bundle.log')
+elif args.step=='flash-bundle':
+    run([sys.executable,ROOT/'tools/make_flash_bundle.py'],'flash_bundle.log')
 elif args.step=='sim-alpha':
     sim=Path(args.modelsim)
     if not (ROOT/'sim/work').exists(): run([sim/'vlib.exe','sim/work'],'vlib.log')
@@ -188,4 +201,4 @@ elif args.step=='inspect':
         for file in ROOT.glob(pattern):
             print(file.name, file.read_text(errors='replace')[:10000])
 else:
-    run([EF/'bin/efx_run.bat','first_light.xml','--flow',args.step],args.step+'.log')
+    run([FLOW_EF/'bin/efx_run.bat','first_light.xml','--flow',args.step],args.step+'.log')

@@ -202,18 +202,37 @@ module tb_soc;
             endcase
         end
     endfunction
-    function automatic [15:0] glyph_bits(input [7:0] character);
+    function automatic [34:0] glyph_bits(input [7:0] character);
         begin
             case(character)
-                "0":glyph_bits=16'h7b6f; "4":glyph_bits=16'h5bc9;
-                "6":glyph_bits=16'h79ef; "8":glyph_bits=16'h7bef;
-                "A":glyph_bits=16'h2bed; "E":glyph_bits=16'h79a7;
-                "I":glyph_bits=16'h7497; "R":glyph_bits=16'h7bac;
-                "S":glyph_bits=16'h79cf; "T":glyph_bits=16'h7492;
-                "W":glyph_bits=16'h5bfd; "X":glyph_bits=16'h5aad;
-                "F":glyph_bits=16'h79a4; "K":glyph_bits=16'h5bad;
-                "N":glyph_bits=16'h5f7d; "O":glyph_bits=16'h7b6f;
-                "Y":glyph_bits=16'h5a92;
+                "0":glyph_bits={5'he,5'h11,5'h13,5'h15,5'h19,5'h11,5'he};
+                "1":glyph_bits={5'h4,5'hc,5'h4,5'h4,5'h4,5'h4,5'he};
+                "2":glyph_bits={5'he,5'h11,5'h1,5'h2,5'h4,5'h8,5'h1f};
+                "3":glyph_bits={5'h1e,5'h1,5'h1,5'he,5'h1,5'h1,5'h1e};
+                "4":glyph_bits={5'h2,5'h6,5'ha,5'h12,5'h1f,5'h2,5'h2};
+                "5":glyph_bits={5'h1f,5'h10,5'h10,5'h1e,5'h1,5'h1,5'h1e};
+                "6":glyph_bits={5'h6,5'h8,5'h10,5'h1e,5'h11,5'h11,5'he};
+                "7":glyph_bits={5'h1f,5'h1,5'h2,5'h4,5'h8,5'h8,5'h8};
+                "8":glyph_bits={5'he,5'h11,5'h11,5'he,5'h11,5'h11,5'he};
+                "9":glyph_bits={5'he,5'h11,5'h11,5'hf,5'h1,5'h2,5'h1c};
+                "A":glyph_bits={5'he,5'h11,5'h11,5'h1f,5'h11,5'h11,5'h11};
+                "E":glyph_bits={5'h1f,5'h10,5'h10,5'h1e,5'h10,5'h10,5'h1f};
+                "F":glyph_bits={5'h1f,5'h10,5'h10,5'h1e,5'h10,5'h10,5'h10};
+                "I":glyph_bits={5'he,5'h4,5'h4,5'h4,5'h4,5'h4,5'he};
+                "K":glyph_bits={5'h11,5'h12,5'h14,5'h18,5'h14,5'h12,5'h11};
+                "N":glyph_bits={5'h11,5'h19,5'h15,5'h13,5'h11,5'h11,5'h11};
+                "O":glyph_bits={5'he,5'h11,5'h11,5'h11,5'h11,5'h11,5'he};
+                "R":glyph_bits={5'h1e,5'h11,5'h11,5'h1e,5'h14,5'h12,5'h11};
+                "S":glyph_bits={5'hf,5'h10,5'h10,5'he,5'h1,5'h1,5'h1e};
+                "T":glyph_bits={5'h1f,5'h4,5'h4,5'h4,5'h4,5'h4,5'h4};
+                "W":glyph_bits={5'h11,5'h11,5'h11,5'h15,5'h15,5'h15,5'ha};
+                "X":glyph_bits={5'h11,5'h11,5'ha,5'h4,5'ha,5'h11,5'h11};
+                "Y":glyph_bits={5'h11,5'h11,5'ha,5'h4,5'h4,5'h4,5'h4};
+                "%":glyph_bits={5'h11,5'h2,5'h4,5'h8,5'h11,5'h0,5'h0};
+                "+":glyph_bits={5'h0,5'h4,5'h4,5'h1f,5'h4,5'h4,5'h0};
+                "-":glyph_bits={5'h0,5'h0,5'h0,5'h1f,5'h0,5'h0,5'h0};
+                ".":glyph_bits={5'h0,5'h0,5'h0,5'h0,5'h0,5'h6,5'h6};
+                "/":glyph_bits={5'h1,5'h2,5'h4,5'h8,5'h10,5'h0,5'h0};
                 default:glyph_bits=0;
             endcase
         end
@@ -232,7 +251,8 @@ module tb_soc;
     // at submission. Save the entire page for subsequent scanout checks.
     task check_scene;
         integer mode,page,x,y,base,offset,res_x,res_len,char_index,row,col,dx,dy,key_len;
-        reg [15:0] actual,bits;
+         reg [15:0] actual;
+         reg [34:0] bits;
         reg [7:0] character;
         reg keyed;
         begin
@@ -273,19 +293,19 @@ module tb_soc;
             for(char_index=0;char_index<res_len;char_index=char_index+1) begin
                 character=resolution_char(char_index,last_video_valid);
                 bits=glyph_bits(character);
-                for(row=0;row<5;row=row+1) for(col=0;col<3;col=col+1)
-                    if(bits&(1<<(14-row*3-col)))
-                        for(dy=0;dy<3;dy=dy+1) for(dx=0;dx<3;dx=dx+1)
-                            golden[(56+row*3+dy)*640+res_x+char_index*12+col*3+dx]=16'hffff;
+                for(row=0;row<7;row=row+1) for(col=0;col<5;col=col+1)
+                    if(bits&(35'd1<<(34-row*5-col)))
+                        for(dy=0;dy<2;dy=dy+1) for(dx=0;dx<2;dx=dx+1)
+                            golden[(56+row*2+dy)*640+res_x+char_index*12+col*2+dx]=16'hffff;
             end
             key_len=keyed ? 6 : 7;
             for(char_index=0;char_index<key_len;char_index=char_index+1) begin
                 character=key_char(char_index,keyed);
                 bits=glyph_bits(character);
-                for(row=0;row<5;row=row+1) for(col=0;col<3;col=col+1)
-                    if(bits&(1<<(14-row*3-col)))
-                        for(dy=0;dy<3;dy=dy+1) for(dx=0;dx<3;dx=dx+1)
-                            golden[(56+row*3+dy)*640+12+char_index*12+col*3+dx]=16'hffff;
+                for(row=0;row<7;row=row+1) for(col=0;col<5;col=col+1)
+                    if(bits&(35'd1<<(34-row*5-col)))
+                        for(dy=0;dy<2;dy=dy+1) for(dx=0;dx<2;dx=dx+1)
+                            golden[(56+row*2+dy)*640+12+char_index*12+col*2+dx]=16'hffff;
             end
             base=page*PAGE_BYTES;
             for(integer n=0;n<307200;n=n+1) begin
