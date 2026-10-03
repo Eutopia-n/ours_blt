@@ -80,7 +80,7 @@ Sapphire 的 4 KiB 片内 RAM 装入引导程序；它优先从 SPI Flash 用户
 | `tools/build.py` | 编译与仿真入口，不执行硬件下载 |
 | `reports/sim_frame.png` | 从仿真实际像素输出保存的画面，不是显示器照片 |
 | `reports/motion_1.png`、`motion_2.png`、`motion_5.png`、`motion_6.png`、`motion_9.png` | CPU/HW 的去背开/关仿真扫描输出，不代表实板 FPS |
-| `outflow/first_light.bit` | FPGA 编译产物，含片内启动固件 |
+| `outflow/spi_flash_autoboot_5x7_font.bit` | FPGA 编译产物，含片内启动固件 |
 
 `vendor/` 为必要官方依赖副本，来源见该目录 README。GitHub 仓库不包含完整随板 Demo 和安装包；根目录原有独立 RTL/仿真模块保留。不要直接修改生成的顶层或外设文件；需要更改板级组合时修改 `tools/prepare.py`。
 
@@ -181,7 +181,7 @@ VIDEO_SIZE 测量的是 FPGA 输出的有效画面，当前应为 `0x01E00280`�
 
 ## 7. 上板预期与定位方法
 
-使用 Efinity Programmer 的易失性 JTAG 配置方式加载 `outflow/first_light.bit`；JTAG 只更新 FPGA 当前配置，断电后需要重新配置。若已将 `flash_user.hex` 写入 SPI Flash 用户区，则重新配置或上电后 bootloader 会自动把程序和素材搬运到 DDR，无需再次串口上传。在同一次上电运行期间，KEY1 切换去背以及 CPU/HW 自动切换都不需要重新下载 bitstream。若使用旧 UART 调试流程，在发布包目录运行 `python .\tools\upload_sprite77.py --list-ports`，找到本机开发板 COM 号，再运行 `python .\tools\upload_sprite77.py --port COM7`，其中 `COM7` 只是示例，必须替换为实际号码。HDMI 连接板上的 TX 接口，串口参数为 115200、8N1。旧版保存在各 `releases/` 子目录。
+使用 Efinity Programmer 的易失性 JTAG 配置方式加载 `outflow/spi_flash_autoboot_5x7_font.bit`；JTAG 只更新 FPGA 当前配置，断电后需要重新配置。若已将 `flash_user.hex` 写入 SPI Flash 用户区，则重新配置或上电后 bootloader 会自动把程序和素材搬运到 DDR，无需再次串口上传。在同一次上电运行期间，KEY1 切换去背以及 CPU/HW 自动切换都不需要重新下载 bitstream。若使用旧 UART 调试流程，在发布包目录运行 `python .\tools\upload_sprite77.py --list-ports`，找到本机开发板 COM 号，再运行 `python .\tools\upload_sprite77.py --port COM7`，其中 `COM7` 只是示例，必须替换为实际号码。HDMI 连接板上的 TX 接口，串口参数为 115200、8N1。旧版保存在各 `releases/` 子目录。
 
 默认 `KEY ON` 显示一个不规则边缘的人物或球棒帧，轮廓外露出深灰及彩色背景条。按一次 KEY1 后，屏幕变为 `KEY OFF`，品红色矩形外围盖住背景；再按一次恢复去背。人物每秒目标播放 12 个动作并向右移动，到右端后循环。两列 CPU/HW FPS 与 US、`FRAME 1`～`FRAME 77`、`RES 640X480` 均显示，白字列约每 4 秒切换。Flash 自动启动时串口显示 `FLASH BOOT`、`ASSET OK` 和 `Ti60 SPRITE 77 CPU/HW`，随后输出实测值；UART 回退时仍会先显示 `ASSET READY`。完整验收步骤见 `SPRITE77.md`。
 

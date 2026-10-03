@@ -39,7 +39,7 @@ python .\tools\build.py compile --efinity C:\Efinity\2026.1
 
 ## 烧录顺序
 
-1. 用 Efinity Programmer 的 **Active SPI** 模式把 `outflow\first_light.hex` 写到 `0x000000`。这一步负责 FPGA 上电配置；只用 JTAG 临时下载 `.bit` 不会保存上电启动内容。
+1. 用 Efinity Programmer 的 **Active SPI** 模式把 `outflow\spi_flash_autoboot_5x7_font.hex` 写到 `0x000000`。这一步负责 FPGA 上电配置；只用 JTAG 临时下载 `.bit` 不会保存上电启动内容。
 2. 在同一个 SPI Flash 器件中，把 `software/build/flash_user.hex` 写到起始地址 `0x380000`。不要擦除 `0x000000` 的 bitstream 区域。
 3. 断电再上电，FPGA 配置完成后 bootloader 会自动搬运用户镜像；不再需要运行 `upload_sprite77.py`。
 

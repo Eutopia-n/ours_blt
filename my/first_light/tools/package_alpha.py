@@ -33,11 +33,11 @@ files=[
     'reports/alpha_build_manifest.json',
     'reports/alpha_control.log','reports/alpha_blend.log','reports/key_down.log',
     'reports/simulation_alpha_soc.log','reports/soc_progress.log',
-    'outflow/first_light.map.rpt','outflow/first_light.timing.rpt',
+    'outflow/spi_flash_autoboot_5x7_font.map.rpt','outflow/spi_flash_autoboot_5x7_font.timing.rpt',
     'reports/alpha_4.png','reports/alpha_6.png',
 ]
 mapping={name:name for name in files}
-mapping['outflow/first_light.bit']='first_light.bit'
+mapping['outflow/spi_flash_autoboot_5x7_font.bit']='first_light.bit'
 sources=['rtl/alpha_blend.v','rtl/fill_engine.v','rtl/render_regs.v',
          'rtl/render_subsystem.v','rtl/key_toggle.v','rtl/competition_top.v',
          'software/main.c','software/render.h','software/alpha_control.h',
