@@ -8,6 +8,7 @@ import copy
 import re
 import shutil
 import xml.etree.ElementTree as ET
+from config_video_modes import configure as configure_video_modes
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
@@ -54,13 +55,16 @@ param_path.write_text(params)
 
 top = (SOC/'rtl/ddr3_example_top.v').read_text(encoding='utf-8')
 top = top.replace('`include "ddr3_controller/ddr3_parameter.vh"',
-                  '`include "ddr3_controller/ddr3_parameter.vh"\n`include "rtl/key_toggle.v"',1)
+                  '`include "ddr3_controller/ddr3_parameter.vh"\n`include "rtl/key_toggle.v"\n`include "rtl/video_clock_control.v"',1)
 top = top.replace('module ddr3_example_top #', 'module competition_top #', 1)
 top = top.replace('parameter FREQ = 200;', 'parameter FREQ = 100;', 1)
 marker = '   // Clock and reset ports'
 ports = '''   // HDMI TX serializer ports imported from the board HDMI demo.
    input hdmi_tx_locked,
    input hdmi_tx_slow_clk,
+   input video_ref_640, video_ref_800, video_ref_locked,
+   output video_ref_selected,
+   output hdmi_pll_reset_n,
    output [9:0] tmds_data0_o, tmds_data1_o, tmds_data2_o, tmds_clk_o,
    output tmds_data0_TX_OE, tmds_data1_TX_OE, tmds_data2_TX_OE, tmds_clk_TX_OE,
    output tmds_data0_TX_RST, tmds_data1_TX_RST, tmds_data2_TX_RST, tmds_clk_TX_RST,
@@ -94,7 +98,19 @@ decl = '''
   wire [15:0] video_pixel;
   wire video_hs, video_vs, video_de;
   wire [9:0] tmds_data0, tmds_data1, tmds_data2, tmds_clk;
-  wire renderer_reset = soc_reset | master_reset | !hdmi_tx_locked;
+  wire renderer_reset = soc_reset | master_reset;
+  wire video_mode_active, video_clock_hold, video_clock_ready;
+  wire [1:0] hdmi_clock_select;
+  // PLL global outputs drive clock pins only. Local /2 toggle outputs can
+  // drive the reference mux; select changes while HDMI PLL reset is asserted.
+  reg video_ref_640_div2, video_ref_800_div2;
+  always @(posedge video_ref_640 or posedge renderer_reset)
+    if (renderer_reset) video_ref_640_div2 <= 0;
+    else video_ref_640_div2 <= ~video_ref_640_div2;
+  always @(posedge video_ref_800 or posedge renderer_reset)
+    if (renderer_reset) video_ref_800_div2 <= 0;
+    else video_ref_800_div2 <= ~video_ref_800_div2;
+  assign video_ref_selected = hdmi_clock_select[0] ? video_ref_800_div2 : video_ref_640_div2;
 '''
 top = top.replace('  wire                              cal_done;', '  wire                              cal_done;\n'+decl, 1)
 start = top.index('soc u_sapphire_soc(')
@@ -146,6 +162,7 @@ finish = top.index(');',start)+2
 graphics = '''render_subsystem graphics (
     .clk(user_clk),.reset(renderer_reset),.pixel_clk(hdmi_tx_slow_clk),
     .memory_ready(calibration_sync[1]),.key2_down(key2_down),
+    .clock_hold(video_clock_hold),.clock_ready(video_clock_ready),.mode_active(video_mode_active),
     .paddr(apb_paddr),.psel(apb_psel),.penable(apb_penable),.pwrite(apb_pwrite),
     .pwdata(apb_pwdata),.prdata(apb_prdata),.pready(apb_pready),.pslverror(apb_pslverror),
     .awaddr(gfx_awaddr),.awlen(gfx_awlen),.awvalid(gfx_awvalid),.awready(gfx_awready),
@@ -155,9 +172,15 @@ graphics = '''render_subsystem graphics (
     .rdata(gfx_rdata),.rresp(gfx_rresp),.rlast(gfx_rlast),.rvalid(gfx_rvalid),.rready(gfx_rready),
     .pixel(video_pixel),.hs(video_hs),.vs(video_vs),.de(video_de)
 );
+video_clock_control #(.DEFAULT_MODE(1)) video_clock (
+    .clk(user_clk),.reset(renderer_reset),.mode_active(video_mode_active),
+    .pll_locked(hdmi_tx_locked & video_ref_locked),.clock_select(hdmi_clock_select),
+    .pll_reset_n(hdmi_pll_reset_n),.clock_hold(video_clock_hold),.clock_ready(video_clock_ready)
+);
 reg [1:0] hdmi_reset_pipe;
-always @(posedge hdmi_tx_slow_clk or posedge renderer_reset)
-    if (renderer_reset) hdmi_reset_pipe <= 2'b11;
+wire hdmi_reset = renderer_reset | video_clock_hold | !hdmi_tx_locked;
+always @(posedge hdmi_tx_slow_clk or posedge hdmi_reset)
+    if (hdmi_reset) hdmi_reset_pipe <= 2'b11;
     else hdmi_reset_pipe <= {hdmi_reset_pipe[0],1'b0};
 dvi_encoder hdmi (
     .pixelclk(hdmi_tx_slow_clk),.rstin(hdmi_reset_pipe[1]),
@@ -180,7 +203,7 @@ top = top[:start]+graphics+top[finish:]
 
 # Keep vendor DDR/GPIO assignments, add only HDMI TX LVDS and its PLL.
 peri = ET.parse(PAR/'ddr_demo_ti60.peri.xml')
-db = peri.getroot(); db.set('name','first_light')
+db = peri.getroot(); db.set('name','spi_flash_autoboot_5x7_font')
 hdmi = ET.parse(HDMI/'hdmi_tx.peri.xml').getroot()
 pll = copy.deepcopy(hdmi.find(p('pll_info')).find(p('pll')))
 pll.set('ref_clock_name','clk_25m')
@@ -221,6 +244,7 @@ for number,pin in enumerate(key_pins):
 for node in list(gpio):
     if node.get('name') in ['ddr_addr[14]','ddr_addr[15]']: gpio.remove(node)
     if node.tag==p('bus') and node.get('name')=='ddr_addr': node.set('msb','13')
+configure_video_modes(peri)
 save(peri,ROOT/'first_light.peri.xml')
 
 project=ET.parse(PAR/'ddr_demo_ti60.xml'); pr=project.getroot()

@@ -12,6 +12,7 @@
 //***************************************************************/
 `include "ddr3_controller/ddr3_parameter.vh"
 `include "rtl/key_toggle.v"
+`include "rtl/video_clock_control.v"
 
 `define Efinity_Debug
 `timescale 1ps/1ps
@@ -47,6 +48,7 @@ parameter                       AXI_DATA_WIDTH     = `AXI_DATA_WIDTH
    // HDMI TX serializer ports imported from the board HDMI demo.
    input hdmi_tx_locked,
    input hdmi_tx_slow_clk,
+   output hdmi_pll_reset_n,
    output [9:0] tmds_data0_o, tmds_data1_o, tmds_data2_o, tmds_clk_o,
    output tmds_data0_TX_OE, tmds_data1_TX_OE, tmds_data2_TX_OE, tmds_clk_TX_OE,
    output tmds_data0_TX_RST, tmds_data1_TX_RST, tmds_data2_TX_RST, tmds_clk_TX_RST,
@@ -183,7 +185,10 @@ parameter FREQ = 100;			// default is 100 MHz.  Redefine as needed.
   wire [15:0] video_pixel;
   wire video_hs, video_vs, video_de;
   wire [9:0] tmds_data0, tmds_data1, tmds_data2, tmds_clk;
-  wire renderer_reset = soc_reset | master_reset | !hdmi_tx_locked;
+  wire renderer_reset = soc_reset | master_reset;
+  wire video_mode_active, video_clock_hold, video_clock_ready;
+  wire [1:0] hdmi_clock_select;
+  wire [7:0] video_clock_debug;
 
 
   // Slave Interface Write Address Ports
@@ -586,6 +591,8 @@ soc u_sapphire_soc(
 render_subsystem graphics (
     .clk(user_clk),.reset(renderer_reset),.pixel_clk(hdmi_tx_slow_clk),
     .memory_ready(calibration_sync[1]),.key2_down(key2_down),
+    .clock_hold(video_clock_hold),.clock_ready(video_clock_ready),.mode_active(video_mode_active),
+    .clock_debug(video_clock_debug),
     .paddr(apb_paddr),.psel(apb_psel),.penable(apb_penable),.pwrite(apb_pwrite),
     .pwdata(apb_pwdata),.prdata(apb_prdata),.pready(apb_pready),.pslverror(apb_pslverror),
     .awaddr(gfx_awaddr),.awlen(gfx_awlen),.awvalid(gfx_awvalid),.awready(gfx_awready),
@@ -595,9 +602,16 @@ render_subsystem graphics (
     .rdata(gfx_rdata),.rresp(gfx_rresp),.rlast(gfx_rlast),.rvalid(gfx_rvalid),.rready(gfx_rready),
     .pixel(video_pixel),.hs(video_hs),.vs(video_vs),.de(video_de)
 );
+video_clock_control #(.DEFAULT_MODE(1),.FIXED_MODE(1)) video_clock (
+    .clk(user_clk),.reset(renderer_reset),.mode_active(video_mode_active),
+    .pll_locked(hdmi_tx_locked),.clock_select(hdmi_clock_select),
+    .pll_reset_n(hdmi_pll_reset_n),.clock_hold(video_clock_hold),.clock_ready(video_clock_ready),
+    .debug_status(video_clock_debug)
+);
 reg [1:0] hdmi_reset_pipe;
-always @(posedge hdmi_tx_slow_clk or posedge renderer_reset)
-    if (renderer_reset) hdmi_reset_pipe <= 2'b11;
+wire hdmi_reset = renderer_reset | video_clock_hold | !hdmi_tx_locked;
+always @(posedge hdmi_tx_slow_clk or posedge hdmi_reset)
+    if (hdmi_reset) hdmi_reset_pipe <= 2'b11;
     else hdmi_reset_pipe <= {hdmi_reset_pipe[0],1'b0};
 dvi_encoder hdmi (
     .pixelclk(hdmi_tx_slow_clk),.rstin(hdmi_reset_pipe[1]),

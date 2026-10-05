@@ -1,6 +1,10 @@
 #include <stdint.h>
 #include "soc.h"
 #include "crc32.h"
+#include "build/embedded_app.h"
+
+#define APP_ROM (IO_APB_SLAVE_0_INPUT+0x8000u)
+_Static_assert(EMBEDDED_APP_BYTES>0 && EMBEDDED_APP_BYTES<=16384u,"APB ROM size");
 
 #define APP_BASE 0x01400000u
 #define APP_MAX 65536u
@@ -147,40 +151,45 @@ static int flash_boot(void) {
     uint8_t header[FLASH_HEADER_BYTES];
     if(!flash_read_bytes(0,header,FLASH_HEADER_BYTES)) return 0;
     uint32_t magic=little_word(header+0),version=little_word(header+4);
-    uint32_t app_offset=little_word(header+8),app_len=little_word(header+12);
-    uint32_t app_crc=little_word(header+16),asset_offset=little_word(header+20);
+    uint32_t asset_offset=little_word(header+20);
     uint32_t asset_len=little_word(header+24),asset_crc=little_word(header+28);
     uint32_t total_len=little_word(header+32);
-    if(magic!=FLASH_MAGIC || version!=FLASH_VERSION || app_offset<FLASH_HEADER_BYTES ||
-       !app_len || app_len>APP_MAX || asset_offset<app_offset+app_len ||
+    if(magic!=FLASH_MAGIC || version!=FLASH_VERSION || asset_offset<FLASH_HEADER_BYTES ||
        asset_len<=PIXEL_START || asset_len>ASSET_MAX || (asset_len&1u) ||
-       total_len<asset_offset+asset_len || FLASH_USER_BASE+total_len>FLASH_SIZE) return 0;
-    volatile uint32_t *app_h=(volatile uint32_t *)(uintptr_t)APP_HEAD;
+       total_len>FLASH_SIZE-FLASH_USER_BASE || asset_offset>total_len ||
+       asset_len>total_len-asset_offset) return 0;
     volatile uint32_t *asset_h=(volatile uint32_t *)(uintptr_t)ASSET_BASE;
-    app_h[0]=0; asset_h[0]=0;
-    if(!flash_read_bytes(app_offset,(volatile uint8_t *)(uintptr_t)APP_BASE,app_len) ||
-       region_crc(APP_BASE,app_len)!=app_crc) return 0;
+    // Keep accepting the existing FTL1 bundle, but use only its assets.
+    // Its older application must never replace the bitstream's application.
+    asset_h[0]=0;
     if(!flash_read_bytes(asset_offset,(volatile uint8_t *)(uintptr_t)ASSET_BASE,asset_len) ||
        asset_h[0]!=ASSET_MAGIC || asset_h[1]!=1u || asset_h[2]!=asset_len ||
        asset_h[3]!=asset_crc || region_crc(ASSET_BASE+16,asset_len-16)!=asset_crc) return 0;
-    app_h[1]=app_len; app_h[2]=app_crc; app_h[3]=asset_crc;
     asset_h[1]=1u; asset_h[2]=asset_len; asset_h[3]=asset_crc; asset_h[0]=ASSET_MAGIC;
-    app_h[0]=APP_MAGIC;
     drain_ddr();
     say("FLASH BOOT\r\n");
     return 1;
 }
 static int cached(void) {
-    const volatile uint32_t *app=(const volatile uint32_t *)(uintptr_t)APP_HEAD;
     const volatile uint32_t *asset=(const volatile uint32_t *)(uintptr_t)ASSET_BASE;
-    uint32_t app_len=app[1],asset_len=asset[2];
-    if(app[0]!=APP_MAGIC || !app_len || app_len>APP_MAX ||
-       asset[0]!=ASSET_MAGIC || asset[1]!=1u ||
+    uint32_t asset_len=asset[2];
+    if(asset[0]!=ASSET_MAGIC || asset[1]!=1u ||
        asset_len<=PIXEL_START || asset_len>ASSET_MAX || (asset_len&1u)) return 0;
-    return app[2]==region_crc(APP_BASE,app_len) &&
-           asset[3]==region_crc(ASSET_BASE+16,asset_len-16);
+    return asset[3]==region_crc(ASSET_BASE+16,asset_len-16);
 }
 static void start_app(void) {
+    volatile uint32_t *app=(volatile uint32_t *)(uintptr_t)APP_BASE;
+    volatile uint32_t *head=(volatile uint32_t *)(uintptr_t)APP_HEAD;
+    head[0]=0;
+    for(uint32_t n=0;n<(EMBEDDED_APP_BYTES+3u)/4u;++n)
+        app[n]=rd(APP_ROM+4u*n);
+    drain_ddr();
+    if(region_crc(APP_BASE,EMBEDDED_APP_BYTES)!=EMBEDDED_APP_CRC) {
+        say("EMBEDDED APP CRC ERR\r\n");
+        for(;;) {}
+    }
+    head[1]=EMBEDDED_APP_BYTES; head[2]=EMBEDDED_APP_CRC;
+    head[3]=rd(ASSET_BASE+12u); head[0]=APP_MAGIC;
     __asm__ volatile ("fence iorw, iorw\n.word 0x500f\nfence.i" ::: "memory");
     ((void (*)(void))(uintptr_t)APP_BASE)();
     for(;;) {}

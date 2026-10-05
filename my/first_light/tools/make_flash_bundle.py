@@ -2,8 +2,8 @@
 
 The FPGA bitstream remains the normal Efinity Programmer image at address
 0x000000. This script creates the independent user image written at 0x380000:
-fixed header + animation.bin + sprite77.raw. The bootloader validates both
-payloads before publishing them in DDR.
+fixed header + animation.bin + sprite77.raw. The legacy two-payload layout is retained for compatibility. The current
+bootloader reads only the assets; its application comes from the bitstream ROM.
 """
 from pathlib import Path
 import argparse

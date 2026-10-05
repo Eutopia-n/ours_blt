@@ -15,8 +15,9 @@ module tb_soc;
     wire awvalid,awready,wvalid,wready,wlast,bvalid,bready;
     wire arvalid,arready,rvalid,rready,rlast,hs,vs,de;
     `include "soc_wiring.vh"
-    render_subsystem graphics(
+    render_subsystem #(.FB_BYTES(614400),.FB_WIDTH(640),.FB_HEIGHT(480),.FB_PITCH(1280),.FIXED_SVGA(0)) graphics(
         .clk(clk),.reset(soc_reset|master_reset),.pixel_clk(pixel_clk),.memory_ready(1'b1),.key2_down(1'b0),
+        .clock_hold(1'b0),.clock_ready(1'b1),.clock_debug(8'h0d),
         .paddr(paddr),.psel(psel),.penable(penable),.pwrite(pwrite),.pwdata(pwdata),
         .prdata(prdata),.pready(pready),.pslverror(pslverror),
         .awaddr(awaddr),.awlen(awlen),.awvalid(awvalid),.awready(awready),

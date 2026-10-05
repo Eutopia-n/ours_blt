@@ -6,10 +6,10 @@
 #define BASIC_LEVELS 3u
 #define BASIC_SIDE 32u
 #define BASIC_BACKGROUND 0x1082u
-#define BASIC_X_MIN 12u
-#define BASIC_X_MAX 596u
-#define BASIC_Y_MIN 160u
-#define BASIC_Y_MAX 392u
+#define BASIC_X_MIN 24u
+#define BASIC_X_MAX 744u
+#define BASIC_Y_MIN 172u
+#define BASIC_Y_MAX 520u
 #define BASIC_TICK_HZ 100000000u
 #define BASIC_SPEED_MIN 24u
 #define BASIC_SPEED_MAX 96u

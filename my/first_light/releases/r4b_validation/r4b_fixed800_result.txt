@@ -1,0 +1,7 @@
+Command: D:\oss-cad-suite\bin\vvp.exe reports\r4b_fixed800.vvp
+Exit code: 0
+PASS initial menu A-to-A swap with display disabled
+PASS fixed 800x600 startup, complete pixels, HS/VS, rejected mode writes
+PASS full 800x600 fill, width boundary and empty operations
+FIXED800 TEST PASSED
+sim\tb_resolution.sv:226: $finish called at 86922546000 (1ps)

@@ -1,12 +1,15 @@
 # 初级 / 高级功能菜单
 
-当前新增 KEY2 透明度：高级展示短按 +2，长按 500 ms 后每 100 ms 连加，0～100 循环；CPU/FPGA Alpha 混合与验证见 [说明](ALPHA_KEY2.md)。上板必须使用配套新 bitstream 和应用。
+2026-10-05 最新版：所有场景固定 800×600，BASIC 内 KEY2 无操作，退出后也保持 800×600。
+菜单确认和高级展示透明度仍使用 KEY2，详见 [FIXED800.md](FIXED800.md)。
+
+当前新增 KEY2 透明度：高级展示短按 +2，长按 500 ms 后每 100 ms 连加，0～100 循环；CPU/FPGA Alpha 混合与验证见 [说明](ALPHA_KEY2.md)。当前应用随新 bitstream 一并更新，见 [启动修复说明](EMBEDDED_APP.md)。
 
 本工程把 32×32 RGB565 随机运动、混合显示的 Fill/Copy 演示和
 `Basic-functions-and-irregular-sprite-sheets` 分支的 77 帧不规则 Sprite、
 颜色键控演示放入同一个 DDR 应用、同一个 FPGA 配置文件。上电配置 FPGA 后，
-仍需通过 UART 上传 `software/build/animation.bin` 和 `assets/sprite77.upload`；
-上传完成才显示一级菜单。旧的 `releases/sprite77_20260927/` 是历史发布包，
+当前配套 `flash_user.bin` 写入后由 SPI Flash 自动装载程序和素材，显示一级菜单；
+UART 上传保留为调试回退。旧的 `releases/sprite77_20260927/` 是历史发布包，
 其中的 bitstream 和应用程序不含本菜单。
 
 ## 操作

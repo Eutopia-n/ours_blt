@@ -1,11 +1,15 @@
 // RGB565 solid fill, framebuffer block copy and DDR asset-to-framebuffer copy.
-// One outstanding AXI read or write burst, at most 16 beats.
+// One outstanding AXI read or write burst. Solid fills use up to 64 beats;
+// copies retain 16-beat staging through the write FIFO.
 // Byte strobes preserve neighbouring pixels for odd X / odd rectangle widths.
 `include "rtl/alpha_blend.v"
 `default_nettype none
 module fill_engine #(
     parameter [31:0] FB_BASE = 32'h01000000,
     parameter [31:0] FB_BYTES = 32'd614400,
+    parameter integer FB_WIDTH = 640,
+    parameter integer FB_HEIGHT = 480,
+    parameter integer FB_PITCH = 1280,
     parameter [31:0] ASSET_BASE = 32'h01200000,
     parameter [31:0] ASSET_BYTES = 32'h00100000
 ) (
@@ -44,7 +48,7 @@ module fill_engine #(
     reg [15:0] rows_left;
     reg [15:0] command_color;
     reg [9:0] words_left, row_words, word_index;
-    reg [4:0] burst_words, beat;
+    reg [6:0] burst_words, beat;
     reg first_high, last_low;
     reg [9:0] copy_read_words_left, copy_read_row_words, copy_read_word_index;
     reg [4:0] copy_read_burst_words, copy_read_beat;
@@ -76,44 +80,38 @@ module fill_engine #(
         .opacity(command_opacity),.out_valid(mixed_valid),.result(mixed_data)
     );
     wire read_beat_error = rresp != 0 || rlast != (copy_read_beat == copy_read_burst_words-1);
-    wire [32:0] row_offset = (({17'd0,height}-33'd1) << 10) +
-                            (({17'd0,height}-33'd1) << 8);
+    wire [32:0] row_offset = ({17'd0,height}-33'd1) * FB_PITCH;
     // Limit source pitch to 16 bits before multiplying. Check the full APB
     // value too, so a large/overflowing stride cannot wrap into a valid range.
     wire [31:0] source_offset = (height - 16'd1) * src_stride[15:0];
     wire [32:0] source_end = {1'b0,src} + {1'b0,source_offset} + ({17'd0,width} << 1);
     wire source_in_frame = src >= frame_base &&
-        source_end <= {1'b0,frame_base}+{1'b0,FB_BYTES} && src_stride == 1280;
+        source_end <= {1'b0,frame_base}+{1'b0,FB_BYTES} && src_stride == FB_PITCH;
     wire source_in_assets = src >= ASSET_BASE &&
         source_end <= {1'b0,ASSET_BASE}+{1'b0,ASSET_BYTES};
     wire reverse_copy = source_in_frame && dst > src;
     wire [31:0] next_source_row = source_row_addr + source_row_step;
     wire [9:0] next_read_words =
         ({1'b0,copy_width} + {10'd0,next_source_row[1]} + 11'd1) >> 1;
-    wire [32:0] end_address = {1'b0,dst} +
-        (({17'd0,height}-33'd1) << 10) +
-        (({17'd0,height}-33'd1) << 8) + ({17'd0,width} << 1);
+    wire [32:0] end_address = {1'b0,dst} + row_offset + ({17'd0,width} << 1);
     wire [10:0] words_to_4k = 11'd1024 - {1'b0,awaddr[11:2]};
-    wire [9:0] proposed_words = words_left > 16 ? 10'd16 : words_left;
+    wire [9:0] proposed_words = words_left > 64 ? 10'd64 : words_left;
     wire [10:0] read_words_to_4k = 11'd1024 - {1'b0,araddr[11:2]};
     wire [9:0] copy_read_proposed = copy_read_words_left > 16 ? 10'd16 : copy_read_words_left;
     wire [10:0] write_words_to_4k = 11'd1024 - {1'b0,awaddr[11:2]};
     wire [9:0] copy_write_proposed = copy_write_words_left > 16 ? 10'd16 : copy_write_words_left;
-    // The FIFO can hold one complete AXI write burst. Its first entries are
-    // cached before AWVALID and the rest are prefetched while W data drains,
-    // keeping WVALID continuous when WREADY is asserted.
+    // Copies use a FIFO holding one complete 16-beat write burst. Solid fills
+    // generate their repeated pixel word directly and need no staging RAM.
     wire [36:0] fifo_input;
     wire [36:0] fifo_output;
     wire [4:0] fifo_level;
     wire fifo_full, fifo_empty, fifo_overflow, fifo_underflow;
     wire fifo_clear = state == IDLE;
-    wire fifo_loading =
-        (!copy_mode && (state == F_FIFO || state == F_ADDR || state == F_DATA) &&
-         fifo_load_count < burst_words) ||
-        (copy_mode && (state == C_WFIFO || state == C_WADDR || state == C_WDATA) &&
-         fifo_load_count < copy_write_burst_words);
+    wire fifo_loading = copy_mode &&
+        (state == C_WFIFO || state == C_WADDR || state == C_WDATA) &&
+        fifo_load_count < copy_write_burst_words;
     wire fifo_push = fifo_loading && !fifo_full;
-    wire fifo_pop = (state == F_DATA || state == C_WDATA) && !fifo_empty && wready;
+    wire fifo_pop = state == C_WDATA && !fifo_empty && wready;
     wire [9:0] fifo_word_index = fifo_base_word_index + {5'd0,fifo_load_count};
     wire [9:0] fifo_row_words = copy_mode ? copy_write_row_words : row_words;
     wire [4:0] fifo_burst_words = copy_mode ? copy_write_burst_words : burst_words;
@@ -136,6 +134,9 @@ module fill_engine #(
         ((alpha_mode ? background_q : copy_data) & fifo_entry_mask) : {command_color,command_color};
     wire fifo_entry_last = fifo_load_count == fifo_burst_words-1'b1;
     assign fifo_input = {fifo_entry_last,fifo_entry_strb,fifo_entry_data};
+    wire [3:0] fill_write_strb =
+        ((word_index == 0 && first_high) ? 4'b1100 : 4'b1111) &
+        ((word_index == row_words-10'd1 && last_low) ? 4'b0011 : 4'b1111);
 
     sync_fifo write_fifo (
         .clk(clk),.reset(reset),.clear(fifo_clear),
@@ -146,15 +147,16 @@ module fill_engine #(
     );
 
     assign busy = state != IDLE;
-    assign awlen = {3'd0,(copy_mode ? copy_write_burst_words : burst_words)} - 8'd1;
+    assign awlen = copy_mode ? {3'd0,copy_write_burst_words}-8'd1 :
+                               {1'b0,burst_words}-8'd1;
     assign awvalid = state == F_ADDR || state == C_WADDR;
-    assign wvalid = (state == F_DATA || state == C_WDATA) && !fifo_empty;
+    assign wvalid = state == F_DATA || (state == C_WDATA && !fifo_empty);
     assign arlen = {3'd0,copy_read_burst_words} - 8'd1;
     assign arvalid = state == C_RADDR;
     assign rready = state == C_RDATA;
-    assign wdata = fifo_output[31:0];
-    assign wstrb = fifo_output[35:32];
-    assign wlast = fifo_output[36];
+    assign wdata = copy_mode ? fifo_output[31:0] : {command_color,command_color};
+    assign wstrb = copy_mode ? fifo_output[35:32] : fill_write_strb;
+    assign wlast = copy_mode ? fifo_output[36] : beat == burst_words-1'b1;
     assign bready = state == F_RESP || state == C_WRESP;
 
     always @(posedge clk) begin
@@ -174,8 +176,8 @@ module fill_engine #(
         if (reset) begin
             state <= IDLE; done <= 0; error <= 0; cycles <= 0;
             awaddr <= 0; araddr <= 0; row_addr <= 0; source_row_addr <= 0;
-            source_row_step <= 1280; copy_width <= 0;
-            rows_left <= 0; row_step <= 1280; copy_mode <= 0; keyed_copy <= 0;
+            source_row_step <= FB_PITCH; copy_width <= 0;
+            rows_left <= 0; row_step <= FB_PITCH; copy_mode <= 0; keyed_copy <= 0;
             alpha_mode <= 0; read_background <= 0; command_opacity <= 256;
             command_color <= 0; words_left <= 0; row_words <= 0;
             word_index <= 0; burst_words <= 0; beat <= 0;
@@ -192,7 +194,7 @@ module fill_engine #(
             IDLE: if (start) begin
                 done <= 0; error <= 0; cycles <= 0;
                 if (!memory_ready || (operation == 3 && alpha_opacity > 256) || dst[0] || width == 0 || height == 0 ||
-                    width > 640 || height > 480 || stride != 1280 ||
+                    width > FB_WIDTH || height > FB_HEIGHT || stride != FB_PITCH ||
                     dst < frame_base || end_address > {1'b0,frame_base}+{1'b0,FB_BYTES} ||
                     (operation != 0 && (src[0] || src_stride[0] ||
                      src_stride > 65534 || src_stride < ({16'd0,width} << 1) ||
@@ -214,7 +216,7 @@ module fill_engine #(
                         // Same-page copies retain equal strides and bottom-up
                         // traversal when dst follows src, preserving overlap.
                         // Assets never overlap the destination and read top-down.
-                        row_step <= reverse_copy ? -32'd1280 : 32'd1280;
+                        row_step <= reverse_copy ? -FB_PITCH : FB_PITCH;
                         source_row_step <= reverse_copy ? -src_stride : src_stride;
                         copy_width <= width[9:0];
                         row_addr <= dst + (reverse_copy ? row_offset[31:0] : 32'd0);
@@ -232,22 +234,13 @@ module fill_engine #(
                 end
             end
             F_PREP: begin
-                burst_words <= words_to_4k < proposed_words ? words_to_4k[4:0] : proposed_words[4:0];
-                beat <= 0; fifo_load_count <= 0;
-                fifo_base_word_index <= word_index;
-                state <= F_FIFO;
-            end
-            F_FIFO: if (fifo_push) begin
-                fifo_load_count <= fifo_load_count + 1'b1;
+                burst_words <= words_to_4k < proposed_words ? words_to_4k[6:0] : proposed_words[6:0];
+                beat <= 0;
                 state <= F_ADDR;
             end
-            F_ADDR: begin
-                if (fifo_push) fifo_load_count <= fifo_load_count + 1'b1;
-                if (awready) state <= F_DATA;
-            end
+            F_ADDR: if (awready) state <= F_DATA;
             F_DATA: begin
-                if (fifo_push) fifo_load_count <= fifo_load_count + 1'b1;
-                if (fifo_pop) begin
+                if (wready) begin
                     beat <= beat + 1'b1;
                     word_index <= word_index + 1'b1;
                     if (wlast) state <= F_RESP;
@@ -255,17 +248,17 @@ module fill_engine #(
             end
             F_RESP: if (bvalid) begin
                 if (bresp != 0) begin error <= 1; done <= 1; state <= IDLE; end
-                else if (words_left == {5'd0,burst_words}) begin
+                else if (words_left == {3'd0,burst_words}) begin
                     if (rows_left == 1) begin done <= 1; state <= IDLE; end
                     else begin
-                        row_addr <= row_addr + 1280;
-                        awaddr <= {row_addr[31:2],2'b00} + 1280;
+                        row_addr <= row_addr + FB_PITCH;
+                        awaddr <= {row_addr[31:2],2'b00} + FB_PITCH;
                         rows_left <= rows_left - 1'b1;
                         words_left <= row_words; word_index <= 0; state <= F_PREP;
                     end
                 end else begin
-                    awaddr <= awaddr + ({27'd0,burst_words} << 2);
-                    words_left <= words_left - {5'd0,burst_words}; state <= F_PREP;
+                    awaddr <= awaddr + ({25'd0,burst_words} << 2);
+                    words_left <= words_left - {3'd0,burst_words}; state <= F_PREP;
                 end
             end
             C_RPREP: begin

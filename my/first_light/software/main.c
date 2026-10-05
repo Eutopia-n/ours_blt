@@ -3,6 +3,7 @@
 #include "basic_metrics.h"
 #include "alpha_control.h"
 _Static_assert(SYSTEM_CLINT_HZ==BASIC_TICK_HZ,"BASIC movement clock must match CLINT");
+_Static_assert(FRAMEBUFFER+2u*FRAMEBUFFER_BYTES<=ASSET_BASE,"Framebuffers overlap assets");
 
 static uint32_t cycle_now(void) {
     // This Sapphire configuration traps on mcycle CSR reads. The vendor CLINT
@@ -25,17 +26,43 @@ void fatal_trap(uint32_t cause, uint32_t pc) {
     for (;;) {}
 }
 static void fail(const char *message) {
-    puts_uart(message); puts_uart("\r\n"); for (;;) {}
+    // Preserve the failed command so a board report identifies the cause.
+    puts_uart(message);
+    puts_uart(" STATUS="); hex_uart(mmio_read(GFX_BASE+GFX_STATUS));
+    puts_uart(" OP="); hex_uart(mmio_read(GFX_BASE+GFX_OPERATION));
+    puts_uart(" DST="); hex_uart(mmio_read(GFX_BASE+GFX_DST));
+    puts_uart(" SIZE="); hex_uart(mmio_read(GFX_BASE+GFX_WIDTH));
+    uart_putc('x'); hex_uart(mmio_read(GFX_BASE+GFX_HEIGHT));
+    puts_uart(" MODE="); hex_uart(mmio_read(GFX_BASE+GFX_MODE_STATUS));
+    puts_uart(" CLOCK="); hex_uart(mmio_read(GFX_BASE+GFX_CLOCK_DIAG));
+    puts_uart(" DRAW="); hex_uart(mmio_read(GFX_BASE+GFX_DRAW_PAGE));
+    puts_uart(" SWAP="); hex_uart(mmio_read(GFX_BASE+GFX_SWAP));
+    puts_uart("\r\n"); for (;;) {}
 }
 static uint32_t draw_buffer = FRAMEBUFFER;
+static const uint32_t screen_width = 800u, screen_height = 600u;
 static uint32_t key_enabled = 1;
 static alpha_control_t transparency;
 static uint32_t draw_page(void) { return draw_buffer == FRAMEBUFFER_B ? 1u : 0u; }
+static int wait_video_ready(void) {
+    uint32_t start = cycle_now();
+    uint32_t heartbeat = mmio_read(GFX_BASE+GFX_CLOCK_DIAG) >> 16;
+    for (;;) {
+        // Fixed SVGA is ready when mode 1 is active, no mode change is pending,
+        // and the HDMI PLL has remained locked for its qualification interval.
+        if ((mmio_read(GFX_BASE+GFX_MODE_STATUS) & 7u) == 5u &&
+            (mmio_read(GFX_BASE+GFX_CLOCK_DIAG) >> 16) != heartbeat) return 0;
+        if ((uint32_t)(cycle_now()-start) > 200000000u) return -1;
+    }
+}
 static int wait_display_page(uint32_t page) {
     uint32_t start = cycle_now();
     for (;;) {
         uint32_t status = mmio_read(GFX_BASE+GFX_STATUS);
-        if (status & (GFX_ERROR|GFX_UNDERFLOW|GFX_READ_ERR)) return -3;
+        // UNDERFLOW is a sticky scanout warning: a late line is black, and
+        // subsequent line fetches continue. It does not invalidate a swap.
+        // Command/AXI errors and a swap that never completes remain fatal.
+        if (status & (GFX_ERROR|GFX_READ_ERR)) return -3;
         if (!(status & GFX_SWAP_PENDING) && ((status >> 6) & 1u) == page) return 0;
         if ((uint32_t)(cycle_now()-start) > 200000000u) return -4;
     }
@@ -54,7 +81,8 @@ static int wait_render(void) {
     }
 }
 int fill_rect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint16_t color) {
-    if (!width || !height || x >= 640 || y >= 480 || width > 640-x || height > 480-y)
+    if (!width || !height || x >= screen_width || y >= screen_height ||
+        width > screen_width-x || height > screen_height-y)
         return -1;
     if (mmio_read(GFX_BASE+GFX_STATUS) & (GFX_BUSY|GFX_SWAP_PENDING)) return -2;
     select_draw_page();
@@ -69,8 +97,10 @@ int fill_rect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint16_t 
 }
 int copy_rect(uint32_t src_x, uint32_t src_y, uint32_t dst_x, uint32_t dst_y,
               uint32_t width, uint32_t height) {
-    if (!width || !height || src_x >= 640 || src_y >= 480 || dst_x >= 640 || dst_y >= 480 ||
-        width > 640-src_x || width > 640-dst_x || height > 480-src_y || height > 480-dst_y)
+    if (!width || !height || src_x >= screen_width || src_y >= screen_height ||
+        dst_x >= screen_width || dst_y >= screen_height ||
+        width > screen_width-src_x || width > screen_width-dst_x ||
+        height > screen_height-src_y || height > screen_height-dst_y)
         return -1;
     return copy_image(draw_buffer+src_y*FRAME_STRIDE+src_x*2, FRAME_STRIDE,
                       dst_x,dst_y,width,height);
@@ -78,8 +108,8 @@ int copy_rect(uint32_t src_x, uint32_t src_y, uint32_t dst_x, uint32_t dst_y,
 static int copy_image_mode(uint32_t source, uint32_t source_stride, uint32_t dst_x,
                            uint32_t dst_y, uint32_t width, uint32_t height,
                            uint16_t key, uint32_t operation) {
-    if (!width || !height || dst_x >= 640 || dst_y >= 480 ||
-        width > 640-dst_x || height > 480-dst_y || (source&1u) ||
+    if (!width || !height || dst_x >= screen_width || dst_y >= screen_height ||
+        width > screen_width-dst_x || height > screen_height-dst_y || (source&1u) ||
         (source_stride&1u) || source_stride > 65534 || source_stride < width*2)
         return -1;
     uint32_t bytes=(height-1)*source_stride+width*2;
@@ -123,14 +153,23 @@ int copy_image_alpha(uint32_t source, uint32_t source_stride, uint32_t dst_x,
     return copy_image_mode(source,source_stride,dst_x,dst_y,width,height,key,GFX_OP_ALPHA_COPY);
 }
 int present_frame(void) {
+    static uint32_t underflow_reported;
     uint32_t page = draw_page();
-    if (mmio_read(GFX_BASE+GFX_STATUS) & (GFX_BUSY|GFX_SWAP_PENDING)) return -2;
+    uint32_t status = mmio_read(GFX_BASE+GFX_STATUS);
+    if (status & (GFX_BUSY|GFX_SWAP_PENDING)) return -2;
+    // Same-page requests are legal too. Require a live pixel clock rather
+    // than skipping acknowledgement of the first frame.
+    if (wait_video_ready()) return -5;
     mmio_write(GFX_BASE+GFX_SWAP_PAGE, page);
     mmio_write(GFX_BASE+GFX_SWAP, 1);
     int result = wait_display_page(page);
     if (result) return result;
     draw_buffer = page ? FRAMEBUFFER : FRAMEBUFFER_B;
     select_draw_page();
+    if (!underflow_reported && (mmio_read(GFX_BASE+GFX_STATUS) & GFX_UNDERFLOW)) {
+        underflow_reported=1;
+        puts_uart("WARN video underflow; rendering continues\r\n");
+    }
     return 0;
 }
 static void publish_pixels(void) {
@@ -170,7 +209,7 @@ static int asset_valid(void) {
 }
 static void cpu_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c) {
     for (uint32_t row=0; row<h; ++row) {
-        volatile uint16_t *p=(volatile uint16_t *)(uintptr_t)(draw_buffer+(y+row)*1280+x*2);
+        volatile uint16_t *p=(volatile uint16_t *)(uintptr_t)(draw_buffer+(y+row)*FRAME_STRIDE+x*2);
         for (uint32_t col=0; col<w; ++col) p[col]=c;
     }
 }
@@ -178,7 +217,7 @@ static void cpu_copy(uint32_t source,uint32_t x,uint32_t y,uint32_t width,uint32
     uint32_t a=alpha_opacity(transparency.percent);
     for (uint32_t row=0; row<height; ++row) {
         const volatile uint16_t *s=(const volatile uint16_t *)(uintptr_t)(source+row*width*2u);
-        volatile uint16_t *d=(volatile uint16_t *)(uintptr_t)(draw_buffer+(y+row)*1280+x*2);
+        volatile uint16_t *d=(volatile uint16_t *)(uintptr_t)(draw_buffer+(y+row)*FRAME_STRIDE+x*2);
         for (uint32_t col=0; col<width; ++col) {
             uint16_t pixel=s[col];
             if (!key_enabled || pixel!=0xf81f)
@@ -234,13 +273,13 @@ static void basic_scene(uint32_t hw,uint32_t motion_ticks) {
     mmio_write(0x013fff18u,basic_layout.tick_remainder);
     if(!hw) __asm__ volatile (".word 0x500f" ::: "memory");
     if(hw) {
-        if(fill_rect(0,0,640,480,BASIC_BACKGROUND)) fail("FAIL basic fill");
+        if(fill_rect(0,0,screen_width,screen_height,BASIC_BACKGROUND)) fail("FAIL basic fill");
         mmio_write(GFX_BASE+GFX_WIDTH,BASIC_SIDE);
         mmio_write(GFX_BASE+GFX_HEIGHT,BASIC_SIDE);
         mmio_write(GFX_BASE+GFX_SRC,BASIC_SPRITE_BASE);
         mmio_write(GFX_BASE+GFX_SRC_STRIDE,SPRITE_STRIDE);
     }
-    else cpu_fill(0,0,640,480,BASIC_BACKGROUND);
+    else cpu_fill(0,0,screen_width,screen_height,BASIC_BACKGROUND);
     for(uint32_t n=0;n<basic_layout.count;++n) {
         const basic_block_t *f=&basic_layout.fill[n], *c=&basic_layout.copy[n];
         if(hw) {
@@ -260,17 +299,17 @@ static void advanced_scene(uint32_t pose,uint32_t x,uint32_t hw) {
     const volatile sprite_frame_t *frames=(const volatile sprite_frame_t *)(uintptr_t)(ASSET_BASE+16);
     sprite_frame_t f=frames[pose];
     uint32_t dst_x=(uint32_t)((int32_t)x+f.dx);
-    uint32_t dst_y=(uint32_t)(320+f.dy);
+    uint32_t dst_y=(uint32_t)(380+f.dy);
     uint32_t source=ASSET_BASE+f.offset;
     if (!hw) {
         // Sapphire BSP 0x500F invalidates stale reads left by hardware writes.
         __asm__ volatile (".word 0x500f" ::: "memory");
     }
-    if (hw) { if (fill_rect(0,0,640,480,0x1082)) fail("FAIL fill"); }
-    else cpu_fill(0,0,640,480,0x1082);
+    if (hw) { if (fill_rect(0,0,screen_width,screen_height,0x1082)) fail("FAIL fill"); }
+    else cpu_fill(0,0,screen_width,screen_height,0x1082);
     if (hw) {
-        if(fill_rect(0,277,640,20,0x07e0)) fail("FAIL fill");
-        if(fill_rect(0,321,640,20,0x001f)) fail("FAIL fill");
+        if(fill_rect(0,337,screen_width,20,0x07e0)) fail("FAIL fill");
+        if(fill_rect(0,381,screen_width,20,0x001f)) fail("FAIL fill");
         int result=transparency.percent ?
             copy_image_alpha(source,(uint32_t)f.width*2u,dst_x,dst_y,f.width,f.height,
                              alpha_opacity(transparency.percent),key_enabled,0xf81f) :
@@ -278,15 +317,15 @@ static void advanced_scene(uint32_t pose,uint32_t x,uint32_t hw) {
                          : copy_image(source,(uint32_t)f.width*2u,dst_x,dst_y,f.width,f.height));
         if(result) fail("FAIL copy");
     } else {
-        cpu_fill(0,277,640,20,0x07e0);
-        cpu_fill(0,321,640,20,0x001f);
+        cpu_fill(0,337,screen_width,20,0x07e0);
+        cpu_fill(0,381,screen_width,20,0x001f);
         cpu_copy(source,dst_x,dst_y,f.width,f.height);
     }
     publish_pixels();
 }
 // Clear 5x7 bitmap glyphs. Each row uses the low five bits and each lit dot
-// is drawn as a 2x2 block. The 12-pixel advance preserves all existing HUD
-// and menu coordinates while making the letters easier to distinguish.
+// is drawn as a 2x2 block. The 12-pixel advance keeps labels aligned to a
+// simple grid while making the letters easy to distinguish.
 static const uint8_t font[36][1][7]={
     {{0x0e,0x11,0x13,0x15,0x19,0x11,0x0e}},
     {{0x04,0x0c,0x04,0x04,0x04,0x04,0x0e}},
@@ -351,8 +390,17 @@ static void text_at(uint32_t x,uint32_t y,const char *s,uint16_t color) {
         x+=12;
     }
 }
+static uint32_t text_width(const char *s) {
+    uint32_t width=0;
+    while(*s++) width+=12u;
+    return width;
+}
+static void text_centered(uint32_t y,const char *s,uint16_t color) {
+    uint32_t width=text_width(s);
+    text_at(width<screen_width ? (screen_width-width)/2u : 0u,y,s,color);
+}
 static void square_button(uint32_t x,uint32_t selected,const char *label) {
-    const uint32_t y=145u, side=180u;
+    const uint32_t y=160u, side=200u;
     uint16_t edge=selected ? 0x07ffu : 0x8410u;
     uint16_t face=selected ? 0x2104u : 0x18c3u;
     uint32_t letters=0;
@@ -360,15 +408,15 @@ static void square_button(uint32_t x,uint32_t selected,const char *label) {
     cpu_fill(x,y,side,side,edge);
     cpu_fill(x+6u,y+6u,side-12u,side-12u,face);
     text_at(x+(side-letters*12u)/2u,
-            y+80u,label,selected ? 0xffffu : 0xbdf7u);
+            y+90u,label,selected ? 0xffffu : 0xbdf7u);
 }
 static void draw_menu(uint32_t selection) {
-    cpu_fill(0,0,640,480,0x1082u);
-    text_at(242,76,"FUNCTION MENU",0xffffu);
-    square_button(112,selection==0u,"BASIC");
-    square_button(348,selection==1u,"ADVANCED");
-    text_at(194,366,"KEY0 LEFT  KEY1 RIGHT",0xffffu);
-    text_at(200,392,"KEY2 ENTER KEY3 BACK",0xffffu);
+    cpu_fill(0,0,screen_width,screen_height,0x1082u);
+    text_centered(90,"FUNCTION MENU",0xffffu);
+    square_button(152,selection==0u,"BASIC");
+    square_button(448,selection==1u,"ADVANCED");
+    text_centered(410,"KEY0 LEFT  KEY1 RIGHT",0xffffu);
+    text_centered(438,"KEY2 ENTER KEY3 BACK",0xffffu);
     publish_pixels();
 }
 static char *decimal(char *out,uint32_t value) {
@@ -380,7 +428,7 @@ static char *decimal(char *out,uint32_t value) {
 static void resolution_hud(uint32_t y) {
     uint32_t status=mmio_read(GFX_BASE+GFX_VIDEO_STATUS);
     if (!(status&GFX_VIDEO_VALID)) {
-        text_at(532,y,"RES WAIT",0xffff);
+        text_at(screen_width-108u,y,"RES WAIT",0xffff);
         return;
     }
     uint32_t size=mmio_read(GFX_BASE+GFX_VIDEO_SIZE);
@@ -390,13 +438,13 @@ static void resolution_hud(uint32_t y) {
     *end++='X';
     end=decimal(end,height);
     uint32_t glyphs=(uint32_t)(end-label);
-    text_at(640-12-glyphs*12,y,label,0xffff);
+    text_at(screen_width-12-glyphs*12,y,label,0xffff);
 }
 static char *tenths(char *out,uint32_t value) {
     out=decimal(out,value/10u); *out++='.';
     *out++=(char)('0'+value%10u); *out=0; return out;
 }
-static char basic_log[96];
+static char basic_log[128];
 static uint32_t basic_log_length,basic_log_index;
 static char *append_text(char *out,const char *text) {
     while(*text) *out++=*text++;
@@ -419,69 +467,76 @@ static void basic_log_queue(const basic_metrics_t *s,uint32_t hw,uint32_t blocks
     p=decimal(p,blocks); p=append_text(p," FPS "); p=tenths(p,s->fps10);
     p=append_text(p," US "); p=decimal(p,s->render_us);
     p=append_text(p," OPS/S "); p=decimal(p,s->ops_per_second);
+    p=append_text(p," UF "); p=decimal(p,mmio_read(GFX_BASE+GFX_UNDERFLOW_COUNT));
+    p=append_text(p," Y "); p=decimal(p,mmio_read(GFX_BASE+GFX_UNDERFLOW_LINE));
     p=append_text(p,"\r\n");
     basic_log_length=(uint32_t)(p-basic_log); basic_log_index=0;
 }
 static void basic_hud(uint32_t hw) {
     char number[16];
     for(uint32_t n=0;n<2;++n) {
-        uint32_t x=12u+n*320u;
+        uint32_t x=24u+n*400u;
         uint16_t color=n==hw ? 0xffffu : 0x8410u;
         const basic_metrics_t *s=&basic_metrics[n];
-        text_at(x,8,n ? "HW FPS" : "CPU FPS",color);
-        tenths(number,s->fps10); text_at(x+100u,8,s->valid ? number : "-",color);
-        text_at(x,32,"US",color);
-        decimal(number,s->render_us); text_at(x+36u,32,s->valid ? number : "-",color);
-        text_at(x,56,"OPS/S",color);
-        decimal(number,s->ops_per_second); text_at(x+76u,56,s->valid ? number : "-",color);
+        text_at(x,12,n ? "HW FPS" : "CPU FPS",color);
+        tenths(number,s->fps10); text_at(x+100u,12,s->valid ? number : "-",color);
+        text_at(x,36,"US",color);
+        decimal(number,s->render_us); text_at(x+36u,36,s->valid ? number : "-",color);
+        text_at(x,60,"OPS/S",color);
+        decimal(number,s->ops_per_second); text_at(x+76u,60,s->valid ? number : "-",color);
     }
-    text_at(12,80,"BLOCKS",0xffff); decimal(number,basic_layout.count*2u); text_at(96,80,number,0xffff);
-    text_at(208,80,"FILL",0xffff); decimal(number,basic_layout.count); text_at(268,80,number,0xffff);
-    text_at(388,80,"COPY",0xffff); text_at(448,80,number,0xffff);
-    text_at(12,104,"CPU/HW",0xffff);
+    text_at(24,88,"BLOCKS",0xffff); decimal(number,basic_layout.count*2u); text_at(108,88,number,0xffff);
+    text_at(288,88,"FILL",0xffff); decimal(number,basic_layout.count); text_at(348,88,number,0xffff);
+    text_at(520,88,"COPY",0xffff); text_at(580,88,number,0xffff);
+    text_at(24,112,"CPU/HW",0xffff);
     if(basic_metrics[0].valid && basic_metrics[1].valid && basic_metrics[1].render_us) {
         char *end=tenths(number,basic_speed10(&basic_metrics[0],&basic_metrics[1]));
         *end++='X'; *end=0;
-        text_at(108,104,number,0xffff);
-    } else text_at(108,104,"-",0xffff);
-    resolution_hud(104);
-    text_at(122,132,"MOVING SOLID FILL AND IMAGE COPY",0xffff);
-    text_at(134,448,"KEY0 CPU/HW KEY1 NEXT KEY3 BACK",0xffff);
+        text_at(120,112,number,0xffff);
+    } else text_at(120,112,"-",0xffff);
+    resolution_hud(112);
+    text_centered(140,"MOVING SOLID FILL AND IMAGE COPY",0xffff);
+    text_centered(screen_height-32u,"KEY0 CPU/HW KEY1 NEXT KEY3 BACK",0xffff);
     publish_pixels();
 }
 static uint32_t fps[2],render_us[2],samples[2];
 static void hud(uint32_t hw,uint32_t pose,uint32_t mode) {
     if(mode==BASIC_MODE) { basic_hud(hw); return; }
     for (uint32_t n=0;n<2;++n) {
-        uint32_t x=12+n*320;
+        uint32_t x=24u+n*400u;
         uint16_t color=n==hw ? 0xffff : 0x8410;
         char number[11];
-        text_at(x,8,n ? "HW FPS" : "CPU FPS",color);
-        decimal(number,fps[n]); text_at(x+100,8,samples[n] ? number : "-",color);
-        text_at(x,32,"US",color);
-        decimal(number,render_us[n]); text_at(x+36,32,samples[n] ? number : "-",color);
+        text_at(x,12,n ? "HW FPS" : "CPU FPS",color);
+        decimal(number,fps[n]); text_at(x+100,12,samples[n] ? number : "-",color);
+        text_at(x,36,"US",color);
+        decimal(number,render_us[n]); text_at(x+36,36,samples[n] ? number : "-",color);
     }
     if(mode==ADVANCED_MODE) {
-        text_at(12,56,key_enabled ? "KEY ON" : "KEY OFF",0xffff);
+        text_at(24,64,key_enabled ? "KEY ON" : "KEY OFF",0xffff);
         char number[11];
         decimal(number,pose+1u);
-        text_at(164,56,"FRAME",0xffff);
-        text_at(236,56,number,0xffff);
+        text_at(200,64,"FRAME",0xffff);
+        text_at(272,64,number,0xffff);
         char label[20];
         char *end=append_text(label,"TRANSPARENCY ");
         end=decimal(end,transparency.percent);
         *end++='%'; *end=0;
-        text_at(12,80,label,0xffff);
-        text_at(98,448,"KEY1 KEY  KEY2 +2 HOLD  KEY3 BACK",0xffff);
+        text_at(24,88,label,0xffff);
+        text_centered(screen_height-32u,"KEY1 KEY  KEY2 +2 HOLD  KEY3 BACK",0xffff);
     }
-    resolution_hud(56);
+    resolution_hud(64);
     publish_pixels();
 }
 int main(void) {
     mmio_write(SYSTEM_UART_0_IO_CTRL+8, SYSTEM_CLINT_HZ/(115200u*8u)-1u);
     mmio_write(SYSTEM_UART_0_IO_CTRL+12, 7u); // 8 data bits, no parity, one stop bit
-    puts_uart("Ti60 ALPHA KEY2 20261002\r\n");
+    puts_uart("Ti60 FIXED 800X600 R4B DIRECTPLL SCAN64 FILL64\r\n");
     if (mmio_read(GFX_BASE+GFX_ID)!=0x32444631u) fail("FAIL ID");
+    if (wait_video_ready()) fail("FAIL video clock startup");
+    puts_uart("VIDEO CLOCK READY MODE="); hex_uart(mmio_read(GFX_BASE+GFX_MODE_STATUS));
+    puts_uart(" CLOCK="); hex_uart(mmio_read(GFX_BASE+GFX_CLOCK_DIAG));
+    puts_uart(" STATUS="); hex_uart(mmio_read(GFX_BASE+GFX_STATUS));
+    puts_uart("\r\n");
     if(!asset_valid()) fail("FAIL ASSET");
     if(mmio_read(ASSET_BASE+8u)>0x000f0000u) fail("FAIL ASSET OVERLAP");
     init_basic_sprite();
@@ -572,7 +627,7 @@ int main(void) {
         if(mode==BASIC_MODE) basic_advance(&basic_layout,motion_ticks);
         motion_previous=motion_now;
         uint32_t start=cycle_now(); // Scene time excludes movement bookkeeping.
-        uint32_t x=120u;
+        uint32_t x=200u;
         if(mode==ADVANCED_MODE) {
             pose_phase+=start-pose_previous;
             pose_previous=start;

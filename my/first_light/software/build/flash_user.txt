@@ -1,0 +1,5 @@
+Ti60F225 local SPI Flash user image
+flash offset: 0x380000
+bundle bytes: 981016
+app offset: 0x0028, bytes: 13796, CRC32: 0x624D4FE2
+asset offset: 0x4000, bytes: 964632, payload CRC32: 0x4E2279B2

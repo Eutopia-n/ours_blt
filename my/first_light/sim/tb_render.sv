@@ -1,6 +1,7 @@
 `timescale 1ns/1ps
 module tb_render;
-    reg clk=0, pixel_clk=0, reset=1, memory_ready=1, key2_down=0;
+    reg clk=0, pixel_clk=0, reset=0, memory_ready=1, key2_down=0;
+    initial #1 reset=1;
     always #5 clk=~clk;
     always #19.8347107 pixel_clk=~pixel_clk;
     reg [15:0] paddr=0;
@@ -17,7 +18,10 @@ module tb_render;
     reg [31:0] rdata=0;
     wire [15:0] pixel;
     wire hs,vs,de;
-    render_subsystem dut(.*);
+    wire clock_hold=0,clock_ready=1;
+    wire [7:0] clock_debug=8'h0d;
+    wire mode_active;
+    render_subsystem #(.FB_BYTES(614400),.FB_WIDTH(640),.FB_HEIGHT(480),.FB_PITCH(1280),.FIXED_SVGA(0)) dut(.*);
     localparam BASE=32'h01000000, PAGE_BYTES=614400;
     localparam ASSET_BASE=32'h01200000, ASSET_BYTES=1048576;
     localparam MEM_BYTES=ASSET_BASE-BASE+ASSET_BYTES;
@@ -70,7 +74,8 @@ module tb_render;
     end
     always @(posedge clk) if(!reset) begin
         if(awvalid && awready) begin
-            if(awlen>15 || awaddr[1:0]!=0 || awaddr[11:0]+(awlen+1)*4>4096)
+            if((dut.fill.copy_mode ? awlen>15 : awlen>63) ||
+               awaddr[1:0]!=0 || awaddr[11:0]+(awlen+1)*4>4096)
                 $fatal(1,"Illegal AXI AW burst");
             if(awaddr<draw_base || awaddr+(awlen+1)*4>draw_base+PAGE_BYTES)
                 $fatal(1,"AW outside selected draw page");
@@ -93,7 +98,8 @@ module tb_render;
         end
         if(bvalid && bready) bvalid<=0;
         if(arvalid && arready) begin
-            if(arlen>15 || araddr[1:0]!=0 || araddr[11:0]+(arlen+1)*4>4096)
+            if((dut.read_owner_copy ? arlen>15 : arlen>63) ||
+               araddr[1:0]!=0 || araddr[11:0]+(arlen+1)*4>4096)
                 $fatal(1,"Illegal AXI AR burst");
             if(!((araddr>=BASE && araddr+(arlen+1)*4<=BASE+2*PAGE_BYTES) ||
                  (dut.read_owner_copy && araddr>=ASSET_BASE &&

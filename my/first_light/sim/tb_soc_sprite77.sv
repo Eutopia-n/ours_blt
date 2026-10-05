@@ -59,7 +59,8 @@ module tb_soc_sprite77;
     wire arvalid,arready,rvalid,rready,rlast,hs,vs,de;
     `include "soc_wiring.vh"
     render_subsystem graphics(
-        .clk(clk),.reset(soc_reset|master_reset),.pixel_clk(pixel_clk),.memory_ready(1'b1),.key2_down(key2_down),
+        .clk(clk),.reset(soc_reset|master_reset),.pixel_clk(pixel_clk),.memory_ready(1'b1),.key2_down(key2_down),.clock_hold(1'b0),.clock_ready(1'b1),
+        .clock_debug(8'h0d),
         .paddr(paddr),.psel(psel),.penable(penable),.pwrite(pwrite),.pwdata(pwdata),
         .prdata(prdata),.pready(pready),.pslverror(pslverror),
         .awaddr(awaddr),.awlen(awlen),.awvalid(awvalid),.awready(awready),
@@ -69,7 +70,7 @@ module tb_soc_sprite77;
         .rdata(rdata),.rresp(rresp),.rlast(rlast),.rvalid(rvalid),.rready(rready),
         .pixel(pixel),.hs(hs),.vs(vs),.de(de)
     );
-    localparam BASE=32'h01000000, PAGE_BYTES=614400;
+    localparam BASE=32'h01000000, PAGE_BYTES=960000;
     localparam ASSET_BASE=32'h01200000, ASSET_BYTES=1048576;
     localparam APP_HEAD=32'h013ffff0, APP_BASE=32'h01400000;
     localparam MEM_BYTES=APP_BASE-BASE+65536;
@@ -393,8 +394,8 @@ module tb_soc_sprite77;
         begin
             page=graphics.swap_page;
             base=page*PAGE_BYTES;
-            left_edge={mem[base+(145*640+112)*2+1],mem[base+(145*640+112)*2]};
-            right_edge={mem[base+(145*640+348)*2+1],mem[base+(145*640+348)*2]};
+            left_edge={mem[base+(145*800+112)*2+1],mem[base+(145*800+112)*2]};
+            right_edge={mem[base+(145*800+348)*2+1],mem[base+(145*800+348)*2]};
             if((!stress_test && (!basic_random_test && (!menu_smoke && swap_commands==1 || menu_smoke && smoke_stage!=3) ||
                 basic_random_test && smoke_stage!=7) || stress_test && !stress_menu_right) &&
                (left_edge!==16'h07ff || right_edge!==16'h8410))
@@ -404,7 +405,7 @@ module tb_soc_sprite77;
                (left_edge!==16'h8410 || right_edge!==16'h07ff))
                 $fatal(1,"KEY1 did not select ADVANCED");
             for(n=0;n<307200;n=n+1)
-                snapshot[page*307200+n]={mem[base+n*2+1],mem[base+n*2]};
+                snapshot[page*307200+n]={mem[base+(n/640*800+n%640)*2+1],mem[base+(n/640*800+n%640)*2]};
             page_present[page]=0;
             $display("PASS menu selection %0d",swap_commands);
         end
@@ -415,7 +416,7 @@ module tb_soc_sprite77;
         begin
             bits=0;
             for(integer r=0;r<7;r=r+1) for(integer c=0;c<5;c=c+1) begin
-                px={mem[base+((y+r*2)*640+x+c*2)*2+1],mem[base+((y+r*2)*640+x+c*2)*2]};
+                px={mem[base+((y+r*2)*800+x+c*2)*2+1],mem[base+((y+r*2)*800+x+c*2)*2]};
                 if(px!=16'h1082) bits[34-r*5-c]=1;
             end
             screen_glyph=bits;
@@ -527,7 +528,7 @@ module tb_soc_sprite77;
             end
             different=0;
             for(n=156*640;n<432*640;n=n+1) begin
-                actual={mem[base+n*2+1],mem[base+n*2]};
+                actual={mem[base+(n/640*800+n%640)*2+1],mem[base+(n/640*800+n%640)*2]};
                 if(actual!==golden[n]) $fatal(1,"BASIC pixel mismatch at (%0d,%0d)",n%640,n/640);
                 if(basic_frames>0 && actual!==basic_reference[n]) different=different+1;
             end
@@ -593,7 +594,7 @@ module tb_soc_sprite77;
             for(n=156*640;n<432*640;n=n+1) basic_reference[n]=golden[n];
             if(asset_write_bytes!=2048) $fatal(1,"BASIC sprite upload size mismatch");
             for(n=0;n<307200;n=n+1)
-                snapshot[page*307200+n]={mem[base+n*2+1],mem[base+n*2]};
+                snapshot[page*307200+n]={mem[base+(n/640*800+n%640)*2+1],mem[base+(n/640*800+n%640)*2]};
             basic_frames=basic_frames+1;
             page_present[page]=stress_test ? 200+basic_frames : (basic_random_test ? 100+basic_frames : 0);
             $display("PASS BASIC scene %0d: mode=%0d, %0d fills + %0d copies, changed pixels=%0d",
@@ -725,7 +726,7 @@ module tb_soc_sprite77;
             end
             base=page*PAGE_BYTES;
             for(integer n=0;n<307200;n=n+1) begin
-                actual={mem[base+n*2+1],mem[base+n*2]};
+                actual={mem[base+(n/640*800+n%640)*2+1],mem[base+(n/640*800+n%640)*2]};
                 if(n>=640*72 && actual!==golden[n])
                     $fatal(1,"Mode %0d frame %0d pixel (%0d,%0d): %h != %h",mode,scene_frame,n%640,n/640,actual,golden[n]);
                 snapshot[page*307200+n]=actual;
@@ -733,25 +734,25 @@ module tb_soc_sprite77;
             // Rows 56..63 are above the old comparison boundary: verify the
             // complete RES WAIT / measured RES 640X480 label explicitly.
             for(y=56;y<72;y=y+1) for(x=res_x;x<628;x=x+1) begin
-                actual={mem[base+(y*640+x)*2+1],mem[base+(y*640+x)*2]};
+                actual={mem[base+(y*800+x)*2+1],mem[base+(y*800+x)*2]};
                 if(actual!==golden[y*640+x])
                     $fatal(1,"Resolution HUD pixel (%0d,%0d): %h != %h",x,y,actual,golden[y*640+x]);
             end
             for(y=56;y<72;y=y+1) for(x=12;x<96;x=x+1) begin
-                actual={mem[base+(y*640+x)*2+1],mem[base+(y*640+x)*2]};
+                actual={mem[base+(y*800+x)*2+1],mem[base+(y*800+x)*2]};
                 if(actual!==golden[y*640+x])
                     $fatal(1,"Key HUD pixel (%0d,%0d): %h != %h",x,y,actual,golden[y*640+x]);
             end
             for(y=56;y<72;y=y+1) for(x=164;x<260;x=x+1) begin
-                actual={mem[base+(y*640+x)*2+1],mem[base+(y*640+x)*2]};
+                actual={mem[base+(y*800+x)*2+1],mem[base+(y*800+x)*2]};
                 if(actual!==golden[y*640+x])
                     $fatal(1,"Frame HUD pixel (%0d,%0d): %h != %h",x,y,actual,golden[y*640+x]);
             end
             // The top-left pixel of C/H must identify the active column.
-            offset=base+8*1280+12*2;
+            offset=base+8*1600+12*2;
             if({mem[offset+1],mem[offset]}!==(mode ? 16'h8410 : 16'hffff))
                 $fatal(1,"CPU HUD active color mismatch");
-            offset=base+8*1280+332*2;
+            offset=base+8*1600+332*2;
             if({mem[offset+1],mem[offset]}!==(mode ? 16'hffff : 16'h8410))
                 $fatal(1,"HW HUD active color mismatch");
             page_present[page]=demo_swaps;

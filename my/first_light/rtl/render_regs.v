@@ -1,15 +1,24 @@
 // APB3 control interface at the existing Sapphire IO_APB_SLAVE_0_INPUT.
 `default_nettype none
-module render_regs (
+module render_regs #(
+    parameter integer FB_PITCH = 1600,
+    parameter integer FIXED_SVGA = 0
+) (
     input wire clk, reset,
     input wire [15:0] paddr, input wire psel, penable, pwrite,
     input wire [31:0] pwdata,
     output reg [31:0] prdata, output wire pready, output wire pslverror,
     input wire memory_ready, busy, done, error,
     input wire [31:0] cycles,
-    input wire video_underflow, video_error, display_page_active, swap_ack,
+    input wire video_underflow, video_error,
+    input wire [31:0] video_underflow_count,
+    input wire [15:0] video_underflow_line,
+    input wire display_page_active, swap_ack,
     input wire [15:0] video_width, video_height,
     input wire video_mode_valid, key2_down,
+    input wire mode_active, clock_ready,
+    input wire [31:0] clock_diagnostic,
+    output reg mode_request,
     output reg start, output reg display_enable,
     output reg [1:0] operation, output reg [31:0] src, dst, stride, src_stride,
     output reg draw_page, output reg swap_page, output reg swap_toggle,
@@ -20,16 +29,25 @@ module render_regs (
     wire transfer = psel && penable;
     wire wr = transfer && pwrite;
     wire swap_pending = swap_toggle != swap_ack;
-    wire known = paddr == 0 || paddr == 4 || paddr == 8 || paddr == 12 ||
+    // The same bitstream carries its matching DDR application. APB setup
+    // supplies the address one clock before the access phase consumes data.
+    wire app_selected = paddr[15:14] == 2'b10;
+    reg [31:0] app_rom [0:4095];
+    reg [31:0] app_word;
+    initial $readmemh("software/build/embedded_app.memh", app_rom);
+    always @(posedge clk)
+        if (psel && app_selected) app_word <= app_rom[paddr[13:2]];
+    wire known = app_selected || paddr == 0 || paddr == 4 || paddr == 8 || paddr == 12 ||
         paddr == 16 || paddr == 20 || paddr == 24 || paddr == 28 ||
         paddr == 32 || paddr == 36 || paddr == 40 || paddr == 44 ||
         paddr == 48 || paddr == 52 || paddr == 56 || paddr == 60 ||
         paddr == 64 || paddr == 68 || paddr == 72 || paddr == 76 ||
-        paddr == 80 || paddr == 84 || paddr == 88;
+        paddr == 80 || paddr == 84 || paddr == 88 || paddr == 92 || paddr == 96 ||
+        paddr == 100 || paddr == 104 || paddr == 108;
     wire writable = paddr == 8 || paddr == 12 || paddr == 16 || paddr == 20 ||
         paddr == 24 || paddr == 28 || paddr == 32 || paddr == 48 || paddr == 52 ||
         paddr == 56 || paddr == 60 || paddr == 64 || paddr == 76 ||
-        paddr == 80 || paddr == 84;
+        paddr == 80 || paddr == 84 || (paddr == 92 && !FIXED_SVGA);
     assign pready = 1'b1;
     assign pslverror = transfer && (!known || paddr[1:0] != 0 ||
         (pwrite && (!writable || busy || start ||
@@ -37,6 +55,7 @@ module render_regs (
          (paddr == 8 && pwdata != 1) || (paddr == 32 && pwdata > 1) ||
          (paddr == 48 && pwdata > 3) || (paddr == 56 && pwdata > 1) ||
          (paddr == 80 && pwdata > 256) || (paddr == 84 && pwdata > 1) ||
+         (paddr == 92 && (pwdata > 1 || swap_pending || display_enable)) ||
          (paddr == 60 && pwdata > 1) || (paddr == 64 && pwdata != 1))));
     always @* begin
         case (paddr)
@@ -52,7 +71,7 @@ module render_regs (
         32: prdata = {31'd0,display_enable};
         36: prdata = cycles;
         40: prdata = 32'h01000000;
-        44: prdata = 32'd1280;
+        44: prdata = FB_PITCH;
         48: prdata = {30'd0,operation};
         52: prdata = src;
         56: prdata = {31'd0,draw_page};
@@ -64,14 +83,21 @@ module render_regs (
         80: prdata = {23'd0,alpha_opacity};
         84: prdata = {31'd0,alpha_key_enable};
         88: prdata = {31'd0,key2_down};
+        92: prdata = {31'd0,mode_request};
+        96: prdata = {29'd0,clock_ready,mode_request != mode_active,mode_active};
+        100: prdata = video_underflow_count;
+        104: prdata = {16'd0,video_underflow_line};
+        108: prdata = clock_diagnostic;
         default: prdata = 0;
         endcase
+        if (app_selected) prdata = app_word;
     end
     always @(posedge clk) begin
         if (reset) begin
             start <= 0; display_enable <= 0;
-            operation <= 0; src <= 32'h01000000; dst <= 32'h01000000; stride <= 1280;
-            src_stride <= 1280; // Preserve old framebuffer-only firmware.
+            operation <= 0; src <= 32'h01000000; dst <= 32'h01000000;
+            src_stride <= FB_PITCH;
+            stride <= FB_PITCH; mode_request <= FIXED_SVGA ? 1'b1 : 1'b0;
             draw_page <= 0; swap_page <= 0; swap_toggle <= 0;
             width <= 0; height <= 0; color <= 0;
             alpha_opacity <= 256; alpha_key_enable <= 0;
@@ -93,6 +119,7 @@ module render_regs (
             76: src_stride <= pwdata;
             80: alpha_opacity <= pwdata[8:0];
             84: alpha_key_enable <= pwdata[0];
+            92: mode_request <= pwdata[0];
             default: ;
             endcase
         end

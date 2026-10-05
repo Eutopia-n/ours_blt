@@ -1,0 +1,27 @@
+{
+  "release": "R4B",
+  "bitstream": "fixed800_directpll_scan64_fill64_R4B.bit",
+  "sha256": "4D5BAA389AE1B9820EF8FAFE4D47B37EFBDDACCBA1F51398E94790495CA8B83F",
+  "firmware_banner": "Ti60 FIXED 800X600 R4B DIRECTPLL SCAN64 FILL64",
+  "animation_bin_bytes": 13796,
+  "animation_bin_sha256": "DDC426560B491B980D8178A650F0D6D47EB9494A35647A8A24FF757EAE00732B",
+  "boot_bin_bytes": 2855,
+  "resolution": [800, 600],
+  "pixel_clock_mhz": 40,
+  "serializer_clock_mhz": 200,
+  "hdmi_pll_reference": "core_clk 100 MHz",
+  "build": {"map": "PASS", "interface": "PASS", "pnr": "PASS", "pgm": "PASS"},
+  "timing": {"minimum_setup_slack_ns": 0.221, "minimum_hold_slack_ns": 0.026},
+  "tests": {
+    "clock_startup_retry_and_relock": "PASS",
+    "initial_disabled_display_same_page_swap": "PASS",
+    "fixed800_full_frames_fill_and_relock": "PASS",
+    "render_regression": "STOPPED after approximately 8 minutes without completion; not counted as passed"
+  },
+  "board_verification": "USER VERIFIED on 2026-10-05: startup, BASIC CPU/HW 32/128/256 and ADVANCED run; user reports no black stripes; all BASIC log samples have UF=0. Long-duration and repeated cold-start testing remain unrecorded.",
+  "board_log": "r4b_validation/board_uart_20261005.log",
+  "basic_hw_stable_fps": {"32": 60.3, "128": 60.3, "256": 60.3},
+  "boot_assets": "Reuses existing SPI Flash asset bundle at 0x380000; application is embedded in bitstream. No new UART upload is required for the already provisioned board.",
+  "rollback_bitstream": "fixed800_burst64_ui800_R3.bit",
+  "prechange_backup": "Retained locally in the original working project; not part of this release branch"
+}

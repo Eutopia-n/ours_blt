@@ -44,3 +44,15 @@ python .\tools\build.py compile --efinity C:\Efinity\2026.1
 3. 断电再上电，FPGA 配置完成后 bootloader 会自动搬运用户镜像；不再需要运行 `upload_sprite77.py`。
 
 如果当前只想调试 bitstream，仍可使用 JTAG `.bit` 和原 UART 上传脚本。Flash 用户镜像默认保存在本地工程的 `software/build` 中，不必提交到源代码仓库。
+
+## Interface Designer 工程名称检查
+
+工程文件仍叫 `first_light.xml`，但其内部工程名为
+`spi_flash_autoboot_5x7_font`。`first_light.peri.xml` 的 `design_db name`
+必须与这个内部工程名一致，否则 Efinity 2026.1 会报
+`Design name mismatched detected` 并停止生成约束。
+
+`tools/prepare.py` 已保持两处名称一致。`tools/build.py` 的 Efinity 命令
+明确传入 `--pt_opts peri_file=first_light.peri.xml`，保证命令行读取完整的
+外设配置。直接调用 Efinity 命令行时也应带上此参数，避免按新工程名
+自动创建一个空的外设配置。

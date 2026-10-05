@@ -12,7 +12,15 @@ my/first_light/work_syn/
 my/first_light/work_pnr/
 my/first_light/work_pt/
 my/first_light/work_dbg/
-my/first_light/software/build/
+my/first_light/software/build/*
+# R4B reproducible ROM inputs, known-good firmware and first-board Flash assets.
+!my/first_light/software/build/embedded_app.memh
+!my/first_light/software/build/embedded_app.h
+!my/first_light/software/build/animation.bin
+!my/first_light/software/build/first_light.bin
+!my/first_light/software/build/flash_user.bin
+!my/first_light/software/build/flash_user.hex
+!my/first_light/software/build/flash_user.txt
 my/first_light/sim/work/
 my/first_light/sim/soc_modelsim.v
 my/first_light/sim/soc_wiring.vh
@@ -23,5 +31,6 @@ my/first_light/reports/*.ppm
 wlft*
 transcript
 vsim_stacktrace.vstf
+*.vvp
 # Retain selected validation logs and releases intentionally.
 # RAM .bin files and vendor IP are build inputs, not disposable outputs.

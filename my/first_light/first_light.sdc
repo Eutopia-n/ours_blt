@@ -6,6 +6,7 @@ create_clock -name sdram_clk -period 2.500 [get_ports {sdram_clk}]
 create_clock -name rx_cal_clk -period 2.500 [get_ports {rx_cal_clk}]
 create_clock -name tx_cal_clk -period 2.500 [get_ports {tx_cal_clk}]
 create_clock -name tx_cal_clk_90edge -period 2.500 [get_ports {tx_cal_clk_90edge}]
-create_clock -name hdmi_tx_slow_clk -period 39.669421 [get_ports {hdmi_tx_slow_clk}]
+# Fixed SVGA: 40 MHz pixels, 60.317 Hz refresh.
+create_clock -name hdmi_tx_slow_clk -period 25.000 [get_ports {hdmi_tx_slow_clk}]
 create_clock -name jtag_inst1_TCK -period 100.000 [get_ports {jtag_inst1_TCK}]
 set_clock_groups -asynchronous -group {core_clk} -group {sdram_clk} -group {rx_cal_clk} -group {tx_cal_clk tx_cal_clk_90edge} -group {hdmi_tx_slow_clk} -group {jtag_inst1_TCK}

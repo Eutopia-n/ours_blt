@@ -4,10 +4,12 @@ import argparse
 import os
 import subprocess
 import sys
+import struct
+import zlib
 
 ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
-parser.add_argument('step',choices=['prepare','firmware','flash-bundle','sim','sim-fifo','sim-mode','sim-key','sim-menu-keys','sim-alpha','sim-alpha-soc','sim-soc','sim-menu-soc','sim-basic-soc','sim-stress-soc','sim-moving-soc','sim-perf-soc','sim-controls-soc','sim-boot-uart','interface','map','compile','inspect'])
+parser.add_argument('step',choices=['prepare','firmware','flash-bundle','sim','sim-embedded-boot','sim-resolution','sim-fixed800','sim-resolution-soc','sim-basic-hw-recovery','sim-fifo','sim-mode','sim-key','sim-menu-keys','sim-alpha','sim-alpha-soc','sim-soc','sim-menu-soc','sim-basic-soc','sim-stress-soc','sim-moving-soc','sim-perf-soc','sim-controls-soc','sim-boot-uart','interface','map','compile','inspect'])
 parser.add_argument('--efinity',default=None,
                     help='Efinity RISC-V IDE root; auto-detects the standard C:/Efinity install')
 parser.add_argument('--modelsim',default='S:/ModelSim/win64')
@@ -48,11 +50,19 @@ elif args.step=='firmware':
         run([EF/'toolchain/bin/riscv-none-elf-objcopy.exe','-O','binary',
              out/'animation.elf',out/'animation.bin'],'objcopy_app.log')
         run([EF/'toolchain/bin/riscv-none-elf-size.exe',out/'animation.elf'],'firmware_app_size.log')
-        if len((out/'animation.bin').read_bytes())>65536:
-            raise SystemExit('DDR animation program exceeds its 64 KiB region')
+        app=(out/'animation.bin').read_bytes()
+        if not app or len(app)>16384:
+            raise SystemExit('Embedded application must fit the 16 KiB APB ROM')
+        padded=app.ljust(16384,b'\0')
+        (out/'embedded_app.memh').write_text(
+            ''.join(f'{word:08x}\n' for (word,) in struct.iter_unpack('<I',padded)),encoding='ascii')
+        (out/'embedded_app.h').write_text(
+            f'#define EMBEDDED_APP_BYTES {len(app)}u\n'
+            f'#define EMBEDDED_APP_CRC 0x{zlib.crc32(app):08x}u\n',encoding='ascii')
         source='software/boot.c'
     else:
         source='software/double_buffer_demo.c'
+        flags.append('-DLEGACY_FRAMEBUFFER')
     run([gcc,*flags,'-Wl,-Map,software/build/first_light.map','-Tsoftware/link.ld',
          'software/start.S',source,'-o',out/'first_light.elf'],'firmware.log')
     run([EF/'toolchain/bin/riscv-none-elf-objcopy.exe','-O','binary',
@@ -72,6 +82,34 @@ elif args.step=='firmware':
         run([sys.executable,ROOT/'tools/make_flash_bundle.py'],'flash_bundle.log')
 elif args.step=='flash-bundle':
     run([sys.executable,ROOT/'tools/make_flash_bundle.py'],'flash_bundle.log')
+elif args.step in ['sim-resolution','sim-fixed800','sim-resolution-soc','sim-embedded-boot','sim-basic-hw-recovery']:
+    sim=Path(args.modelsim)
+    if not (ROOT/'sim/work').exists(): run([sim/'vlib.exe','sim/work'],'vlib.log')
+    embedded_boot=args.step=='sim-embedded-boot'
+    basic_recovery=args.step=='sim-basic-hw-recovery'
+    fixed800=args.step=='sim-fixed800'
+    resolution_soc=args.step not in ['sim-resolution','sim-fixed800']
+    extra=[]
+    if resolution_soc:
+        run([sys.executable,ROOT/'tools/prepare_soc_sim.py','--compact-asset'],'prepare_resolution_soc.log')
+        extra=['+incdir+sim','sim/soc_modelsim.v']
+    test='tb_resolution_soc' if resolution_soc else ('tb_fixed800' if fixed800 else 'tb_resolution')
+    test_source='tb_resolution_soc' if resolution_soc else 'tb_resolution'
+    suffix='_embedded_boot' if embedded_boot else ('_soc' if resolution_soc else ('_fixed800' if fixed800 else ''))
+    if basic_recovery: suffix='_basic_hw_recovery'
+    run([sim/'vlog.exe','-work','sim/work','-sv','rtl/sync_fifo.v','rtl/fill_engine.v',
+         'rtl/render_regs.v','rtl/framebuffer_video.v','rtl/video_mode_measure.v',
+         'rtl/video_clock_control.v','rtl/render_subsystem.v',*extra,f'sim/{test_source}.sv'],
+        'vlog_resolution'+suffix+'.log')
+    run([sim/'vsim.exe','-batch','-t','1ps','-lib','sim/work',test,
+         *(['+BOOT_ROM_ONLY'] if embedded_boot else []),
+         *(['+BASIC_HW_ONLY','+VIDEO_UNDERFLOW'] if basic_recovery else []),
+         '-do','onerror {quit -code 1 -force}; run -all; quit -code 0 -force'],
+        'simulation_resolution'+suffix+'.log')
+    marker='EMBEDDED BOOT TEST PASSED' if embedded_boot else ('FIXED800 SOC TEST PASSED' if resolution_soc else ('FIXED800 TEST PASSED' if fixed800 else 'ALL RESOLUTION TESTS PASSED'))
+    if basic_recovery: marker='BASIC HW SWITCH TEST PASSED'
+    if marker not in (ROOT/('reports/simulation_resolution'+suffix+'.log')).read_text():
+        raise SystemExit('Resolution simulation did not pass')
 elif args.step=='sim-alpha':
     sim=Path(args.modelsim)
     if not (ROOT/'sim/work').exists(): run([sim/'vlib.exe','sim/work'],'vlib.log')
@@ -201,4 +239,6 @@ elif args.step=='inspect':
         for file in ROOT.glob(pattern):
             print(file.name, file.read_text(errors='replace')[:10000])
 else:
-    run([FLOW_EF/'bin/efx_run.bat','first_light.xml','--flow',args.step],args.step+'.log')
+    # The CLI otherwise searches by project name and may create an empty design.
+    run([FLOW_EF/'bin/efx_run.bat','first_light.xml','--flow',args.step,
+         '--pt_opts','peri_file=first_light.peri.xml'],args.step+'.log')

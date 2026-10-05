@@ -26,6 +26,11 @@
 #define GFX_ALPHA        0x50u
 #define GFX_ALPHA_KEY    0x54u
 #define GFX_KEY2_DOWN    0x58u
+#define GFX_VIDEO_MODE   0x5cu
+#define GFX_MODE_STATUS  0x60u /* bit0 active mode, bit1 pending, bit2 PLL ready */
+#define GFX_UNDERFLOW_COUNT 0x64u
+#define GFX_UNDERFLOW_LINE  0x68u
+#define GFX_CLOCK_DIAG      0x6cu /* [31:16] pixel heartbeat, [7:0] clock controller */
 #define GFX_OP_FILL       0u
 #define GFX_OP_COPY       1u
 #define GFX_OP_KEYED_COPY 2u
@@ -40,9 +45,14 @@
 #define GFX_ACTIVE_PAGE 64u
 #define GFX_SWAP_PENDING 128u
 #define FRAMEBUFFER 0x01000000u
+#ifdef LEGACY_FRAMEBUFFER
 #define FRAMEBUFFER_BYTES 614400u
-#define FRAMEBUFFER_B (FRAMEBUFFER + FRAMEBUFFER_BYTES)
 #define FRAME_STRIDE 1280u
+#else
+#define FRAMEBUFFER_BYTES 960000u
+#define FRAME_STRIDE 1600u
+#endif
+#define FRAMEBUFFER_B (FRAMEBUFFER + FRAMEBUFFER_BYTES)
 /* Dedicated DDR resource pool; disjoint from both framebuffer pages.
  * The configured 28-bit DDR controller covers 256 MiB; avoid high aliases. */
 #define ASSET_BASE  0x01200000u
@@ -60,7 +70,7 @@ static inline void mmio_write(uint32_t address, uint32_t value) {
 }
 /* Returns 0 only after the last AXI B response. No CPU pixel writes. */
 int fill_rect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint16_t color);
-/* Copy within the fixed RGB565 framebuffer. Same 1280-byte stride on both
+/* Copy within the reserved RGB565 framebuffer. Same FRAME_STRIDE on both
  * sides; overlapping rectangles are supported using a complete row buffer.
  * Returns 0 after the final AXI B response. CPU writes to source pixels must
  * reach DDR before this call. This core uses write-through; publish_pixels()
