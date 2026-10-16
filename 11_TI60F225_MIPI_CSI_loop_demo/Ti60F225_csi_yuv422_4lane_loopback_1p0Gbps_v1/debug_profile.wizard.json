@@ -1,0 +1,1377 @@
+{
+    "debug_cores": [
+        {
+            "name": "la0",
+            "type": "la",
+            "uuid": "625a80d42c0a46428ebcb00beae57990",
+            "trigin_en": false,
+            "trigout_en": false,
+            "auto_inserted": true,
+            "capture_control": false,
+            "data_depth": 2048,
+            "input_pipeline": 3,
+            "probes": [
+                {
+                    "name": "rx_out_hs",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "rx_out_vs",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "datatype",
+                    "width": 6,
+                    "probe_type": 1
+                },
+                {
+                    "name": "rx_out_data",
+                    "width": 64,
+                    "probe_type": 1
+                },
+                {
+                    "name": "rx_out_valid",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "tx_out_data",
+                    "width": 64,
+                    "probe_type": 1
+                },
+                {
+                    "name": "tx_out_valid",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "tx_out_vs",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "tx_out_hs",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "h_cnt",
+                    "width": 12,
+                    "probe_type": 1
+                },
+                {
+                    "name": "h_cnt_o",
+                    "width": 12,
+                    "probe_type": 1
+                }
+            ]
+        },
+        {
+            "name": "la1",
+            "type": "la",
+            "uuid": "482265374345474cbe354128b2ebf70c",
+            "trigin_en": false,
+            "trigout_en": false,
+            "auto_inserted": true,
+            "capture_control": false,
+            "data_depth": 2048,
+            "input_pipeline": 3,
+            "probes": [
+                {
+                    "name": "mipi_dphy_tx_data0_HS_OUT",
+                    "width": 8,
+                    "probe_type": 1
+                },
+                {
+                    "name": "mipi_dphy_tx_data1_HS_OUT",
+                    "width": 8,
+                    "probe_type": 1
+                },
+                {
+                    "name": "mipi_dphy_tx_data2_HS_OUT",
+                    "width": 8,
+                    "probe_type": 1
+                },
+                {
+                    "name": "mipi_dphy_tx_data3_HS_OUT",
+                    "width": 8,
+                    "probe_type": 1
+                }
+            ]
+        }
+    ],
+    "connections": [
+        {
+            "command": "add_ports",
+            "id": 1,
+            "args": {
+                "netlist": "top",
+                "ports": [
+                    {
+                        "name": "jtag_inst1_autodbg_CAPTURE__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst1_autodbg_DRCK__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst1_autodbg_RESET__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst1_autodbg_RUNTEST__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst1_autodbg_SEL__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst1_autodbg_SHIFT__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst1_autodbg_TCK__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst1_autodbg_TDI__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst1_autodbg_TMS__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst1_autodbg_UPDATE__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst1_autodbg_TDO__",
+                        "dir": "out",
+                        "width": 1
+                    }
+                ]
+            }
+        },
+        {
+            "command": "instantiate",
+            "netlist": "edb_top",
+            "id": 2,
+            "instance": "edb_top_autodbg_inst__"
+        },
+        {
+            "command": "connect",
+            "id": 3,
+            "args": {
+                "instance": "edb_top_autodbg_inst__",
+                "ports": [
+                    {
+                        "name": "bscan_CAPTURE",
+                        "net": "jtag_inst1_autodbg_CAPTURE__"
+                    },
+                    {
+                        "name": "bscan_DRCK",
+                        "net": "jtag_inst1_autodbg_DRCK__"
+                    },
+                    {
+                        "name": "bscan_RESET",
+                        "net": "jtag_inst1_autodbg_RESET__"
+                    },
+                    {
+                        "name": "bscan_RUNTEST",
+                        "net": "jtag_inst1_autodbg_RUNTEST__"
+                    },
+                    {
+                        "name": "bscan_SEL",
+                        "net": "jtag_inst1_autodbg_SEL__"
+                    },
+                    {
+                        "name": "bscan_SHIFT",
+                        "net": "jtag_inst1_autodbg_SHIFT__"
+                    },
+                    {
+                        "name": "bscan_TCK",
+                        "net": "jtag_inst1_autodbg_TCK__"
+                    },
+                    {
+                        "name": "bscan_TDI",
+                        "net": "jtag_inst1_autodbg_TDI__"
+                    },
+                    {
+                        "name": "bscan_TMS",
+                        "net": "jtag_inst1_autodbg_TMS__"
+                    },
+                    {
+                        "name": "bscan_UPDATE",
+                        "net": "jtag_inst1_autodbg_UPDATE__"
+                    },
+                    {
+                        "name": "bscan_TDO",
+                        "net": "jtag_inst1_autodbg_TDO__"
+                    },
+                    {
+                        "name": "la0_clk",
+                        "net": "pixel_clk",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe0",
+                        "net": "rx_out_hs",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe1",
+                        "net": "rx_out_vs",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe2[0]",
+                        "net": "datatype[0]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe2[1]",
+                        "net": "datatype[1]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe2[2]",
+                        "net": "datatype[2]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe2[3]",
+                        "net": "datatype[3]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe2[4]",
+                        "net": "datatype[4]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe2[5]",
+                        "net": "datatype[5]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[0]",
+                        "net": "rx_out_data[0]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[1]",
+                        "net": "rx_out_data[1]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[2]",
+                        "net": "rx_out_data[2]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[3]",
+                        "net": "rx_out_data[3]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[4]",
+                        "net": "rx_out_data[4]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[5]",
+                        "net": "rx_out_data[5]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[6]",
+                        "net": "rx_out_data[6]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[7]",
+                        "net": "rx_out_data[7]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[8]",
+                        "net": "rx_out_data[8]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[9]",
+                        "net": "rx_out_data[9]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[10]",
+                        "net": "rx_out_data[10]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[11]",
+                        "net": "rx_out_data[11]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[12]",
+                        "net": "rx_out_data[12]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[13]",
+                        "net": "rx_out_data[13]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[14]",
+                        "net": "rx_out_data[14]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[15]",
+                        "net": "rx_out_data[15]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[16]",
+                        "net": "rx_out_data[16]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[17]",
+                        "net": "rx_out_data[17]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[18]",
+                        "net": "rx_out_data[18]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[19]",
+                        "net": "rx_out_data[19]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[20]",
+                        "net": "rx_out_data[20]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[21]",
+                        "net": "rx_out_data[21]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[22]",
+                        "net": "rx_out_data[22]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[23]",
+                        "net": "rx_out_data[23]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[24]",
+                        "net": "rx_out_data[24]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[25]",
+                        "net": "rx_out_data[25]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[26]",
+                        "net": "rx_out_data[26]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[27]",
+                        "net": "rx_out_data[27]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[28]",
+                        "net": "rx_out_data[28]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[29]",
+                        "net": "rx_out_data[29]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[30]",
+                        "net": "rx_out_data[30]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[31]",
+                        "net": "rx_out_data[31]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[32]",
+                        "net": "rx_out_data[32]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[33]",
+                        "net": "rx_out_data[33]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[34]",
+                        "net": "rx_out_data[34]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[35]",
+                        "net": "rx_out_data[35]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[36]",
+                        "net": "rx_out_data[36]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[37]",
+                        "net": "rx_out_data[37]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[38]",
+                        "net": "rx_out_data[38]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[39]",
+                        "net": "rx_out_data[39]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[40]",
+                        "net": "rx_out_data[40]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[41]",
+                        "net": "rx_out_data[41]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[42]",
+                        "net": "rx_out_data[42]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[43]",
+                        "net": "rx_out_data[43]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[44]",
+                        "net": "rx_out_data[44]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[45]",
+                        "net": "rx_out_data[45]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[46]",
+                        "net": "rx_out_data[46]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[47]",
+                        "net": "rx_out_data[47]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[48]",
+                        "net": "rx_out_data[48]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[49]",
+                        "net": "rx_out_data[49]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[50]",
+                        "net": "rx_out_data[50]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[51]",
+                        "net": "rx_out_data[51]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[52]",
+                        "net": "rx_out_data[52]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[53]",
+                        "net": "rx_out_data[53]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[54]",
+                        "net": "rx_out_data[54]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[55]",
+                        "net": "rx_out_data[55]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[56]",
+                        "net": "rx_out_data[56]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[57]",
+                        "net": "rx_out_data[57]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[58]",
+                        "net": "rx_out_data[58]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[59]",
+                        "net": "rx_out_data[59]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[60]",
+                        "net": "rx_out_data[60]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[61]",
+                        "net": "rx_out_data[61]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[62]",
+                        "net": "rx_out_data[62]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[63]",
+                        "net": "rx_out_data[63]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe4",
+                        "net": "rx_out_valid",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[0]",
+                        "net": "tx_out_data[0]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[1]",
+                        "net": "tx_out_data[1]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[2]",
+                        "net": "tx_out_data[2]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[3]",
+                        "net": "tx_out_data[3]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[4]",
+                        "net": "tx_out_data[4]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[5]",
+                        "net": "tx_out_data[5]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[6]",
+                        "net": "tx_out_data[6]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[7]",
+                        "net": "tx_out_data[7]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[8]",
+                        "net": "tx_out_data[8]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[9]",
+                        "net": "tx_out_data[9]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[10]",
+                        "net": "tx_out_data[10]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[11]",
+                        "net": "tx_out_data[11]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[12]",
+                        "net": "tx_out_data[12]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[13]",
+                        "net": "tx_out_data[13]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[14]",
+                        "net": "tx_out_data[14]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[15]",
+                        "net": "tx_out_data[15]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[16]",
+                        "net": "tx_out_data[16]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[17]",
+                        "net": "tx_out_data[17]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[18]",
+                        "net": "tx_out_data[18]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[19]",
+                        "net": "tx_out_data[19]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[20]",
+                        "net": "tx_out_data[20]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[21]",
+                        "net": "tx_out_data[21]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[22]",
+                        "net": "tx_out_data[22]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[23]",
+                        "net": "tx_out_data[23]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[24]",
+                        "net": "tx_out_data[24]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[25]",
+                        "net": "tx_out_data[25]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[26]",
+                        "net": "tx_out_data[26]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[27]",
+                        "net": "tx_out_data[27]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[28]",
+                        "net": "tx_out_data[28]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[29]",
+                        "net": "tx_out_data[29]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[30]",
+                        "net": "tx_out_data[30]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[31]",
+                        "net": "tx_out_data[31]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[32]",
+                        "net": "tx_out_data[32]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[33]",
+                        "net": "tx_out_data[33]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[34]",
+                        "net": "tx_out_data[34]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[35]",
+                        "net": "tx_out_data[35]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[36]",
+                        "net": "tx_out_data[36]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[37]",
+                        "net": "tx_out_data[37]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[38]",
+                        "net": "tx_out_data[38]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[39]",
+                        "net": "tx_out_data[39]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[40]",
+                        "net": "tx_out_data[40]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[41]",
+                        "net": "tx_out_data[41]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[42]",
+                        "net": "tx_out_data[42]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[43]",
+                        "net": "tx_out_data[43]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[44]",
+                        "net": "tx_out_data[44]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[45]",
+                        "net": "tx_out_data[45]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[46]",
+                        "net": "tx_out_data[46]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[47]",
+                        "net": "tx_out_data[47]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[48]",
+                        "net": "tx_out_data[48]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[49]",
+                        "net": "tx_out_data[49]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[50]",
+                        "net": "tx_out_data[50]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[51]",
+                        "net": "tx_out_data[51]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[52]",
+                        "net": "tx_out_data[52]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[53]",
+                        "net": "tx_out_data[53]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[54]",
+                        "net": "tx_out_data[54]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[55]",
+                        "net": "tx_out_data[55]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[56]",
+                        "net": "tx_out_data[56]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[57]",
+                        "net": "tx_out_data[57]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[58]",
+                        "net": "tx_out_data[58]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[59]",
+                        "net": "tx_out_data[59]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[60]",
+                        "net": "tx_out_data[60]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[61]",
+                        "net": "tx_out_data[61]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[62]",
+                        "net": "tx_out_data[62]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe5[63]",
+                        "net": "tx_out_data[63]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe6",
+                        "net": "tx_out_valid",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe7",
+                        "net": "tx_out_vs",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe8",
+                        "net": "tx_out_hs",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe9[0]",
+                        "net": "h_cnt[0]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe9[1]",
+                        "net": "h_cnt[1]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe9[2]",
+                        "net": "h_cnt[2]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe9[3]",
+                        "net": "h_cnt[3]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe9[4]",
+                        "net": "h_cnt[4]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe9[5]",
+                        "net": "h_cnt[5]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe9[6]",
+                        "net": "h_cnt[6]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe9[7]",
+                        "net": "h_cnt[7]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe9[8]",
+                        "net": "h_cnt[8]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe9[9]",
+                        "net": "h_cnt[9]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe9[10]",
+                        "net": "h_cnt[10]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe9[11]",
+                        "net": "h_cnt[11]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe10[0]",
+                        "net": "h_cnt_o[0]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe10[1]",
+                        "net": "h_cnt_o[1]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe10[2]",
+                        "net": "h_cnt_o[2]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe10[3]",
+                        "net": "h_cnt_o[3]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe10[4]",
+                        "net": "h_cnt_o[4]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe10[5]",
+                        "net": "h_cnt_o[5]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe10[6]",
+                        "net": "h_cnt_o[6]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe10[7]",
+                        "net": "h_cnt_o[7]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe10[8]",
+                        "net": "h_cnt_o[8]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe10[9]",
+                        "net": "h_cnt_o[9]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe10[10]",
+                        "net": "h_cnt_o[10]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe10[11]",
+                        "net": "h_cnt_o[11]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_clk",
+                        "net": "mipi_dphy_tx_SLOWCLK",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe0[0]",
+                        "net": "mipi_dphy_tx_data0_HS_OUT[0]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe0[1]",
+                        "net": "mipi_dphy_tx_data0_HS_OUT[1]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe0[2]",
+                        "net": "mipi_dphy_tx_data0_HS_OUT[2]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe0[3]",
+                        "net": "mipi_dphy_tx_data0_HS_OUT[3]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe0[4]",
+                        "net": "mipi_dphy_tx_data0_HS_OUT[4]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe0[5]",
+                        "net": "mipi_dphy_tx_data0_HS_OUT[5]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe0[6]",
+                        "net": "mipi_dphy_tx_data0_HS_OUT[6]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe0[7]",
+                        "net": "mipi_dphy_tx_data0_HS_OUT[7]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe1[0]",
+                        "net": "mipi_dphy_tx_data1_HS_OUT[0]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe1[1]",
+                        "net": "mipi_dphy_tx_data1_HS_OUT[1]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe1[2]",
+                        "net": "mipi_dphy_tx_data1_HS_OUT[2]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe1[3]",
+                        "net": "mipi_dphy_tx_data1_HS_OUT[3]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe1[4]",
+                        "net": "mipi_dphy_tx_data1_HS_OUT[4]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe1[5]",
+                        "net": "mipi_dphy_tx_data1_HS_OUT[5]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe1[6]",
+                        "net": "mipi_dphy_tx_data1_HS_OUT[6]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe1[7]",
+                        "net": "mipi_dphy_tx_data1_HS_OUT[7]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe2[0]",
+                        "net": "mipi_dphy_tx_data2_HS_OUT[0]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe2[1]",
+                        "net": "mipi_dphy_tx_data2_HS_OUT[1]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe2[2]",
+                        "net": "mipi_dphy_tx_data2_HS_OUT[2]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe2[3]",
+                        "net": "mipi_dphy_tx_data2_HS_OUT[3]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe2[4]",
+                        "net": "mipi_dphy_tx_data2_HS_OUT[4]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe2[5]",
+                        "net": "mipi_dphy_tx_data2_HS_OUT[5]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe2[6]",
+                        "net": "mipi_dphy_tx_data2_HS_OUT[6]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe2[7]",
+                        "net": "mipi_dphy_tx_data2_HS_OUT[7]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe3[0]",
+                        "net": "mipi_dphy_tx_data3_HS_OUT[0]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe3[1]",
+                        "net": "mipi_dphy_tx_data3_HS_OUT[1]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe3[2]",
+                        "net": "mipi_dphy_tx_data3_HS_OUT[2]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe3[3]",
+                        "net": "mipi_dphy_tx_data3_HS_OUT[3]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe3[4]",
+                        "net": "mipi_dphy_tx_data3_HS_OUT[4]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe3[5]",
+                        "net": "mipi_dphy_tx_data3_HS_OUT[5]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe3[6]",
+                        "net": "mipi_dphy_tx_data3_HS_OUT[6]",
+                        "path": []
+                    },
+                    {
+                        "name": "la1_probe3[7]",
+                        "net": "mipi_dphy_tx_data3_HS_OUT[7]",
+                        "path": []
+                    }
+                ]
+            }
+        }
+    ],
+    "vdbs": [
+        {
+            "file": "debug_top.post.vdb",
+            "instance": "edb_top_autodbg_inst__"
+        }
+    ],
+    "session": {
+        "wizard": {
+            "data_depth": 2048,
+            "capture_control": false,
+            "selected_nets": [
+                {
+                    "name": "rx_out_hs",
+                    "width": 1,
+                    "clk_domain": "pixel_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": []
+                },
+                {
+                    "name": "rx_out_vs",
+                    "width": 1,
+                    "clk_domain": "pixel_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": []
+                },
+                {
+                    "name": "datatype",
+                    "width": 6,
+                    "clk_domain": "pixel_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [],
+                    "net_idx_left": 5,
+                    "net_idx_right": 0
+                },
+                {
+                    "name": "rx_out_data",
+                    "width": 64,
+                    "clk_domain": "pixel_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [],
+                    "net_idx_left": 63,
+                    "net_idx_right": 0
+                },
+                {
+                    "name": "rx_out_valid",
+                    "width": 1,
+                    "clk_domain": "pixel_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": []
+                },
+                {
+                    "name": "mipi_dphy_tx_data0_HS_OUT",
+                    "width": 8,
+                    "clk_domain": "mipi_dphy_tx_SLOWCLK",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [],
+                    "net_idx_left": 7,
+                    "net_idx_right": 0
+                },
+                {
+                    "name": "mipi_dphy_tx_data1_HS_OUT",
+                    "width": 8,
+                    "clk_domain": "mipi_dphy_tx_SLOWCLK",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [],
+                    "net_idx_left": 7,
+                    "net_idx_right": 0
+                },
+                {
+                    "name": "mipi_dphy_tx_data2_HS_OUT",
+                    "width": 8,
+                    "clk_domain": "mipi_dphy_tx_SLOWCLK",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [],
+                    "net_idx_left": 7,
+                    "net_idx_right": 0
+                },
+                {
+                    "name": "mipi_dphy_tx_data3_HS_OUT",
+                    "width": 8,
+                    "clk_domain": "mipi_dphy_tx_SLOWCLK",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [],
+                    "net_idx_left": 7,
+                    "net_idx_right": 0
+                },
+                {
+                    "name": "tx_out_data",
+                    "width": 64,
+                    "clk_domain": "pixel_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [],
+                    "net_idx_left": 63,
+                    "net_idx_right": 0
+                },
+                {
+                    "name": "tx_out_valid",
+                    "width": 1,
+                    "clk_domain": "pixel_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": []
+                },
+                {
+                    "name": "tx_out_vs",
+                    "width": 1,
+                    "clk_domain": "pixel_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": []
+                },
+                {
+                    "name": "tx_out_hs",
+                    "width": 1,
+                    "clk_domain": "pixel_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": []
+                },
+                {
+                    "name": "h_cnt",
+                    "width": 12,
+                    "clk_domain": "pixel_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [],
+                    "net_idx_left": 11,
+                    "net_idx_right": 0
+                },
+                {
+                    "name": "h_cnt_o",
+                    "width": 12,
+                    "clk_domain": "pixel_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [],
+                    "net_idx_left": 11,
+                    "net_idx_right": 0
+                }
+            ],
+            "top_module": "top",
+            "db_checksum": "ba5fce12098a2c03e7bae2e9a172d1842464edfca8e284870b3519e987537970",
+            "src": "elaborate",
+            "jtag_user": "USER1",
+            "input_pipeline": 3
+        }
+    }
+}

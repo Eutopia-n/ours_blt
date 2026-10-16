@@ -1,0 +1,13 @@
+[dumpfile] "D:\FPGA_Prj\03_Ti60F225_DemoBoard\Prj_demo\01_Ti60F225_led_key_test\01_Ti60F225_LED_4bit_test_x1\la0_waveform.vcd"
+[dumpfile_mtime] "Thu Jun 15 06:41:41 2023"
+[dumpfile_size] 479
+[savefile] "D:\FPGA_Prj\03_Ti60F225_DemoBoard\Prj_demo\01_Ti60F225_led_key_test\01_Ti60F225_LED_4bit_test_x1\la0_waveform.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*0.000000 c 512 1536 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[signals_width] 126
+[sst_expanded] 1
+@22
+top.trailer_ns[2:0]
+top.trailer_tx_flag[9:0]

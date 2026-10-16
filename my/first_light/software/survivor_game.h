@@ -1,0 +1,51 @@
+#ifndef SURVIVOR_GAME_H
+#define SURVIVOR_GAME_H
+#include <stdint.h>
+
+#define GAME_MAX_ENEMIES 256
+#define GAME_MAX_BOLTS 48
+#define GAME_MAX_GEMS 96
+#define GAME_TICKS_PER_SECOND 60u
+#define GAME_DURATION_TICKS (180u*GAME_TICKS_PER_SECOND)
+#define GAME_X_MIN 8
+#define GAME_X_MAX 632
+#define GAME_Y_MIN 80
+#define GAME_Y_MAX 440
+#define GAME_WORLD_WIDTH 2048
+#define GAME_WORLD_HEIGHT 1408
+#define GAME_WORLD_X_MIN 16
+#define GAME_WORLD_X_MAX (GAME_WORLD_WIDTH-16)
+#define GAME_WORLD_Y_MIN 16
+#define GAME_WORLD_Y_MAX (GAME_WORLD_HEIGHT-16)
+enum { GAME_READY, GAME_PLAY, GAME_UPGRADE, GAME_PAUSED, GAME_OVER, GAME_WON, GAME_EXIT };
+enum { UPGRADE_POWER, UPGRADE_RATE, UPGRADE_ORBIT, UPGRADE_SPEED, UPGRADE_MAGNET, UPGRADE_HEAL };
+
+typedef struct { int32_t x,y; uint8_t hp,max_hp,kind,flash; } GameEnemy;
+typedef struct { int32_t x,y,vx,vy; uint16_t life; uint8_t damage,pierce; } GameBolt;
+/* kind 0 is XP; kind 1 is a healing rune. */
+typedef struct { int32_t x,y; uint16_t value; uint8_t kind,pad; } GameGem;
+typedef struct {
+    GameEnemy enemies[GAME_MAX_ENEMIES];
+    GameBolt bolts[GAME_MAX_BOLTS];
+    GameGem gems[GAME_MAX_GEMS];
+    int32_t x,y; // Q8 fixed point centres. No FPU, dynamic allocation or sqrt.
+    uint32_t ticks,rng,kills,spawned,damage_taken,shots,pickups;
+    uint16_t hp,max_hp,level,xp,xp_target,invincible,attack_wait,spawn_wait;
+    uint16_t speed,damage,attack_period,magnet;
+    uint16_t enemy_count,bolt_count,gem_count,peak_enemies;
+    uint8_t state,resume_state,direction,walk_frame,orbit_count,choice,options[3],moving;
+    uint8_t upgrade_level[6],bolt_pierce,orbit_damage,regeneration,magnet_all,dash,rapid_burst;
+} SurvivorGame;
+
+void game_reset(SurvivorGame *g,uint32_t seed);
+void game_input(SurvivorGame *g,uint32_t held,uint32_t pressed);
+void game_tick(SurvivorGame *g,uint32_t held);
+void game_orbit_position(const SurvivorGame *g,uint32_t index,int32_t *x,int32_t *y);
+int32_t game_camera_x(const SurvivorGame *g);
+int32_t game_camera_y(const SurvivorGame *g);
+uint32_t game_sprite_count(const SurvivorGame *g);
+const char *game_upgrade_name(uint32_t upgrade);
+const char *game_upgrade_detail(uint32_t upgrade);
+uint32_t game_upgrade_max(uint32_t upgrade);
+uint32_t game_upgrade_icon(uint32_t upgrade);
+#endif

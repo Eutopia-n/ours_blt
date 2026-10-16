@@ -1,0 +1,130 @@
+{
+    "debug_cores": [
+        {
+            "name": "la0",
+            "type": "la",
+            "uuid": "8bfd205d74f24f9d867b28f401f5692a",
+            "probes": [
+                {
+                    "name": "lvds_rx_data",
+                    "width": 4,
+                    "probe_type": 1
+                },
+                {
+                    "name": "DLY_RST",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "DLY_INC",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "DLY_ENA",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "mode",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "dly_cnt",
+                    "width": 6,
+                    "probe_type": 1
+                }
+            ],
+            "data_depth": 128,
+            "trigin_en": false,
+            "trigout_en": false,
+            "capture_control": false,
+            "input_pipeline": 1,
+            "auto_inserted": false
+        },
+        {
+            "name": "vio0",
+            "type": "vio",
+            "uuid": "f743628bcb7c489b9ceba0097b0f85d1",
+            "probes": [
+                {
+                    "name": "carry_tap03",
+                    "width": 128,
+                    "init": null
+                },
+                {
+                    "name": "carry_tap10",
+                    "width": 128,
+                    "init": null
+                },
+                {
+                    "name": "carry_tap11",
+                    "width": 128,
+                    "init": null
+                },
+                {
+                    "name": "carry_tap12",
+                    "width": 128,
+                    "init": null
+                },
+                {
+                    "name": "carry_tap13",
+                    "width": 128,
+                    "init": null
+                },
+                {
+                    "name": "left_0_cnt",
+                    "width": 8,
+                    "init": null
+                },
+                {
+                    "name": "right_0_cnt",
+                    "width": 8,
+                    "init": null
+                }
+            ]
+        },
+        {
+            "name": "vio1",
+            "type": "vio",
+            "uuid": "7093fe9927a14a49a62787dd787ceed6",
+            "probes": [
+                {
+                    "name": "send_en",
+                    "width": 1,
+                    "init": "0x0"
+                },
+                {
+                    "name": "dly_en",
+                    "width": 1,
+                    "init": "0x0"
+                },
+                {
+                    "name": "dly_d",
+                    "width": 6,
+                    "init": "0x0"
+                },
+                {
+                    "name": "dly_inc",
+                    "width": 1,
+                    "init": "0x0"
+                },
+                {
+                    "name": "mode",
+                    "width": 1,
+                    "init": "0x0"
+                },
+                {
+                    "name": "dly_cnt",
+                    "width": 6,
+                    "init": null
+                }
+            ]
+        }
+    ],
+    "session": {
+        "debug_widget": [],
+        "wizard": {}
+    }
+}

@@ -1,0 +1,17 @@
+[dumpfile] "E:\FPGA_Prj\Ti60F225_DemoBoard\FPGA_Prj\13_carrychain_demo\carrychain_prj_v3\la0_waveform.vcd"
+[dumpfile_mtime] "Sat Sep 14 07:22:30 2024"
+[dumpfile_size] 382
+[savefile] "E:\FPGA_Prj\Ti60F225_DemoBoard\FPGA_Prj\13_carrychain_demo\carrychain_prj_v3\la0_waveform.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*0.000000 c 64 192 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[signals_width] 126
+[sst_expanded] 1
+@22
+top.lvds_rx_data[3:0]
+top.DLY_RST
+top.DLY_INC
+top.DLY_ENA
+top.mode
+top.dly_cnt[5:0]

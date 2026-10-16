@@ -1,0 +1,16 @@
+[dumpfile] "D:\FPGA_Prj\03_Ti60F225_DemoBoard\Prj_demo\05_Ti60F225_mipi_demo\mipi_csi_demo\efx_ti60f225_mipi_csi_v3\la3_waveform.vcd"
+[dumpfile_mtime] "Tue Nov 07 15:42:49 2023"
+[dumpfile_size] 350
+[savefile] "D:\FPGA_Prj\03_Ti60F225_DemoBoard\Prj_demo\05_Ti60F225_mipi_demo\mipi_csi_demo\efx_ti60f225_mipi_csi_v3\la3_waveform.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*0.000000 c 1024 3072 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[signals_width] 126
+[sst_expanded] 1
+@22
+top.ch0_de
+top.ch0_hs
+top.ch0_vs
+top.ch0_b[7:0]
+top.ch0_g[7:0]

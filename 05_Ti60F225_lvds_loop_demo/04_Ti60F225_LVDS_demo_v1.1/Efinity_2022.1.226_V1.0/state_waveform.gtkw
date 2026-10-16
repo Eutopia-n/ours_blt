@@ -1,0 +1,16 @@
+[dumpfile] "D:\DEMO\LVDS_Loopback_T120F324\Efinity_2020.2.299_V0.1\state_waveform.vcd"
+[dumpfile_mtime] "Thu Dec 17 11:17:49 2020"
+[dumpfile_size] 336
+[savefile] "D:\DEMO\LVDS_Loopback_T120F324\Efinity_2020.2.299_V0.1\state_waveform.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*0.000000 c 512 1536 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[signals_width] 126
+[sst_expanded] 1
+@22
+top.tx_heartbeat
+top.rx_heartbeat
+top.pll_locked
+top.pass
+top.txpll_locked

@@ -1,0 +1,45 @@
+{
+    "args": [
+        "-o",
+        "efx_fifo",
+        "--base_path",
+        "E:\\FPGA_Prj\\Ti60F225_DemoBoard\\FPGA_Prj\\06_Ti60F225_hdmi_rx2tx_loop_v4\\efinity_project\\ip",
+        "--vlnv",
+        {
+            "vendor": "efinixinc.com",
+            "library": "memory",
+            "name": "efx_fifo_top",
+            "version": "5.1"
+        }
+    ],
+    "conf": {
+        "SYNC_CLK": "1",
+        "SYNC_STAGE": "2",
+        "DEPTH_2": "4",
+        "DATA_WIDTH": "256",
+        "MODE": "\"STANDARD\"",
+        "OUTPUT_REG": "0",
+        "PROG_FULL_ASSERT": "13",
+        "PROGRAMMABLE_FULL": "\"NONE\"",
+        "PFN_INTERNAL": "13",
+        "PEA_INTERNAL": "2",
+        "PEN_INTERNAL": "3",
+        "PROGRAMMABLE_EMPTY": "\"NONE\"",
+        "OPTIONAL_FLAGS": "0",
+        "PIPELINE_REG": "0",
+        "FAMILY": "\"TITANIUM\"",
+        "ASYM_WIDTH_RATIO": "4",
+        "BYPASS_RESET_SYNC": "0",
+        "ENDIANESS": "0"
+    },
+    "output": {
+        "external_source_source": [
+            "E:\\FPGA_Prj\\Ti60F225_DemoBoard\\FPGA_Prj\\06_Ti60F225_hdmi_rx2tx_loop_v4\\efinity_project\\ip\\efx_fifo\\efx_fifo_define.vh",
+            "E:\\FPGA_Prj\\Ti60F225_DemoBoard\\FPGA_Prj\\06_Ti60F225_hdmi_rx2tx_loop_v4\\efinity_project\\ip\\efx_fifo\\efx_fifo_tmpl.v",
+            "E:\\FPGA_Prj\\Ti60F225_DemoBoard\\FPGA_Prj\\06_Ti60F225_hdmi_rx2tx_loop_v4\\efinity_project\\ip\\efx_fifo\\efx_fifo.v",
+            "E:\\FPGA_Prj\\Ti60F225_DemoBoard\\FPGA_Prj\\06_Ti60F225_hdmi_rx2tx_loop_v4\\efinity_project\\ip\\efx_fifo\\efx_fifo_tmpl.vhd"
+        ]
+    },
+    "sw_version": "2023.2.307",
+    "generated_date": "2024-04-15T12:52:35.479208"
+}

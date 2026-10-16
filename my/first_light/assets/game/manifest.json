@@ -1,0 +1,21 @@
+{
+  "frames": 25,
+  "player": "direction*4+walk_frame",
+  "slime": 16,
+  "skeleton": 17,
+  "bat": 18,
+  "gem": 19,
+  "bolt": 20,
+  "orb": 21,
+  "spark": 22,
+  "healing_heart": 23,
+  "ice_warden": 24,
+  "width": 32,
+  "height": 32,
+  "stride": 64,
+  "format": "RGB565 little endian",
+  "key": 0,
+  "ddr_base": "0x01204000",
+  "compressed_bytes": 19156,
+  "kenney_source_sha256": "d24e60a41e4ac7a745c0304dfde121143688557f40215f23221c29cfe683825f"
+}

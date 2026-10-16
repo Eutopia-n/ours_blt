@@ -1,0 +1,15 @@
+[dumpfile] "C:\Users\ADMINI~1\AppData\Local\Temp\tmpx3iwiy27\la2tmp_continous.vcd"
+[dumpfile_mtime] "Thu Apr 02 13:38:05 2026"
+[dumpfile_size] 72695
+[savefile] "E:\FPGA_Demo\02_Ti60F225_DemoBoard\FPGA_Prj_v4\11_TI60F225_MIPI_CSI_loop_demo\Ti60F225_csi_rgb_4lane_loopback_1p4Gbps\la2_waveform.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*0.000000 c 2048 6144 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[signals_width] 126
+[sst_expanded] 1
+@22
+top.mipi_dphy_rx_data3_HS_IN[7:0]
+top.mipi_dphy_rx_data2_HS_IN[7:0]
+top.mipi_dphy_rx_data1_HS_IN[7:0]
+top.mipi_dphy_rx_data0_HS_IN[7:0]

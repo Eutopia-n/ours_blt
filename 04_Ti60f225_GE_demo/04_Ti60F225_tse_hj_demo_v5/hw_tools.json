@@ -1,0 +1,88 @@
+{
+    "config": {
+        "legacy_mode": false,
+        "fast_spi_active_mode": false,
+        "creset_before_jtag_config": false,
+        "hw_servers": [],
+        "codebug_mode": false
+    },
+    "debugger": {
+        "always_launch_new_wave_window": false,
+        "gtkwave_repperiod": 500
+    },
+    "programmer": {
+        "jtag2spi_select_verify_method": "Skip verify"
+    },
+    "svf_player": {},
+    "connections": {
+        "": {
+            "10660a79": {
+                "recent_hex": [
+                    "E:/FPGA_Demo/02_Ti60F225_DemoBoard/FPGA_Prj_v4/07_Ti60F225_MIPI_C2D_Demo/Ti60f225_csi2dsi_sc431hai_v3.4/outflow/ti60f225_oob.hex",
+                    "E:/FPGA_Demo/02_Ti60F225_DemoBoard/FPGA_Prj_v4/07_Ti60F225_MIPI_C2D_Demo/Ti60f225_csi2dsi_sc431hai_v3.4/outflow/ti60f225_oob.bit",
+                    "E:/FPGA_Demo/02_Ti60F225_DemoBoard/FPGA_Prj_v4/02_Ti60F225_hdmi_demo/06_Ti60F225_hdmi_rx2tx_loop_v19/efinity_project/outflow/DDR3_MC.hex",
+                    "E:/FPGA_Demo/02_Ti60F225_DemoBoard/FPGA_Prj_v4/03_Ti60f225_GE_demo/03_Ti60F225_tse_hj_demo_v5/outflow/led_test.hex"
+                ],
+                "recent_bit": [
+                    "E:/FPGA_Demo/02_Ti60F225_DemoBoard/FPGA_Prj_v4/04_Ti60F225_lvds_loop_demo/04_Ti60F225_LVDS_demo_v1.1/Efinity_2022.1.226_V1.0/outflow/lvds_loopback.bit",
+                    "E:/FPGA_Demo/02_Ti60F225_DemoBoard/FPGA_Prj_v4/02_Ti60F225_hdmi_demo/06_Ti60F225_hdmi_rx2tx_loop_v19/efinity_project/outflow/DDR3_MC.bit",
+                    "E:/FPGA_Demo/02_Ti60F225_DemoBoard/FPGA_Prj_v4/01_Ti60F225_Key_led_osc_demo/01_Ti60F225_key_demo/outflow/LED_8bit_Test.bit",
+                    "E:/FPGA_Demo/02_Ti60F225_DemoBoard/FPGA_Prj_v4/17_Ti60F225_uart_demo/17_Ti60F225_uart_demo/outflow/top.bit",
+                    "E:/FPGA_Demo/02_Ti60F225_DemoBoard/FPGA_Prj_v4/03_Ti60f225_GE_demo/03_Ti60F225_tse_hj_demo_v5/outflow/led_test.bit"
+                ],
+                "last_mode_used": "JTAG",
+                "flash_loader_filepath": {
+                    "spiloader": "",
+                    "spiloader_x8": "",
+                    "jtag2spiv3": "${EFINITY_HOME}\\pgm\\fli\\titanium\\u10660A79.bit",
+                    "jtag2spiv3_x8": ""
+                }
+            },
+            "00000000": {
+                "recent_hex": [],
+                "recent_bit": [],
+                "last_mode_used": "",
+                "flash_loader_filepath": {
+                    "spiloader": "",
+                    "spiloader_x8": "",
+                    "jtag2spiv3": "",
+                    "jtag2spiv3_x8": ""
+                }
+            }
+        },
+        "ftblov26": {
+            "00690a79": {
+                "recent_hex": [
+                    "E:/FPGA_Demo/10_tj180a484s_demo/PRJ/11_Ti180J484_USB_Demo/11_usb_test_1080p-v2/outflow/LED_8bit_Test.hex",
+                    "E:/FPGA_Demo/10_tj180a484s_demo/PRJ/03_TJ180A484S_eth_demo/TJ180A484S_tes_HJ_demo_v1_2025.2/outflow/temac_ex.bit",
+                    "E:/FPGA_Demo/10_tj180a484s_demo/PRJ/06_tj180a484s_sc431hai2lcd_demo/Tj180a484s_SC431HAI2LCD_Demo_J1_J2_v5/outflow/mem_test.hex"
+                ],
+                "recent_bit": [
+                    "E:/FPGA_Demo/10_tj180a484s_demo/PRJ/11_Ti180J484_USB_Demo/11_usb_test_1080p-v2/outflow/LED_8bit_Test.hex",
+                    "E:/FPGA_Demo/10_tj180a484s_demo/PRJ/03_TJ180A484S_eth_demo/TJ180A484S_tes_HJ_demo_v1_2025.2/outflow/temac_ex.bit"
+                ],
+                "last_mode_used": "SPI Active using JTAG Bridge",
+                "flash_loader_filepath": {
+                    "spiloader": "",
+                    "spiloader_x8": "",
+                    "jtag2spiv3": "${EFINITY_HOME}\\pgm\\fli\\titanium\\u00690A79.bit",
+                    "jtag2spiv3_x8": ""
+                }
+            }
+        },
+        "sn9f00po": {
+            "006a0ef3": {
+                "recent_hex": [],
+                "recent_bit": [],
+                "last_mode_used": "",
+                "flash_loader_filepath": {
+                    "spiloader": "",
+                    "spiloader_x8": "",
+                    "jtag2spiv3": "",
+                    "jtag2spiv3_x8": ""
+                }
+            }
+        }
+    },
+    "jtag_chain": {}
+}

@@ -1,0 +1,256 @@
+{
+    "debug_cores": [
+        {
+            "name": "LVDS_TX",
+            "type": "la",
+            "uuid": "43507008b5404eea94d37522b9faef87",
+            "probes": [
+                {
+                    "name": "lvds_tx_data0",
+                    "width": 8,
+                    "probe_type": 1
+                },
+                {
+                    "name": "lvds_tx_data1",
+                    "width": 8,
+                    "probe_type": 2
+                },
+                {
+                    "name": "lvds_tx_data2",
+                    "width": 8,
+                    "probe_type": 2
+                },
+                {
+                    "name": "lvds_tx_data3",
+                    "width": 8,
+                    "probe_type": 2
+                }
+            ],
+            "data_depth": 1024,
+            "trigin_en": false,
+            "trigout_en": false,
+            "capture_control": false,
+            "input_pipeline": 1,
+            "auto_inserted": false
+        },
+        {
+            "name": "LVDS_RX",
+            "type": "la",
+            "uuid": "501e047431954bc28a7ac1cb700791d0",
+            "probes": [
+                {
+                    "name": "lvds_rx_data_slip0",
+                    "width": 8,
+                    "probe_type": 1
+                },
+                {
+                    "name": "lvds_rx_data_slip1",
+                    "width": 8,
+                    "probe_type": 1
+                },
+                {
+                    "name": "lvds_rx_data_slip2",
+                    "width": 8,
+                    "probe_type": 1
+                },
+                {
+                    "name": "lvds_rx_data_slip3",
+                    "width": 8,
+                    "probe_type": 1
+                },
+                {
+                    "name": "stat0",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "stat1",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "stat2",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "stat3",
+                    "width": 1,
+                    "probe_type": 1
+                }
+            ],
+            "data_depth": 1024,
+            "trigin_en": false,
+            "trigout_en": false,
+            "capture_control": false,
+            "input_pipeline": 1,
+            "auto_inserted": false
+        },
+        {
+            "name": "vio_ctrl_status",
+            "type": "vio",
+            "uuid": "4df880dc5f604b0f98d726b643b6d17a",
+            "probes": [
+                {
+                    "name": "data_source",
+                    "width": 1,
+                    "init": "0x0"
+                },
+                {
+                    "name": "lvds_tx_data",
+                    "width": 8,
+                    "init": "0x5a"
+                },
+                {
+                    "name": "bitslip_binding",
+                    "width": 1,
+                    "init": "0x0"
+                },
+                {
+                    "name": "bitslip_all",
+                    "width": 1,
+                    "init": "0x0"
+                },
+                {
+                    "name": "bitslip0",
+                    "width": 1,
+                    "init": "0x0"
+                },
+                {
+                    "name": "bitslip1",
+                    "width": 1,
+                    "init": "0x0"
+                },
+                {
+                    "name": "bitslip2",
+                    "width": 1,
+                    "init": "0x0"
+                },
+                {
+                    "name": "bitslip3",
+                    "width": 1,
+                    "init": "0x0"
+                },
+                {
+                    "name": "pll_locked",
+                    "width": 1,
+                    "init": null
+                },
+                {
+                    "name": "rx_heartbeat",
+                    "width": 1,
+                    "init": null
+                },
+                {
+                    "name": "tx_heartbeat",
+                    "width": 1,
+                    "init": null
+                },
+                {
+                    "name": "det_pass",
+                    "width": 1,
+                    "init": null
+                },
+                {
+                    "name": "stat0",
+                    "width": 1,
+                    "init": null
+                },
+                {
+                    "name": "stat1",
+                    "width": 1,
+                    "init": null
+                },
+                {
+                    "name": "stat2",
+                    "width": 1,
+                    "init": null
+                },
+                {
+                    "name": "stat3",
+                    "width": 1,
+                    "init": null
+                }
+            ]
+        },
+        {
+            "name": "vio_tx_data",
+            "type": "vio",
+            "uuid": "42647261548e4288b010b8a61705a0e3",
+            "probes": [
+                {
+                    "name": "lvds_tx_data0",
+                    "width": 8,
+                    "init": null
+                },
+                {
+                    "name": "lvds_tx_data1",
+                    "width": 8,
+                    "init": null
+                },
+                {
+                    "name": "lvds_tx_data2",
+                    "width": 8,
+                    "init": null
+                },
+                {
+                    "name": "lvds_tx_data3",
+                    "width": 8,
+                    "init": null
+                }
+            ]
+        },
+        {
+            "name": "vio_rx_data",
+            "type": "vio",
+            "uuid": "a7d4286dd3f9492aa0a92b7135a01cfc",
+            "probes": [
+                {
+                    "name": "lvds_rx_data0",
+                    "width": 8,
+                    "init": null
+                },
+                {
+                    "name": "lvds_rx_data1",
+                    "width": 8,
+                    "init": null
+                },
+                {
+                    "name": "lvds_rx_data2",
+                    "width": 8,
+                    "init": null
+                },
+                {
+                    "name": "lvds_rx_data3",
+                    "width": 8,
+                    "init": null
+                },
+                {
+                    "name": "lvds_rx_data_slip0",
+                    "width": 8,
+                    "init": null
+                },
+                {
+                    "name": "lvds_rx_data_slip1",
+                    "width": 8,
+                    "init": null
+                },
+                {
+                    "name": "lvds_rx_data_slip2",
+                    "width": 8,
+                    "init": null
+                },
+                {
+                    "name": "lvds_rx_data_slip3",
+                    "width": 8,
+                    "init": null
+                }
+            ]
+        }
+    ],
+    "session": {
+        "debug_widget": [],
+        "wizard": {}
+    },
+    "jtag_user": "USER1"
+}

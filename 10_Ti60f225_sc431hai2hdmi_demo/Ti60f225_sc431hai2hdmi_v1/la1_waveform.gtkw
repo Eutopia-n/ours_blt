@@ -1,0 +1,20 @@
+[dumpfile] "C:\Users\13930\AppData\Local\Temp\tmpwmxbez4h\tmp_continous.vcd"
+[dumpfile_mtime] "Thu Nov 07 04:26:32 2024"
+[dumpfile_size] 189064
+[savefile] "E:\FPGA_Prj\02_Ti60F225_DemoBoard\FPGA_Prj\07_Ti60F225_MIPI_C2D_Demo\new_sensor\Ti60f225_csi2dsi_sc431hai_v3\la1_waveform.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*0.000000 c 2048 6144 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[signals_width] 126
+[sst_expanded] 1
+@22
+top.\sensor_clipper_inst/i_de
+top.\sensor_clipper_inst/o_de
+top.\sensor_clipper_inst/o_dat[39:0]
+top.\sensor_clipper_inst/i_hs
+top.\sensor_clipper_inst/o_vs
+top.\sensor_clipper_inst/i_dat[39:0]
+top.\sensor_clipper_inst/i_vs
+top.\sensor_clipper_inst/o_hs
+top.\sensor_clipper_inst/vs_cnt[10:0]

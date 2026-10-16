@@ -1,25 +1,32 @@
-# 自研 BitBlt 加速器
+# Ti60F225 DemoBoard V4 团队项目
 
-这里只放本队自己写的 RTL、仿真文件、寄存器定义和软件驱动；不要把官方工程直接覆盖进来。
+本仓库用于汇总易灵思 Ti60F225 开发板示例工程和团队开发代码。保留原目录结构，不修改已有 HDL、引脚配置和时序约束。
 
-建议后续结构：
+## 目录说明
 
-- `rtl/`：`blt_regs`、`blt_core`、FIFO/AXI 适配模块。
-- `sim/`：Solid Fill、Block Copy 的测试平台。
-- `sw/`：RISC-V C 驱动和演示程序。
-- `docs/`：寄存器表、状态机图、性能数据。
+- `01_*` 至 `17_*`：现有开发板示例，编号并不连续。
+- `my/first_light/`：当前自建 Ti60F225 RISC-V + FPGA 渲染与游戏工程。
+- `子卡原理图/`、根目录 PDF：硬件参考资料。
+- `驱动安装及说明/`：随开发板提供的驱动和说明。
+- `docs/GIT_TEAM_GUIDE.md`：首次提交、远程连接和团队协作步骤。
 
-开发顺序：Solid Fill → Block Copy → 总线寄存器 → DDR/帧缓存 → 双缓冲。
+当前游戏 Demo 的入口、功能和验证边界见 [`my/first_light/README.md`](my/first_light/README.md)；写入 SPI Flash 的步骤见 [`my/first_light/FLASH_PROGRAMMING.md`](my/first_light/FLASH_PROGRAMMING.md)。
 
-## 当前里程碑
+## 版本管理范围
 
-- `rtl/blt_solid_fill.v`：独立 Solid Fill 写请求生成器。
-- `sim/blt_solid_fill_tb.v`：正常、边界、空操作和背压测试。
-- `efinity/blt_solid_fill.xml`：Ti60F225/I3 的独立 Efinity 综合工程。
-- `docs/solid_fill.md`：接口约定、验证点和编译步骤。
-- `docs/verification/solid_fill_2026-09-07.md`：仿真与 Efinity 综合证据。
-- `rtl/blt_block_copy.v`：单未完成读请求的 Block Copy 数据通路。
-- `sim/blt_block_copy_tb.v`：Block Copy 正常、边界、空操作和背压测试。
-- `efinity/blt_block_copy.xml`：Block Copy 独立综合工程。
-- `docs/block_copy.md`：Block Copy 接口、限制与验证说明。
-- `docs/verification/block_copy_2026-09-07.md`：Block Copy 仿真与综合证据。
+纳入源码、工程 XML、接口配置 `*.peri.xml`、时序约束 `*.sdc`、IP 文件、嵌入式软件、仿真脚本和硬件参考资料。保留 `.hex`、`.mem`、`.mif` 及源码目录内的 `.bin`，因为它们可能是 ROM/RAM 初始化或固件输入。
+
+忽略 Efinity 的 `outflow/`、`work_syn/`、`work_pnr/`、`work_pt/`、`work_dbg/`，ModelSim 的 `work/` 和波形输出，以及 Eclipse `.metadata/`、日志、备份、根目录 `tmp/` 和 `软件安装包/`。忽略规则只影响 Git，不会删除本地文件。
+
+以下独立资料未纳入 Git，克隆仓库时不会得到它们：
+
+- `软件安装包/jre-8u381-windows-x64.exe`：本地安装包。
+- `10_Ti60f225_sc431hai2hdmi_demo/Ti60f225_sc431hai2hdmi_v3.zip`：约 241 MB 的独立工程压缩包。它与已展开的 `Ti60f225_sc431hai2hdmi_v1/` 名称不同，不能假定内容相同；需要 V3 的成员应向资料持有人获取原包。后续可以单独解压审查后纳入源码管理。
+
+## 工程使用
+
+在 Efinity 中打开所需示例对应的工程 XML，按工程要求准备 IP 和开发环境后重新编译。不同示例可能使用不同工具版本，请查看相应工程 XML 中的 `sw_version` 和随板说明。
+
+Git 初始化仅建立版本管理基线，不代表所有示例已经通过编译或上板验证。提交功能修改时，请记录 Efinity 版本、工程路径、仿真/编译结果和上板现象。
+
+初始版本保持原文件编码和换行符；不要直接对整库执行编码转换或格式化，以免中文注释损坏或产生大量无关差异。

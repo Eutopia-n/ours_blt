@@ -1,0 +1,19 @@
+[dumpfile] "C:\Users\ADMINI~1\AppData\Local\Temp\tmpl0wfwwfu\tmp_continous.vcd"
+[dumpfile_mtime] "Wed Nov 27 07:47:17 2024"
+[dumpfile_size] 2013
+[savefile] "E:\FPGA_Demo\01_Ti60F100_DemoBoard\send_2_cumstomer\prj\05_Ti60F100_ETH_demo\04_Ti60F100_tse_hj_demo_v4\la1_waveform.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*0.000000 c 4096 12288 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[signals_width] 126
+[sst_expanded] 1
+@22
+top.rxd1_hi_d0[3:0]
+top.rxd1_lo_d0[3:0]
+top.rx_ctl_hi_d0
+top.rx_ctl_lo_d0
+top.rxd1_LO[3:0]
+top.rx_dv1_LO
+top.rx_dv1_HI
+top.rxd1_HI[3:0]

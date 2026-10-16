@@ -1,0 +1,99 @@
+{
+    "args": [
+        "-o",
+        "mipi_dsi_rx",
+        "--base_path",
+        "E:\\FPGA_Demo\\02_Ti60F225_DemoBoard\\FPGA_Prj\\08_mipi_dsi_loop_demo\\Ti60F225_devkit\\ip",
+        "--vlnv",
+        {
+            "vendor": "efinixinc.com",
+            "library": "mipi",
+            "name": "efx_dsi_rx",
+            "version": "5.3"
+        }
+    ],
+    "conf": {
+        "tLPX_NS": "50",
+        "tINIT_NS": "100000",
+        "NUM_DATA_LANE": "4",
+        "HS_BYTECLK_MHZ": "125",
+        "CLOCK_FREQ_MHZ": "100",
+        "DPHY_CLOCK_MODE": "\"Continuous\"",
+        "PIXEL_FIFO_DEPTH": "2048",
+        "tLP_EXIT_NS": "100",
+        "tWAKEUP_NS": "1000",
+        "tHS_ZERO_NS": "200",
+        "tHS_TRAIL_NS": "65",
+        "tHS_EXIT_NS": "120",
+        "Pack_48": "1'b1",
+        "Pack_64": "1'b0",
+        "tHS_PREPARE_NS": "50",
+        "BTA_TIMEOUT_NS": "100000",
+        "tD_TERM_EN_NS": "35",
+        "tHS_PREPARE_ZERO_NS": "145",
+        "PACKET_SEQUENCES": "2",
+        "HS_CMD_FIFO_DEPTH": "128",
+        "LP_CMD_FIFO_DEPTH": "128",
+        "LP_CMD_RDATAFIFO_DEPTH": "128",
+        "ENABLE_BIDIR": "1'b0",
+        "ENABLE_USER_DESKEWCAL": "1'b0",
+        "tCLK_TERM_EN_NS": "38",
+        "tHS_SETTLE_NS": "85",
+        "Pack_60": "1'b0",
+        "Pack_36": "1'b0"
+    },
+    "output": {
+        "external_source_source": [
+            "mipi_dsi_rx\\mipi_dsi_rx.sv",
+            "mipi_dsi_rx\\mipi_dsi_rx_define.svh",
+            "mipi_dsi_rx\\mipi_dsi_rx_tmpl.vhd",
+            "mipi_dsi_rx\\mipi_dsi_rx_tmpl.sv"
+        ],
+        "external_testbench_testbench": [
+            "mipi_dsi_rx\\Testbench\\dsichk.v",
+            "mipi_dsi_rx\\Testbench\\efx_dsi_tx.sv",
+            "mipi_dsi_rx\\Testbench\\filelist.f",
+            "mipi_dsi_rx\\Testbench\\modelsim.do",
+            "mipi_dsi_rx\\Testbench\\IPhone_7p_1080p_reg.mem",
+            "mipi_dsi_rx\\Testbench\\panel_config.v",
+            "mipi_dsi_rx\\Testbench\\reset_ctrl.v",
+            "mipi_dsi_rx\\Testbench\\TI60F225_MIPI_dsi_tb.sv",
+            "mipi_dsi_rx\\Testbench\\TI60F225_MIPI_dsi.v",
+            "mipi_dsi_rx\\Testbench\\true_dual_port_ram.v",
+            "mipi_dsi_rx\\Testbench\\vga_chk.v",
+            "mipi_dsi_rx\\Testbench\\vga_gen.v",
+            "mipi_dsi_rx\\Testbench\\mipi_dsi_rx.sv",
+            "mipi_dsi_rx\\Testbench\\mipi_dsi_rx_define.svh"
+        ],
+        "external_testbench_aldec": [
+            "mipi_dsi_rx\\Testbench\\aldec\\mipi_dsi_rx.sv"
+        ],
+        "external_testbench_modelsim": [
+            "mipi_dsi_rx\\Testbench\\modelsim\\mipi_dsi_rx.sv"
+        ],
+        "external_testbench_ncsim": [
+            "mipi_dsi_rx\\Testbench\\ncsim\\mipi_dsi_rx.sv"
+        ],
+        "external_testbench_synopsys": [
+            "mipi_dsi_rx\\Testbench\\synopsys\\mipi_dsi_rx.sv"
+        ],
+        "external_example_example": [
+            "mipi_dsi_rx\\Ti60F225_devkit\\dsichk.v",
+            "mipi_dsi_rx\\Ti60F225_devkit\\efx_dsi_tx.sv",
+            "mipi_dsi_rx\\Ti60F225_devkit\\IPhone_7p_1080p_reg.mem",
+            "mipi_dsi_rx\\Ti60F225_devkit\\panel_config.v",
+            "mipi_dsi_rx\\Ti60F225_devkit\\reset_ctrl.v",
+            "mipi_dsi_rx\\Ti60F225_devkit\\ti60f225_demo.sdc",
+            "mipi_dsi_rx\\Ti60F225_devkit\\TI60F225_MIPI_dsi.v",
+            "mipi_dsi_rx\\Ti60F225_devkit\\true_dual_port_ram.v",
+            "mipi_dsi_rx\\Ti60F225_devkit\\vga_chk.v",
+            "mipi_dsi_rx\\Ti60F225_devkit\\vga_gen.v",
+            "mipi_dsi_rx\\Ti60F225_devkit\\mipi_dsi_rx.sv",
+            "mipi_dsi_rx\\Ti60F225_devkit\\mipi_dsi_rx_define.svh",
+            "mipi_dsi_rx\\Ti60F225_devkit\\ti60f225_demo.peri.xml",
+            "mipi_dsi_rx\\Ti60F225_devkit\\ti60f225_demo.xml"
+        ]
+    },
+    "sw_version": "2024.2.294",
+    "generated_date": "2024-11-28T11:43:34.991621+00:00"
+}

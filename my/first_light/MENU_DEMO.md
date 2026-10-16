@@ -1,0 +1,86 @@
+# 独立功能演示与人物资源（2026-10-08）
+
+工程入口：`first_light.xml`。固件入口：`software/main.c`。
+
+当前版本将基础和高阶功能拆成 8 个独立演示页，新增首页第三项 FROSTBOUND SURVIVOR，游戏操作见 [GAME_DEMO.md](GAME_DEMO.md)。首页第三项直接进入游戏准备页；基础/高阶仍各有四项。最新验证见 [本次演示与游戏更新记录](reports/survivor_validation_20261009.md)；上一版游戏见 [游戏验证记录](reports/survivor_validation_20261008.md)，菜单与功能记录见 [菜单与人物验证记录](reports/menu_player_validation_20261008.md)、[独立演示验证记录](reports/individual_validation_20261006.md)。
+
+当前菜单预览：[分类菜单](reports/menu_player_home.png)、[基础菜单](reports/menu_player_basic.png)、[高阶菜单](reports/menu_player_advanced.png)。功能页历史预览：[Color Key](reports/individual_key.png)、[Alpha](reports/individual_alpha.png)、[CPU/HW FPS 对比](reports/individual_bench_64.png)、[256 Sprite](reports/individual_bench_256.png)。
+
+## 菜单与独立功能
+
+上电停留在分类菜单：BASIC DEMOS（基础）、ADVANCED DEMOS（高阶）、FROSTBOUND SURVIVOR（游戏）。前两项进入后再选择具体功能；功能页一直停留，直到按 KEY3 返回，返回后保留原菜单选项。
+
+| 分类 | 屏幕选项 | 演示内容 | KEY0 操作 |
+|---|---|---|---|
+| 基础 | SOLID FILL | 三个不同大小的 RGB565 彩色矩形 | 切换颜色组合 |
+| 基础 | BLOCK COPY | 左侧 128×96 源图，右侧 DDR 拷贝结果 | 改变目标位置 |
+| 基础 | DOUBLE BUFFER | A/B 页标识、帧号、移动竖条；页底色交替 | 切换运动速度 |
+| 基础 | HDMI / RES | 色条、对齐网格、实际测量的有效分辨率 | 切换色条/网格 |
+| 高阶 | COLOR KEY | 左侧原始图片，右侧移除黑色背景；不启用 Alpha | 开关右侧 Color Key |
+| 高阶 | ALPHA BLEND | 左侧不透明参考，右侧纯 Alpha 混合；两侧均关闭 Color Key | KEY0 +1；KEY2 -1；支持长按，0～255 饱和 |
+| 高阶 | COLLISION | RISC-V 计算两个 80×80 矩形重叠；移动矩形未重叠为绿、重叠为红 | 重置位置和累计值 |
+| 高阶 | SPRITE BENCH | 64/128/256 个伪随机运动 Sprite，Alpha + Color Key，CPU/HW 性能对比 | 切换 Sprite 数量 |
+
+每页只突出一个功能；各页共用 HDMI 输出、双缓冲和文字 HUD。“独立”指可以单独选择、观察和操作，显示所必需的公共模块继续工作。菜单顶部还显示玩家预览，人物来自附件像素图。
+
+字体使用 5×7 字库、2 倍整数放大，每个字形 10×14 像素。菜单使用深蓝灰背景和标题栏，首页三张卡片进入基础、高阶及游戏，子菜单各显示四项功能；当前选项用蓝色卡片与青色左侧标记突出。按键说明固定在底部。板上显示英文短标签，中文对应见上表。原 WASD 移动方块已移除，游戏人物由板上四个方向按键控制。
+
+Alpha 初值为 128。短按 KEY0 增加 1，短按 KEY2 减少 1；持续按住约 300 ms 后，每约 120 ms 再调一级，松开停止。两个方向使用独立按键，KEY2 不再控制 AUTO。Sprite Bench 仍默认自动比较 CPU/HW，KEY1 可切换手动路径。使用 100 MHz CLINT 计时，实际更新时间以主循环帧边界为准，CPU 慢速渲染时会较慢。到达 0/255 后保持，不会跨越端点突然跳变。`software/demo_controls.h` 中的 `demo_alpha_update()` 统一处理短按、长按、端点和计时器回卷。
+
+评委演示时先选择 Alpha：画面显示 REFERENCE OPAQUE / FPGA ALPHA 及 0～255 数值，再切换 CPU/FPGA。顶部优先显示 RISCV FPS / FPGA FPS、RENDER US、DDR R/W 和实测输出尺寸；黄色标记当前渲染路径。高阶 SPRITE BENCH 再分别记录 64/128/256 Sprite 负载。
+
+Color Key 与 Alpha 分开演示的原因：去除黑色背景和按比例混色是两个不同操作，分开后可以直接辨认效果。Alpha = 0 时右侧完全显示背景，Alpha = 255 时与左侧不透明参考一致，中间值可看到背景透过图片。
+
+## 按键
+
+KEY 编号沿用板卡资料中的 KEY0～KEY3，低电平有效。
+
+| 按键 | 分类/功能菜单 | 功能页 |
+|---|---|---|
+| KEY0 | 上一项，支持循环 | 上表所列的当前功能操作 |
+| KEY1 | 下一项，支持循环 | 手动切换 CPU/HW，并关闭自动比较 |
+| KEY2 | 进入所选分类或功能 | Alpha 页减小透明度；其他功能页不切换自动模式 |
+| KEY3 | 返回分类菜单 | 返回当前分类的功能菜单 |
+
+前 7 个功能默认使用 HW 并固定显示该功能。只有 SPRITE BENCH 默认自动比较 CPU/HW，每完成 8 帧切换一次渲染路径，所选功能不会改变；KEY2 不再控制 AUTO。顶部两列保留同一参数下最近一次 CPU/HW 测量，黄色为当前路径，横线表示尚未测量。
+
+按下和松开各保持至少 30 ms。单次按下只产生一次事件，长按不会连续改变选择。CPU 在下一帧开始时处理暂存事件；按完等待画面响应，再按下一键。UART 只输出诊断与测量日志。
+
+## 指标口径
+
+- 每 4 帧形成一组统计。FPS = 4 / 实际呈现间隔，包含文字绘制及换页等待，UART 报告发送时间不计入下一采样窗口。
+- US / RENDER_US：当前功能每帧场景渲染平均微秒数，包括背景和位置/碰撞计算，不包括 HUD 与换页等待。
+- SPRITES：性能页为 64、128 或 256；Color Key / Alpha 页各绘制 8 个固定图片；其余功能页为 0，不再附带移动 Sprite 负载。
+- 屏幕 DDR R / DDR W：渲染引擎每帧平均读/写 burst 数，整数向下取整；UART DDR_AR / DDR_AW 是一组 4 帧的总数。屏幕两列写作 RISCV FPS / FPGA FPS，用于评委直接比较 CPU 参考路径和 FPGA 合成路径。
+- CPU 路径的渲染器计数为 0，**不表示 CPU 没有访问 DDR**。这些计数排除 CPU、HUD 和 HDMI 扫描流量，不是 DDR 控制器全局流量。
+- HIT 只在碰撞页显示，表示两矩形重叠的累计帧数；持续重叠逐帧累加，边缘恰好接触不算重叠，不是独立碰撞事件次数。
+- 改变功能参数或 Sprite 数量会清空两侧旧数据；切换 CPU/HW 重开采样窗口，保留另一侧同参数下最近一次结果。
+- 640X480 来自实际 DE/HS/VS 测量寄存器；该页面不切换 HDMI 输出分辨率。
+- 随机运动采用可复现的初始相位、速度与方向，边界连续反弹；CPU/HW 从相同帧序列开始，便于比较。
+
+## 本次代码修改
+
+本次在 `software/main.c` 的 `menu_screen()` 优化布局和配色，新增 `draw_player()` 从玩家 DDR 区取帧并使用 Color Key 合成；`cpu_blend_copy_source()` 将 CPU 合成的源地址参数化。`init_assets()` 启动时解压四个方向代表帧，当前菜单使用正面帧。`software/player_asset.h` 保存调色板和 RLE 数据，完整 16 帧及转换脚本见 [人物资源说明](assets/player/README.md)。性能页继续使用原测试 Sprite，指标采样区间和硬件引脚沿用上一版。
+
+游戏版增加首页第三张卡片及 `game_loop()` 入口，`init_assets()` 继续调用 `init_game_assets()`，将完整 16 帧人物与开源怪物、魔法图集一起上传。持续移动和游戏指标采用独立逻辑，具体函数和统计口径见 [GAME_DEMO.md](GAME_DEMO.md)。
+
+`sim/tb_soc.sv` 使用真实 CPU 固件操作菜单，并核对四个方向的 DDR 像素与未压缩参考。`--ui-smoke` 验证本次菜单、人物和代表性功能；不带该参数运行原完整 8 功能回归。预览来自仿真，不是显示器照片。
+
+## 存储与复现
+
+板卡的 8 MB Flash 与 256 MB DDR3 是外部存储。A/B framebuffer 共 1,228,800 字节，独立图片资源池从 0x01200000 开始。原测试/菜单图像共 10240 字节；游戏图集额外 51200 字节，启动总上传 61440 字节。首次进入游戏还会生成一张 614400 字节背景并复用。
+
+程序运行在本次扩为 64 KiB 的片内 RAM 中，链接脚本保留至少 4 KiB 栈。固件随 bitstream 启动；要掉电保留，须按 `FLASH_PROGRAMMING.md` 将 bitstream 一次性写入 SPI Flash。
+
+在仓库根目录执行：
+
+```powershell
+python my/first_light/tools/build.py firmware
+python my/first_light/tools/build.py sim-soc --ui-smoke
+python my/first_light/tools/build.py compile
+```
+
+联合仿真仅缩短按键消抖等待以减少运行时间；实际工程仍为 100 MHz 下 20 ms 消抖。
+
+下载后应先看到分类菜单，再看到包含 4 项功能的子菜单；若仍显示旧动画，确认下载的是重新生成的 `outflow/first_light.bit`。若按键无响应，查看 `button_input.pending` 和 GPIO `button_ack[0]`。若无画面，先查 DDR `cal_done`、HDMI PLL `hdmi_tx_locked`，再看 UART 是否有 `FAIL` 或 `TRAP`。实际显示器观感及实板性能仍需上板验收。
+

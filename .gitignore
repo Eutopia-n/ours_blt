@@ -1,7 +1,48 @@
-sim/build/
-efinity/.lock
-efinity/*.peri.xml
-efinity/work_syn/
-efinity/work_syn_block_copy/
-efinity/work_pnr/
-efinity/outflow/
+# Efinity generated implementation results (keep RTL, IP and constraints).
+outflow/
+work_syn/
+work_pnr/
+work_pt/
+work_dbg/
+
+# ModelSim/Questa compiled libraries and simulation output.
+work/
+_temp/
+_tempmsg/
+*.wlf
+wlft*
+*.vcd
+transcript
+vsim_stacktrace.vstf
+
+# Eclipse workspace state; keep .project, .cproject and .settings.
+.metadata/
+
+# Local logs, backups and editor/OS caches.
+*.log
+*.log.*
+*.bak
+*.tmp
+*.swp
+*~
+__pycache__/
+*.pyc
+*.obj
+Thumbs.db
+.DS_Store
+
+# Local reference exports and installers; these files remain on disk.
+/tmp/
+/软件安装包/
+
+# Large separately distributed source archive; NOT part of a Git clone.
+/10_Ti60f225_sc431hai2hdmi_demo/Ti60f225_sc431hai2hdmi_v3.zip
+
+# Do not globally ignore .bin/.hex/.mem/.mif: they may initialize ROM/RAM.
+# Do not ignore IP directories: supplied/generated IP can be build inputs.
+
+# Local game-engine compiler outputs and bulky generated validation captures.
+/my/first_light/software/build/
+/my/first_light/*.obj
+/my/first_light/reports/*.ppm
+/my/first_light/releases/

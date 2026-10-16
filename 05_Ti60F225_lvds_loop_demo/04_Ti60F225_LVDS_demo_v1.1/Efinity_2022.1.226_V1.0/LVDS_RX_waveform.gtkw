@@ -1,0 +1,19 @@
+[dumpfile] "C:\Users\ADMINI~1\AppData\Local\Temp\tmpkmhetlaa\LVDS_RXtmp_continous.vcd"
+[dumpfile_mtime] "Wed Mar 18 12:20:36 2026"
+[dumpfile_size] 583
+[savefile] "E:\FPGA_Demo\02_Ti60F225_DemoBoard\FPGA_Prj\03_Ti60F225_lvds_loop_demo\03_Ti60F100_LVDS_demo_v1.1\Efinity_2022.1.226_V1.0\LVDS_RX_waveform.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*0.000000 c 512 1536 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[signals_width] 126
+[sst_expanded] 1
+@22
+top.lvds_rx_data_slip0[7:0]
+top.lvds_rx_data_slip1[7:0]
+top.lvds_rx_data_slip2[7:0]
+top.lvds_rx_data_slip3[7:0]
+top.stat0
+top.stat1
+top.stat2
+top.stat3

@@ -1,0 +1,16 @@
+[dumpfile] "E:\FPGA_Prj\02_Ti60F225_DemoBoard\FPGA_Prj\07_Ti60F225_MIPI_C2D_Demo\new_sensor\efx_ti60f225_mipi_csi_v14\la2_waveform.vcd"
+[dumpfile_mtime] "Sun Nov 03 04:12:08 2024"
+[dumpfile_size] 119848
+[savefile] "E:\FPGA_Prj\02_Ti60F225_DemoBoard\FPGA_Prj\07_Ti60F225_MIPI_C2D_Demo\new_sensor\efx_ti60f225_mipi_csi_v14\la2_waveform.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*0.000000 c 2048 6144 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[signals_width] 126
+[sst_expanded] 1
+@22
+top.ch0_b[7:0]
+top.ch0_g[7:0]
+top.ch0_de
+top.ch0_vs
+top.ch0_hs

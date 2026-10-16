@@ -1,0 +1,1214 @@
+{
+    "debug_cores": [
+        {
+            "name": "la0",
+            "type": "la",
+            "uuid": "f18b3ae22c934aa58126d56940fff011",
+            "trigin_en": false,
+            "trigout_en": false,
+            "auto_inserted": true,
+            "capture_control": false,
+            "data_depth": 8192,
+            "input_pipeline": 1,
+            "probes": [
+                {
+                    "name": "rx_vsync",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "rx_hsync",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "rx_de",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_package_ctrl_v1/i_rdata",
+                    "width": 10,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_package_ctrl_v1/i_gdata",
+                    "width": 10,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_package_ctrl_v1/i_bdata",
+                    "width": 10,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_package_ctrl_v1/island_guard_band",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_package_ctrl_v1/video_guard_band",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_package_ctrl_v1/data_island_premable",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_package_ctrl_v1/data_island_period",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_package_ctrl_v1/data_island",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_package_ctrl_v1/ctl",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_package_ctrl_v1/pos_ctl",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_package_ctrl_v1/cnt",
+                    "width": 3,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_package_ctrl_v1/nx_state",
+                    "width": 3,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_tmds_decoder_0/u_decoder/ctrl_time",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_tmds_decoder_0/bond_rdy",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_tmds_decoder_1/bond_rdy",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_tmds_decoder_2/bond_rdy",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_tmds_decoder_0/u_phasealgin/bitslip0",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_tmds_decoder_1/u_phasealgin/bitslip0",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_tmds_decoder_0/u_phasealgin/bitslip1",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_tmds_decoder_1/u_phasealgin/bitslip1",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_tmds_decoder_2/u_phasealgin/bitslip0",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "u_dvi_decoder/u_tmds_decoder_2/u_phasealgin/bitslip1",
+                    "width": 1,
+                    "probe_type": 1
+                },
+                {
+                    "name": "tmds_tx_data1_TX_DATA",
+                    "width": 10,
+                    "probe_type": 1
+                },
+                {
+                    "name": "tmds_tx_data0_TX_DATA",
+                    "width": 10,
+                    "probe_type": 1
+                },
+                {
+                    "name": "tmds_tx_data2_TX_DATA",
+                    "width": 10,
+                    "probe_type": 1
+                }
+            ]
+        }
+    ],
+    "connections": [
+        {
+            "command": "add_ports",
+            "id": 1,
+            "args": {
+                "netlist": "example_top",
+                "ports": [
+                    {
+                        "name": "jtag_inst2_autodbg_CAPTURE__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst2_autodbg_DRCK__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst2_autodbg_RESET__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst2_autodbg_RUNTEST__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst2_autodbg_SEL__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst2_autodbg_SHIFT__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst2_autodbg_TCK__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst2_autodbg_TDI__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst2_autodbg_TMS__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst2_autodbg_UPDATE__",
+                        "dir": "in",
+                        "width": 1
+                    },
+                    {
+                        "name": "jtag_inst2_autodbg_TDO__",
+                        "dir": "out",
+                        "width": 1
+                    }
+                ]
+            }
+        },
+        {
+            "command": "instantiate",
+            "netlist": "edb_top",
+            "id": 2,
+            "instance": "edb_top_autodbg_inst__"
+        },
+        {
+            "command": "connect",
+            "id": 3,
+            "args": {
+                "instance": "edb_top_autodbg_inst__",
+                "ports": [
+                    {
+                        "name": "bscan_CAPTURE",
+                        "net": "jtag_inst2_autodbg_CAPTURE__"
+                    },
+                    {
+                        "name": "bscan_DRCK",
+                        "net": "jtag_inst2_autodbg_DRCK__"
+                    },
+                    {
+                        "name": "bscan_RESET",
+                        "net": "jtag_inst2_autodbg_RESET__"
+                    },
+                    {
+                        "name": "bscan_RUNTEST",
+                        "net": "jtag_inst2_autodbg_RUNTEST__"
+                    },
+                    {
+                        "name": "bscan_SEL",
+                        "net": "jtag_inst2_autodbg_SEL__"
+                    },
+                    {
+                        "name": "bscan_SHIFT",
+                        "net": "jtag_inst2_autodbg_SHIFT__"
+                    },
+                    {
+                        "name": "bscan_TCK",
+                        "net": "jtag_inst2_autodbg_TCK__"
+                    },
+                    {
+                        "name": "bscan_TDI",
+                        "net": "jtag_inst2_autodbg_TDI__"
+                    },
+                    {
+                        "name": "bscan_TMS",
+                        "net": "jtag_inst2_autodbg_TMS__"
+                    },
+                    {
+                        "name": "bscan_UPDATE",
+                        "net": "jtag_inst2_autodbg_UPDATE__"
+                    },
+                    {
+                        "name": "bscan_TDO",
+                        "net": "jtag_inst2_autodbg_TDO__"
+                    },
+                    {
+                        "name": "la0_clk",
+                        "net": "hdmi_rx_slow_clk",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe0",
+                        "net": "rx_vsync",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe1",
+                        "net": "rx_hsync",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe2",
+                        "net": "rx_de",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe3[0]",
+                        "net": "i_rdata[0]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe3[1]",
+                        "net": "i_rdata[1]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe3[2]",
+                        "net": "i_rdata[2]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe3[3]",
+                        "net": "i_rdata[3]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe3[4]",
+                        "net": "i_rdata[4]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe3[5]",
+                        "net": "i_rdata[5]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe3[6]",
+                        "net": "i_rdata[6]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe3[7]",
+                        "net": "i_rdata[7]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe3[8]",
+                        "net": "i_rdata[8]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe3[9]",
+                        "net": "i_rdata[9]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe4[0]",
+                        "net": "i_gdata[0]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe4[1]",
+                        "net": "i_gdata[1]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe4[2]",
+                        "net": "i_gdata[2]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe4[3]",
+                        "net": "i_gdata[3]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe4[4]",
+                        "net": "i_gdata[4]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe4[5]",
+                        "net": "i_gdata[5]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe4[6]",
+                        "net": "i_gdata[6]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe4[7]",
+                        "net": "i_gdata[7]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe4[8]",
+                        "net": "i_gdata[8]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe4[9]",
+                        "net": "i_gdata[9]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe5[0]",
+                        "net": "i_bdata[0]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe5[1]",
+                        "net": "i_bdata[1]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe5[2]",
+                        "net": "i_bdata[2]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe5[3]",
+                        "net": "i_bdata[3]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe5[4]",
+                        "net": "i_bdata[4]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe5[5]",
+                        "net": "i_bdata[5]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe5[6]",
+                        "net": "i_bdata[6]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe5[7]",
+                        "net": "i_bdata[7]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe5[8]",
+                        "net": "i_bdata[8]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe5[9]",
+                        "net": "i_bdata[9]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe6",
+                        "net": "island_guard_band",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe7",
+                        "net": "video_guard_band",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe8",
+                        "net": "data_island_premable",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe9",
+                        "net": "data_island_period",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe10",
+                        "net": "data_island",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe11",
+                        "net": "ctl",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe12",
+                        "net": "pos_ctl",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe13[0]",
+                        "net": "cnt[0]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe13[1]",
+                        "net": "cnt[1]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe13[2]",
+                        "net": "cnt[2]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe14[0]",
+                        "net": "nx_state[0]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe14[1]",
+                        "net": "nx_state[1]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe14[2]",
+                        "net": "nx_state[2]",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_package_ctrl_v1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe15",
+                        "net": "ctrl_time",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_tmds_decoder_0",
+                            "u_decoder"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe16",
+                        "net": "bond_rdy",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_tmds_decoder_0"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe17",
+                        "net": "bond_rdy",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_tmds_decoder_1"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe18",
+                        "net": "bond_rdy",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_tmds_decoder_2"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe19",
+                        "net": "bitslip0",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_tmds_decoder_0",
+                            "u_phasealgin"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe20",
+                        "net": "bitslip0",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_tmds_decoder_1",
+                            "u_phasealgin"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe21",
+                        "net": "bitslip1",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_tmds_decoder_0",
+                            "u_phasealgin"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe22",
+                        "net": "bitslip1",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_tmds_decoder_1",
+                            "u_phasealgin"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe23",
+                        "net": "bitslip0",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_tmds_decoder_2",
+                            "u_phasealgin"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe24",
+                        "net": "bitslip1",
+                        "path": [
+                            "u_dvi_decoder",
+                            "u_tmds_decoder_2",
+                            "u_phasealgin"
+                        ]
+                    },
+                    {
+                        "name": "la0_probe25[0]",
+                        "net": "tmds_tx_data1_TX_DATA[0]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe25[1]",
+                        "net": "tmds_tx_data1_TX_DATA[1]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe25[2]",
+                        "net": "tmds_tx_data1_TX_DATA[2]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe25[3]",
+                        "net": "tmds_tx_data1_TX_DATA[3]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe25[4]",
+                        "net": "tmds_tx_data1_TX_DATA[4]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe25[5]",
+                        "net": "tmds_tx_data1_TX_DATA[5]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe25[6]",
+                        "net": "tmds_tx_data1_TX_DATA[6]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe25[7]",
+                        "net": "tmds_tx_data1_TX_DATA[7]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe25[8]",
+                        "net": "tmds_tx_data1_TX_DATA[8]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe25[9]",
+                        "net": "tmds_tx_data1_TX_DATA[9]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe26[0]",
+                        "net": "tmds_tx_data0_TX_DATA[0]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe26[1]",
+                        "net": "tmds_tx_data0_TX_DATA[1]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe26[2]",
+                        "net": "tmds_tx_data0_TX_DATA[2]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe26[3]",
+                        "net": "tmds_tx_data0_TX_DATA[3]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe26[4]",
+                        "net": "tmds_tx_data0_TX_DATA[4]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe26[5]",
+                        "net": "tmds_tx_data0_TX_DATA[5]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe26[6]",
+                        "net": "tmds_tx_data0_TX_DATA[6]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe26[7]",
+                        "net": "tmds_tx_data0_TX_DATA[7]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe26[8]",
+                        "net": "tmds_tx_data0_TX_DATA[8]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe26[9]",
+                        "net": "tmds_tx_data0_TX_DATA[9]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe27[0]",
+                        "net": "tmds_tx_data2_TX_DATA[0]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe27[1]",
+                        "net": "tmds_tx_data2_TX_DATA[1]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe27[2]",
+                        "net": "tmds_tx_data2_TX_DATA[2]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe27[3]",
+                        "net": "tmds_tx_data2_TX_DATA[3]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe27[4]",
+                        "net": "tmds_tx_data2_TX_DATA[4]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe27[5]",
+                        "net": "tmds_tx_data2_TX_DATA[5]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe27[6]",
+                        "net": "tmds_tx_data2_TX_DATA[6]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe27[7]",
+                        "net": "tmds_tx_data2_TX_DATA[7]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe27[8]",
+                        "net": "tmds_tx_data2_TX_DATA[8]",
+                        "path": []
+                    },
+                    {
+                        "name": "la0_probe27[9]",
+                        "net": "tmds_tx_data2_TX_DATA[9]",
+                        "path": []
+                    }
+                ]
+            }
+        }
+    ],
+    "vdbs": [
+        {
+            "file": "debug_top.post.vdb",
+            "instance": "edb_top_autodbg_inst__"
+        }
+    ],
+    "session": {
+        "wizard": {
+            "data_depth": 8192,
+            "capture_control": false,
+            "selected_nets": [
+                {
+                    "name": "rx_vsync",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": []
+                },
+                {
+                    "name": "rx_hsync",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": []
+                },
+                {
+                    "name": "rx_de",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": []
+                },
+                {
+                    "name": "i_rdata",
+                    "width": 10,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_package_ctrl_v1"
+                    ],
+                    "net_idx_left": 9,
+                    "net_idx_right": 0
+                },
+                {
+                    "name": "i_gdata",
+                    "width": 10,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_package_ctrl_v1"
+                    ],
+                    "net_idx_left": 9,
+                    "net_idx_right": 0
+                },
+                {
+                    "name": "i_bdata",
+                    "width": 10,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_package_ctrl_v1"
+                    ],
+                    "net_idx_left": 9,
+                    "net_idx_right": 0
+                },
+                {
+                    "name": "island_guard_band",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_package_ctrl_v1"
+                    ]
+                },
+                {
+                    "name": "video_guard_band",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_package_ctrl_v1"
+                    ]
+                },
+                {
+                    "name": "data_island_premable",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_package_ctrl_v1"
+                    ]
+                },
+                {
+                    "name": "data_island_period",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_package_ctrl_v1"
+                    ]
+                },
+                {
+                    "name": "data_island",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_package_ctrl_v1"
+                    ]
+                },
+                {
+                    "name": "ctl",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_package_ctrl_v1"
+                    ]
+                },
+                {
+                    "name": "pos_ctl",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_package_ctrl_v1"
+                    ]
+                },
+                {
+                    "name": "cnt",
+                    "width": 3,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_package_ctrl_v1"
+                    ],
+                    "net_idx_left": 2,
+                    "net_idx_right": 0
+                },
+                {
+                    "name": "nx_state",
+                    "width": 3,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_package_ctrl_v1"
+                    ],
+                    "net_idx_left": 2,
+                    "net_idx_right": 0
+                },
+                {
+                    "name": "ctrl_time",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_tmds_decoder_0",
+                        "u_decoder"
+                    ]
+                },
+                {
+                    "name": "bond_rdy",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_tmds_decoder_0"
+                    ]
+                },
+                {
+                    "name": "bond_rdy",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_tmds_decoder_1"
+                    ]
+                },
+                {
+                    "name": "bond_rdy",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_tmds_decoder_2"
+                    ]
+                },
+                {
+                    "name": "bitslip0",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_tmds_decoder_0",
+                        "u_phasealgin"
+                    ]
+                },
+                {
+                    "name": "bitslip0",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_tmds_decoder_1",
+                        "u_phasealgin"
+                    ]
+                },
+                {
+                    "name": "bitslip1",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_tmds_decoder_0",
+                        "u_phasealgin"
+                    ]
+                },
+                {
+                    "name": "bitslip1",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_tmds_decoder_1",
+                        "u_phasealgin"
+                    ]
+                },
+                {
+                    "name": "bitslip0",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_tmds_decoder_2",
+                        "u_phasealgin"
+                    ]
+                },
+                {
+                    "name": "bitslip1",
+                    "width": 1,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [
+                        "u_dvi_decoder",
+                        "u_tmds_decoder_2",
+                        "u_phasealgin"
+                    ]
+                },
+                {
+                    "name": "tmds_tx_data1_TX_DATA",
+                    "width": 10,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [],
+                    "net_idx_left": 9,
+                    "net_idx_right": 0
+                },
+                {
+                    "name": "tmds_tx_data0_TX_DATA",
+                    "width": 10,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [],
+                    "net_idx_left": 9,
+                    "net_idx_right": 0
+                },
+                {
+                    "name": "tmds_tx_data2_TX_DATA",
+                    "width": 10,
+                    "clk_domain": "hdmi_rx_slow_clk",
+                    "selected_probe_type": "DATA AND TRIGGER",
+                    "child": [],
+                    "path": [],
+                    "net_idx_left": 9,
+                    "net_idx_right": 0
+                }
+            ],
+            "top_module": "example_top",
+            "src": "elaborate",
+            "jtag_user": "USER2",
+            "input_pipeline": 1
+        }
+    }
+}

@@ -1,0 +1,5 @@
+#block name	x	y	subblk
+#----------	--	--	------
+
+lvds_tx_TX_DATA[0]~FF	74	321	2
+send_en_r_lock~FF	74	312	2

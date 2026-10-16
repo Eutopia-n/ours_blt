@@ -1,0 +1,16 @@
+# Preserve existing source bytes and line endings for the initial baseline.
+# Some vendor files may use legacy encodings. Agree on conversion separately.
+* -text
+
+# Treat documents, archives and binary assets as binary in diffs/merges.
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.zip binary
+*.7z binary
+*.rar binary
+*.exe binary
+*.dll binary
+*.sys binary
+*.bin binary

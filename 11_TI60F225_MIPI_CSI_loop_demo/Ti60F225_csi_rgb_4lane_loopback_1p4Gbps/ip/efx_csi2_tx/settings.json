@@ -1,0 +1,55 @@
+{
+    "args": [
+        "-o",
+        "efx_csi2_tx",
+        "--base_path",
+        "E:\\FPGA_Demo\\02_Ti60F225_DemoBoard\\FPGA_Prj_v4\\11_TI60F225_MIPI_CSI_loop_demo\\Ti60F225_csi_rgb_4lane_loopback_1p4Gbps\\ip",
+        "--vlnv",
+        {
+            "vendor": "efinixinc.com",
+            "library": "mipi",
+            "name": "efx_csi2_tx",
+            "version": "5.14"
+        }
+    ],
+    "conf": {
+        "tLPX_NS": "50",
+        "tINIT_NS": "100000",
+        "tINIT_SKEWCAL_NS": "100000",
+        "NUM_DATA_LANE": "4",
+        "ASYNC_STAGE": "2",
+        "HS_BYTECLK_MHZ": "175",
+        "CLOCK_FREQ_MHZ": "100",
+        "DPHY_CLOCK_MODE": "\"Continuous\"",
+        "PIXEL_FIFO_DEPTH": "1024",
+        "tLP_EXIT_NS": "100",
+        "tCLK_ZERO_NS": "400",
+        "tCLK_TRAIL_NS": "80",
+        "tCLK_PRE_NS": "10",
+        "tCLK_POST_NS": "455",
+        "tCLK_PREPARE_NS": "70",
+        "tWAKEUP_NS": "1000",
+        "tHS_ZERO_NS": "262",
+        "tHS_TRAIL_NS": "1220",
+        "FRAME_MODE": "\"GENERIC\"",
+        "tHS_EXIT_NS": "500",
+        "Pack_40": "1'b1",
+        "Pack_48": "1'b1",
+        "Pack_56": "1'b1",
+        "Pack_64": "1'b1",
+        "tHS_PREPARE_NS": "50",
+        "ENABLE_VCX": "1'b0",
+        "MIPI_CSI2_TX_DEBUG": "1'b0"
+    },
+    "output": {
+        "external_source_source": [
+            "efx_csi2_tx\\efx_csi2_tx_tmpl.sv",
+            "efx_csi2_tx\\efx_csi2_tx.sv",
+            "efx_csi2_tx\\efx_csi2_tx_define.svh",
+            "efx_csi2_tx\\efx_csi2_tx_tmpl.vhd"
+        ]
+    },
+    "ooc_synthesis": {},
+    "sw_version": "2025.2.288.4.15",
+    "generated_date": "2026-04-02T12:40:16.440284+00:00"
+}

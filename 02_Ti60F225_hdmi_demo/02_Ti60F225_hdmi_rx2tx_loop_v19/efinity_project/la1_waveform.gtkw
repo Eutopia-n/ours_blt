@@ -1,0 +1,13 @@
+[dumpfile] "C:\Users\ramsey\AppData\Local\Temp\tmpo8uvaaig\tmp_continous.vcd"
+[dumpfile_mtime] "Sat Jul 13 10:11:55 2024"
+[dumpfile_size] 213
+[savefile] "D:\FPGA_Prj\03_Ti60F225_DemoBoard\Prj_demo\06_Ti60F225_hdmi_demo\06_Ti60F225_hdmi_rx2tx_loop_v12\efinity_project\la1_waveform.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*0.000000 c 2048 6144 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[signals_width] 126
+[sst_expanded] 1
+@22
+top.HDMI_5V_N
+top.HPD_N

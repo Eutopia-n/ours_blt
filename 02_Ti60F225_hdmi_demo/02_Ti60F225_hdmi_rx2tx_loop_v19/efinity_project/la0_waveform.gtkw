@@ -1,0 +1,39 @@
+[dumpfile] "C:\Users\ADMINI~1\AppData\Local\Temp\tmplxrk3mwz\la0tmp_continous.vcd"
+[dumpfile_mtime] "Sat Mar 28 13:30:40 2026"
+[dumpfile_size] 487291
+[savefile] "E:\FPGA_Demo\02_Ti60F225_DemoBoard\FPGA_Prj_v4\02_Ti60F225_hdmi_demo\06_Ti60F225_hdmi_rx2tx_loop_v19\efinity_project\la0_waveform.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*0.000000 c 4096 12288 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[signals_width] 126
+[sst_expanded] 1
+@22
+top.rx_vsync
+top.rx_hsync
+top.rx_de
+top.u_dvi_decoder/u_package_ctrl_v1/i_rdata[9:0]
+top.u_dvi_decoder/u_package_ctrl_v1/i_gdata[9:0]
+top.u_dvi_decoder/u_package_ctrl_v1/i_bdata[9:0]
+top.u_dvi_decoder/u_package_ctrl_v1/island_guard_band
+top.u_dvi_decoder/u_package_ctrl_v1/video_guard_band
+top.u_dvi_decoder/u_package_ctrl_v1/data_island_premable
+top.u_dvi_decoder/u_package_ctrl_v1/data_island_period
+top.u_dvi_decoder/u_package_ctrl_v1/data_island
+top.u_dvi_decoder/u_package_ctrl_v1/ctl
+top.u_dvi_decoder/u_package_ctrl_v1/pos_ctl
+top.u_dvi_decoder/u_package_ctrl_v1/cnt[2:0]
+top.u_dvi_decoder/u_package_ctrl_v1/nx_state[2:0]
+top.u_dvi_decoder/u_tmds_decoder_0/u_decoder/ctrl_time
+top.u_dvi_decoder/u_tmds_decoder_0/bond_rdy
+top.u_dvi_decoder/u_tmds_decoder_1/bond_rdy
+top.u_dvi_decoder/u_tmds_decoder_2/bond_rdy
+top.u_dvi_decoder/u_tmds_decoder_0/u_phasealgin/bitslip0
+top.u_dvi_decoder/u_tmds_decoder_1/u_phasealgin/bitslip0
+top.u_dvi_decoder/u_tmds_decoder_0/u_phasealgin/bitslip1
+top.u_dvi_decoder/u_tmds_decoder_1/u_phasealgin/bitslip1
+top.u_dvi_decoder/u_tmds_decoder_2/u_phasealgin/bitslip0
+top.u_dvi_decoder/u_tmds_decoder_2/u_phasealgin/bitslip1
+top.tmds_tx_data1_TX_DATA[9:0]
+top.tmds_tx_data0_TX_DATA[9:0]
+top.tmds_tx_data2_TX_DATA[9:0]

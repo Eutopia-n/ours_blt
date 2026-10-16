@@ -1,0 +1,15 @@
+[dumpfile] "D:\FPGA_Prj\06_Ti60F100_lvds_demo\05_Ti60F100_LVDS_demo_v1.1\Efinity_2022.1.226_V1.0\la0_waveform.vcd"
+[dumpfile_mtime] "Thu Sep 29 16:59:58 2022"
+[dumpfile_size] 20054
+[savefile] "D:\FPGA_Prj\06_Ti60F100_lvds_demo\05_Ti60F100_LVDS_demo_v1.1\Efinity_2022.1.226_V1.0\la0_waveform.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*0.000000 c 512 1536 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[signals_width] 126
+[sst_expanded] 1
+@22
+top.pass_cnt[9:0]
+top.det_pass
+top.lvds_rx_d0_RX_DATA[7:0]
+top.lvds_rx_d1_RX_DATA[7:0]
