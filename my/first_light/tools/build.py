@@ -5,6 +5,13 @@ import os
 import subprocess
 import sys
 
+# Efinity logs may contain UTF-8 replacement characters; keep the wrapper
+# usable on Windows consoles whose default code page is GBK.
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+except AttributeError:
+    pass
+
 ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
 parser.add_argument('step',choices=['prepare','firmware','sim','sim-buttons','sim-fifo','sim-mode','sim-soc','sim-game','interface','map','compile','flash','inspect'])

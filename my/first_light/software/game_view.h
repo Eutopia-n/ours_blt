@@ -7,7 +7,7 @@
 #define GAME_BACKGROUND (ASSET_BASE+0x20000u)
 #define GAME_MAX_DRAW_ENEMIES 32u
 #define GAME_MAX_DRAW_GEMS 32u
-#define GAME_MAX_DRAW_BOLTS 24u
+#define GAME_MAX_DRAW_BOLTS GAME_MAX_BOLTS
 #define GAME_FLOOR_TEXTURE (GAME_BACKGROUND+640u*480u*2u)
 static SurvivorGame survivor;
 static uint32_t game_background_ready;
@@ -15,6 +15,24 @@ static uint32_t game_hud_pages,game_hud_number_valid[2],game_hud_bar_valid[2];
 static uint32_t game_hud_numbers[2][10],game_hud_bar_value[2][2],game_hud_bar_max[2][2];
 static uint16_t game_hud_bar_color[2][2];
 static void game_sprite(uint32_t frame,int32_t x,int32_t y,uint32_t alpha);
+static uint32_t game_bolt(const GameBolt *b,int32_t camera_x,int32_t camera_y) {
+    int32_t sx=GAME_X_MIN+b->x/32-camera_x,sy=GAME_Y_MIN+b->y/32-camera_y;
+    uint32_t size=b->pierce ? 7u : 5u;
+    if(sx<(int32_t)GAME_X_MIN || sx>=(int32_t)GAME_X_MAX ||
+       sy<(int32_t)GAME_Y_MIN || sy>=(int32_t)GAME_Y_MAX) return 0;
+    int32_t left=sx-(int32_t)(size/2u),top=sy-(int32_t)(size/2u);
+    if(left<(int32_t)GAME_X_MIN) left=GAME_X_MIN;
+    if(top<(int32_t)GAME_Y_MIN) top=GAME_Y_MIN;
+    if(left+(int32_t)size>(int32_t)GAME_X_MAX) left=GAME_X_MAX-(int32_t)size;
+    if(top+(int32_t)size>(int32_t)GAME_Y_MAX) top=GAME_Y_MAX-(int32_t)size;
+    uint32_t x=(uint32_t)left,y=(uint32_t)top;
+    // A bullet is only 5x5/7x7 pixels.  Writing this tiny solid primitive
+    // directly to the back buffer avoids one APB command and one wait per
+    // bullet; the single publish at the end of game_draw makes all 48 bullets
+    // visible together while leaving the raster engine for larger sprites.
+    cpu_fill(x,y,size,size,b->pierce ? 0xffe0 : 0x07ff);
+    return 1;
+}
 
 static void game_world_sprite(const SurvivorGame *g,uint32_t frame,int32_t x,int32_t y,uint32_t alpha) {
     game_sprite(frame,GAME_X_MIN+x-game_camera_x(g),GAME_Y_MIN+y-game_camera_y(g),alpha);
@@ -140,7 +158,7 @@ static void game_panel(const SurvivorGame *g) {
 	uint32_t panel_height=g->state==GAME_READY ? 288u : 256u;
 	paint(72,136,496,panel_height,0x10a6,1); paint(72,136,496,3,0x07ff,1);
     if(g->state==GAME_UPGRADE) {
-        text_at(96,154,"LEVEL UP - CHOOSE A RUNE",0xffff);
+        text_at(96,154,"升级 - 选择符文",0xffff);
         for(uint32_t n=0;n<3;++n) {
             uint32_t y=180+n*54;
             paint(88,y,464,48,n==g->choice ? 0x22ae : 0x10c7,1);
@@ -149,32 +167,32 @@ static void game_panel(const SurvivorGame *g) {
             game_sprite(game_upgrade_icon(skill),120,y+24,255);
             text_at(148,y+5,game_upgrade_name(skill),0xffff);
             text_at(148,y+24,game_upgrade_detail(skill),0x07ff);
-			if(level>=maximum) text_at(444,y+5,"MAX",0xffe0);
+            if(level>=maximum) text_at(444,y+5,"满级",0xffe0);
 			else {
-				text_at(432,y+5,"LV",0x9cf3); number_at(456,y+5,level,0xffff);
+				text_at(432,y+5,"级",0x9cf3); number_at(456,y+5,level,0xffff);
 				text_at(468,y+5,"/",0x9cf3); number_at(480,y+5,maximum,0xffff);
 			}
         }
-        text_at(96,362,"KEY0/1 SELECT  KEY2 CONFIRM",0xffe0);
+        text_at(96,362,"按键1/2选择  按键5确认",0xffe0);
     } else if(g->state==GAME_READY) {
-        text_at(96,160,"FROSTBOUND SURVIVOR",0xffff);
-        text_at(96,194,"SURVIVE FOR 180 SECONDS",0x07ff);
-        text_at(96,224,"KEY0 UP       KEY1 DOWN",0xffff);
-        text_at(96,248,"KEY2 LEFT     KEY3 RIGHT",0xffff);
-        text_at(96,278,"SPELLS FIRE AUTOMATICALLY",0x9cf3);
-        text_at(96,302,"KEY0+1 OR KEY2+3 PAUSE",0x9cf3);
-        text_at(96,326,"RISC-V: MOVE / COLLIDE / AUTO ATTACK",0xffff);
-        text_at(96,350,"FPGA: ALPHA + KEY / DDR3 RENDER",0x07ff);
-        text_at(96,374,"KEY2 START  KEY3 MENU",0xffe0);
-        text_at(96,398,"EXPANDABLE WORLD / CENTER CAMERA",0x9cf3);
+        text_at(96,160,"冰霜幸存者",0xffff);
+        text_at(96,194,"生存180秒",0x07ff);
+        text_at(96,224,"按键1上    按键2下",0xffff);
+        text_at(96,248,"按键3左    按键4右",0xffff);
+        text_at(96,278,"技能自动释放",0x9cf3);
+        text_at(96,302,"按键5暂停",0x9cf3);
+        text_at(96,326,"RISC-V负责移动 碰撞 自动攻击",0xffff);
+        text_at(96,350,"FPGA负责透明 颜色键 DDR3绘制",0x07ff);
+        text_at(96,374,"按键5开始  按键4返回",0xffe0);
+        text_at(96,398,"地图可扩展 摄像机居中",0x9cf3);
     } else {
-        text_at(96,164,g->state==GAME_PAUSED ? "PAUSED" : g->state==GAME_WON ? "YOU SURVIVED" : "GAME OVER",0xffff);
-        text_at(96,208,"TIME",0x07ff); number_at(168,208,g->ticks/60,0xffff);
-        text_at(288,208,"KILLS",0x07ff); number_at(372,208,g->kills,0xffff);
-        text_at(96,240,"LEVEL",0x07ff); number_at(180,240,g->level,0xffff);
-        text_at(288,240,"PEAK",0x07ff); number_at(360,240,g->peak_enemies,0xffff);
-        text_at(96,294,g->state==GAME_PAUSED ? "KEY2 RESUME" : "KEY2 PLAY AGAIN",0xffe0);
-        text_at(96,326,"KEY3 RETURN TO MENU",0x9cf3);
+        text_at(96,164,g->state==GAME_PAUSED ? "已暂停" : g->state==GAME_WON ? "你已生存" : "游戏结束",0xffff);
+        text_at(96,208,"时间",0x07ff); number_at(168,208,g->ticks/60,0xffff);
+        text_at(288,208,"击杀",0x07ff); number_at(372,208,g->kills,0xffff);
+        text_at(96,240,"等级",0x07ff); number_at(180,240,g->level,0xffff);
+        text_at(288,240,"最高",0x07ff); number_at(360,240,g->peak_enemies,0xffff);
+        text_at(96,294,g->state==GAME_PAUSED ? "按键5继续" : "按键5再来一局",0xffe0);
+        text_at(96,326,"按键4返回菜单",0x9cf3);
     }
 }
 static void game_draw(const SurvivorGame *g,uint32_t measured_fps,uint32_t us,uint32_t ar,uint32_t aw) {
@@ -192,6 +210,18 @@ static void game_draw(const SurvivorGame *g,uint32_t measured_fps,uint32_t us,ui
     // of Alpha/Color-Key commands issued to the raster engine. A rotating
     // start index prevents the same object slots from always winning when a
     // late wave contains more sprites than the 60-FPS render budget.
+    // Small bullets use one write burst each instead of a 32x32 Alpha/Key
+    // image read. Draw all 48 logic slots first so projectile count has priority
+    // when the scene is crowded.
+    uint32_t bolt_drawn=0,bolt_start=(g->ticks>>2)%GAME_MAX_BOLTS;
+    for(uint32_t n=0;n<GAME_MAX_BOLTS && bolt_drawn<GAME_MAX_DRAW_BOLTS;++n) {
+        uint32_t i=(bolt_start+n)%GAME_MAX_BOLTS;
+        if(!g->bolts[i].life) continue;
+        bolt_drawn+=game_bolt(&g->bolts[i],camera_x,camera_y);
+    }
+    // Retire CPU bullet stores before the raster engine reads the destination
+    // pixels to composite gems and enemies over them.
+    if(bolt_drawn) publish_pixels();
     uint32_t gem_drawn=0,gem_start=(g->ticks>>3)%GAME_MAX_GEMS;
     for(uint32_t n=0;n<GAME_MAX_GEMS && gem_drawn<GAME_MAX_DRAW_GEMS;++n) {
         uint32_t i=(gem_start+n)%GAME_MAX_GEMS;
@@ -206,12 +236,6 @@ static void game_draw(const SurvivorGame *g,uint32_t measured_fps,uint32_t us,ui
         int32_t bob=((g->ticks/12+i)&1u) ? 1 : 0;
         game_world_sprite(g,e->kind>=3 ? 24 : 16+e->kind,e->x/32,e->y/32+bob,e->flash ? 160 : 255);
         enemy_drawn++;
-    }
-    uint32_t bolt_drawn=0,bolt_start=(g->ticks>>2)%GAME_MAX_BOLTS;
-    for(uint32_t n=0;n<GAME_MAX_BOLTS && bolt_drawn<GAME_MAX_DRAW_BOLTS;++n) {
-        uint32_t i=(bolt_start+n)%GAME_MAX_BOLTS;
-        if(!g->bolts[i].life) continue;
-        game_world_sprite(g,20,g->bolts[i].x/32,g->bolts[i].y/32,224); bolt_drawn++;
     }
     for(uint32_t i=0;i<g->orbit_count;++i) {
         int32_t x,y; game_orbit_position(g,i,&x,&y); game_world_sprite(g,21,x,y,160);
@@ -249,14 +273,14 @@ static void game_draw(const SurvivorGame *g,uint32_t measured_fps,uint32_t us,ui
         }
     }
     if(!(game_hud_pages&page_bit)) {
-        text_at(16,10,"FROSTBOUND",0x07ff);
-        text_at(164,10,"HP",0xffff); text_at(276,10,"LV",0xffff);
-        text_at(392,10,"TIME",0xffff);
-        text_at(16,56,"KILLS",0x9cf3); text_at(180,56,"ENEMIES",0x9cf3);
-        text_at(364,56,"SPRITES",0x9cf3); text_at(540,56,"FPS",0x9cf3);
-        text_at(16,460,"RENDER US",0x07ff); text_at(224,460,"DDR RD",0x07ff);
-        text_at(420,460,"DDR WR",0x07ff);
-        text_at(16,442,"KEY0/1 U/D  KEY2/3 L/R  KEY0+1 PAUSE",0x9cf3);
+        text_at(16,10,"冰霜",0x07ff);
+        text_at(164,10,"生命",0xffff); text_at(276,10,"等级",0xffff);
+        text_at(392,10,"时间",0xffff);
+        text_at(16,56,"击杀",0x9cf3); text_at(180,56,"敌人",0x9cf3);
+        text_at(364,56,"弹幕",0x9cf3); text_at(500,56,"帧率",0x9cf3);
+        text_at(16,460,"渲染微秒",0x07ff); text_at(224,460,"DDR读",0x07ff);
+        text_at(420,460,"DDR写",0x07ff);
+        text_at(16,442,"按键1/2上/下 按键3/4左/右 按键5暂停",0x9cf3);
         game_hud_pages|=page_bit;
     }
     game_hud_number(page,0,200,10,48,g->hp,0xffe0);
@@ -267,7 +291,7 @@ static void game_draw(const SurvivorGame *g,uint32_t measured_fps,uint32_t us,ui
     game_bar(280,34,344,g->xp,g->xp_target,0x07ff);
     game_hud_number(page,3,88,56,72,g->kills,0xffff);
     game_hud_number(page,4,276,56,48,g->enemy_count,0xffff);
-    game_hud_number(page,5,460,56,48,game_sprite_count(g),0xffff);
+    game_hud_number(page,5,420,56,48,g->bolt_count,0xffff);
     game_hud_number(page,6,588,56,36,measured_fps,0xffff);
     game_hud_number(page,7,136,460,84,us,0xffff);
     game_hud_number(page,8,308,460,84,ar,0xffff);
@@ -281,7 +305,7 @@ static void game_loop(void) {
     uint32_t measured_fps=0,us=0,ar=0,aw=0,frames=0,render=0,reads=0,writes=0,window_start=last;
     uint32_t old_state=255;
     while(survivor.state!=GAME_EXIT) {
-        uint32_t held=mmio_read(GFX_BASE+GFX_BUTTON_HELD)&15u;
+        uint32_t held=mmio_read(GFX_BASE+GFX_BUTTON_HELD)&31u;
         uint32_t pressed=button_event()|(held&~previous_held); previous_held=held;
         uint32_t state_before=survivor.state;
         game_input(&survivor,held,pressed);
@@ -320,6 +344,6 @@ static void game_loop(void) {
         // Wall-clock FPS includes UART, HUD and frame-swap waiting; logic uses fixed ticks.
     }
     // A chord used to leave the game must not navigate the restored menu.
-    while(mmio_read(GFX_BASE+GFX_BUTTON_HELD)&15u) (void)button_event();
+    while(mmio_read(GFX_BASE+GFX_BUTTON_HELD)&31u) (void)button_event();
     (void)button_event();
 }

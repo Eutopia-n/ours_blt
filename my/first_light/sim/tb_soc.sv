@@ -8,7 +8,7 @@ module tb_soc;
     always #19.8347107 pixel_clk=~pixel_clk;
     wire soc_reset,master_reset,uart_tx;
     // Debounce timing is tested separately; retain real CPU, DDR and HDMI clocks.
-    button_input #(.ENABLE_REPEAT(0),.DEBOUNCE_CYCLES(32)) buttons(.clk(clk),.reset(soc_reset),.key_n(key_i),
+    button_input #(.KEY_COUNT(4),.ENABLE_REPEAT(0),.DEBOUNCE_CYCLES(32)) buttons(.clk(clk),.reset(soc_reset),.key_n(key_i),
                          .ack_toggle(button_ack[0]),.pending(button_pending),.held(button_held));
     wire [15:0] paddr,pixel;
     wire psel,penable,pwrite,pready,pslverror;
@@ -19,7 +19,7 @@ module tb_soc;
     wire awvalid,awready,wvalid,wready,wlast,bvalid,bready;
     wire arvalid,arready,rvalid,rready,rlast,hs,vs,de;
     `include "soc_wiring.vh"
-    render_subsystem graphics(
+    render_subsystem #(.KEY_COUNT(4)) graphics(
         .clk(clk),.reset(soc_reset|master_reset),.pixel_clk(pixel_clk),.memory_ready(1'b1),
         .button_held(button_held),
         .paddr(paddr),.psel(psel),.penable(penable),.pwrite(pwrite),.pwdata(pwdata),

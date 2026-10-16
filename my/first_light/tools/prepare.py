@@ -58,9 +58,11 @@ param_path.write_text(params)
 
 top = (SOC/'rtl/ddr3_example_top.v').read_text(encoding='utf-8')
 top = top.replace('module ddr3_example_top #', 'module competition_top #', 1)
+top = top.replace('`include "ddr3_controller/ddr3_parameter.vh"',
+                  '`include "vendor/ddr3_controller/ddr3_parameter.vh"', 1)
 top = top.replace('parameter FREQ = 200;', 'parameter FREQ = 100;', 1)
 top, key_port_count = re.subn(r'   input  \[3:0\]\s+soc_gpio_IN,\s*\n\s*output \[3:0\]\s+soc_gpio_OUT,\s*\n\s*output \[3:0\]\s+soc_gpio_OE,',
-             '   input  [3:0]                       key_i,', top, count=1)
+             '   input  [4:0]                       key_i,', top, count=1)
 assert key_port_count == 1
 marker = '   // Clock and reset ports'
 ports = '''   // HDMI TX serializer ports imported from the board HDMI demo.
@@ -77,8 +79,9 @@ decl = '''
   wire [31:0] apb_pwdata, apb_prdata;
   wire apb_psel, apb_penable, apb_pready, apb_pwrite, apb_pslverror;
   wire soc_reset, master_reset;
-  wire [3:0] button_pending, button_ack, button_held;
-  button_input #(.ENABLE_REPEAT(0)) buttons (
+  wire [4:0] button_pending, button_held;
+  wire [3:0] button_ack;
+  button_input #(.ENABLE_REPEAT(0),.KEY_COUNT(5)) buttons (
       .clk(user_clk),.reset(soc_reset),.key_n(key_i),
       .ack_toggle(button_ack[0]),.pending(button_pending),.held(button_held)
   );
@@ -111,7 +114,7 @@ mapping.update(io_asyncReset='!calibration_sync[1]',io_systemReset='soc_reset',
     io_ddrA_b_payload_resp='s_axi_bresp',io_ddrA_aw_payload_prot='s_axi_awprot',
     io_ddrA_aw_payload_cache='s_axi_awcache',io_ddrA_ar_payload_prot='s_axi_arprot',
     io_ddrA_ar_payload_cache='s_axi_arcache',
-    system_gpio_0_io_read='button_pending',system_gpio_0_io_write='button_ack',
+    system_gpio_0_io_read='button_pending[3:0]',system_gpio_0_io_write='button_ack',
     system_gpio_0_io_writeEnable='')
 for channel in ['aw','w','b','ar','r']:
     for field in ['valid','ready']:
@@ -198,22 +201,42 @@ db.find(p('pll_info')).append(pll)
 for lvds in hdmi.find(p('lvds_info')): db.find(p('lvds_info')).append(copy.deepcopy(lvds))
 # ROW_WIDTH=14: the vendor peripheral file also contains two unused address pins.
 gpio=db.find(p('gpio_info'))
+key_pins=['GPIOL_09','GPIOL_04','GPIOL_10','GPIOL_06','GPIOR_13']
+key_nodes=[]
 for node in list(gpio):
-    # i_arstn is unused by this top and otherwise duplicates KEY0/GPIOL_07.
+    # i_arstn is unused by this top; all five J28 inputs are dedicated key pins.
     if node.get('name') in ['ddr_addr[14]','ddr_addr[15]','i_arstn']: gpio.remove(node)
     if node.tag==p('bus') and node.get('name')=='ddr_addr': node.set('msb','13')
     if node.get('name')=='soc_gpio': node.set('name','key_i'); node.set('mode','input')
     if node.get('name','').startswith('soc_gpio['):
         index=int(node.get('name')[9:-1])
+        if index >= len(key_pins):
+            gpio.remove(node)
+            continue
         node.set('name',f'key_i[{index}]'); node.set('bus_name','key_i')
         node.set('mode','input'); node.set('io_standard','3.3 V LVCMOS')
-        node.set('gpio_def',['GPIOL_07','GPIOR_22','GPIOR_21','GPIOL_03'][index])
+        node.set('gpio_def',key_pins[index])
+        key_nodes.append(node)
         for child in list(node):
             if child.tag != p('input_config'): node.remove(child)
             else:
                 child.set('name',f'key_i[{index}]')
+                child.set('pull_option','weak pullup')
                 for attr in ['pullup_ena_name','dyn_delay_en_name','dyn_delay_reset_name','dyn_delay_ctrl_name']:
                     child.set(attr,'')
+# Older vendor peripheral files expose only four soc_gpio[] entries.  Add the
+# fifth J28 key only in that case; this keeps regeneration idempotent when the
+# input file already contains all five entries.
+if len(key_nodes) < len(key_pins):
+    template=key_nodes[0]
+    key5=copy.deepcopy(template)
+    key5.set('name','key_i[4]'); key5.set('bus_name','key_i')
+    key5.set('gpio_def',key_pins[4])
+    input_cfg=key5.find(p('input_config'))
+    if input_cfg is not None: input_cfg.set('name','key_i[4]')
+    gpio.append(key5)
+for node in gpio:
+    if node.tag==p('bus') and node.get('name')=='key_i': node.set('msb','4')
 save(peri,ROOT/'first_light.peri.xml')
 
 project=ET.parse(PAR/'ddr_demo_ti60.xml'); pr=project.getroot()

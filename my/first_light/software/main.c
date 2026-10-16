@@ -32,18 +32,18 @@ static uint32_t collision_hits, collision_active;
 enum { DEMO_FILL, DEMO_COPY, DEMO_BUFFER, DEMO_VIDEO,
        DEMO_KEY, DEMO_ALPHA, DEMO_COLLISION, DEMO_BENCH };
 static const char *const demo_names[8]={
-    "SOLID FILL","BLOCK COPY","DOUBLE BUFFER","HDMI / RES",
-    "COLOR KEY","ALPHA BLEND","COLLISION","SPRITE BENCH"
+    "矩形填充","图像复制","双缓冲","视频模式",
+    "颜色键","透明混合","碰撞检测","精灵压力"
 };
 static const char *const demo_details[8]={
-    "RGB565 RECTANGLES","SOURCE DDR TO DESTINATION DDR",
-    "FRAME BOUNDARY PAGE SWAP","COLOR BARS AND MEASURED SIZE",
-    "BLACK PIXELS BECOME TRANSPARENT","KEY0 +1 / KEY2 -1 OPACITY",
-    "RISC-V AABB OVERLAP DETECTION","64/128/256 CPU AND FPGA TEST"
+    "RGB565 硬件填充","DDR 图像复制到显存",
+    "垂直消隐交换页面","颜色条与实际尺寸",
+    "黑色像素变为透明","按键1加一 按键3减一",
+    "RISC-V 包围盒碰撞","64/128/256 精灵测试"
 };
 static const char *const action_labels[8]={
-    "KEY0 COLOR","KEY0 POSITION","KEY0 SPEED","KEY0 PATTERN",
-    "KEY0 KEY ON/OFF","KEY0 +1  KEY2 -1","KEY0 RESTART","KEY0 COUNT"
+    "按键1改变颜色","按键1改变位置","按键1改变速度","按键1改变图案",
+    "按键1开关颜色键","按键1加一 按键3减一","按键1重新开始","按键1改变数量"
 };
 static uint32_t menu_level, menu_group, menu_item[2];
 static uint32_t fps[2], render_us[2], samples[2], burst_ar[2], burst_aw[2];
@@ -200,9 +200,19 @@ static void cpu_blend_copy(uint32_t x, uint32_t y, uint32_t alpha, uint32_t flag
     cpu_blend_copy_source(ASSET_BASE,x,y,alpha,flags);
 }
 #include "font5x7.h"
+#include "font_cn.h"
 static void text_at(uint32_t x,uint32_t y,const char *s,uint16_t color) {
     while (*s) {
-        char c=*s++;
+        uint32_t codepoint=font_cn_utf8_next(&s);
+        const uint16_t *cn=font_cn_find(codepoint);
+        if(cn) {
+            for(uint32_t row=0;row<14;++row)
+                for(uint32_t col=0;col<12;++col)
+                    if(cn[row]&(1u<<col)) cpu_fill(x+col,y+row,1,1,color);
+            x+=14;
+            continue;
+        }
+        char c=(char)codepoint;
         int glyph=c>='0'&&c<='9' ? c-'0' : c>='A'&&c<='Z' ? c-'A'+10 : -1;
         for (uint32_t col=0;col<5;++col) {
             uint8_t bits=glyph>=0 ? font5x7[glyph][col] : c=='-' ? 8 :
@@ -226,7 +236,14 @@ static void uart_number(const char *label,uint32_t value) {
     char number[11]; decimal(number,value); puts_uart(label); puts_uart(number);
 }
 static uint32_t button_event(void) {
+    static uint32_t action_held;
+    uint32_t held=mmio_read(GFX_BASE+GFX_BUTTON_HELD)&31u;
     uint32_t keys=mmio_read(SYSTEM_GPIO_0_IO_CTRL)&15u;
+    // The Sapphire GPIO peripheral is four bits wide in the generated SoC.
+    // The fifth J28 key is therefore edge-detected from the renderer's live
+    // debounced register; it still shares the normal GPIO acknowledgement.
+    if((held&16u) && !(action_held&16u)) keys|=16u;
+    action_held=held&16u;
     // The FPGA retains one debounced event until this GPIO toggle acknowledges it.
     if (keys) mmio_write(SYSTEM_GPIO_0_IO_CTRL+4,mmio_read(SYSTEM_GPIO_0_IO_CTRL+4)^1u);
     return keys;
@@ -359,55 +376,55 @@ static void clear_samples(void) {
 }
 static void hud(uint32_t hw,uint32_t demo,uint32_t automatic,uint32_t frame,uint32_t variant) {
     text_at(16,8,demo_names[demo],0x07ff);
-    if(demo==DEMO_BENCH) { text_at(200,8,"SPRITES",0xffff); number_at(296,8,sprite_count,0xffe0); }
-    text_at(400,8,automatic ? "AUTO CPU/HW" : "MANUAL",0x07ff);
+    if(demo==DEMO_BENCH) { text_at(200,8,"精灵",0xffff); number_at(260,8,sprite_count,0xffe0); }
+    text_at(400,8,automatic ? "自动 CPU/FPGA" : "手动",0x07ff);
     for (uint32_t n=0;n<2;++n) {
         uint32_t x=16+n*320;
         uint16_t color=n==hw ? 0xffe0 : 0xffff;
-        text_at(x,32,n ? "FPGA FPS" : "RISCV FPS",color);
+        text_at(x,32,n ? "FPGA 帧率" : "RISC-V 帧率",color);
         if(samples[n]) number_at(x+108,32,fps[n],color);
         else text_at(x+108,32,"-",color);
-        text_at(x,54,"RENDER US",color);
+        text_at(x,54,"渲染微秒",color);
         if(samples[n]) number_at(x+120,54,render_us[n],color);
         else text_at(x+120,54,"-",color);
-        text_at(x,76,"DDR R",color); text_at(x+160,76,"W",color);
+        text_at(x,76,"DDR 读",color); text_at(x+160,76,"写",color);
         if(samples[n]) {
             number_at(x+72,76,burst_ar[n],color);
             number_at(x+184,76,burst_aw[n],color);
         }
     }
-    text_at(16,102,"BURSTS/FRAME",0x9cf3);
+    text_at(16,102,"每帧突发",0x9cf3);
     if(demo==DEMO_COLLISION) {
-        text_at(240,102,"HIT",0x9cf3); number_at(288,102,collision_hits,0x9cf3);
+        text_at(240,102,"命中",0x9cf3); number_at(288,102,collision_hits,0x9cf3);
     }
     if(mmio_read(GFX_BASE+GFX_VIDEO_STATUS)&GFX_VIDEO_VALID) {
         uint32_t size=mmio_read(GFX_BASE+GFX_VIDEO_SIZE);
-        number_at(448,102,size&65535,0x9cf3); text_at(484,102,"X",0x9cf3);
+        number_at(448,102,size&65535,0x9cf3); text_at(484,102,"×",0x9cf3);
         number_at(496,102,size>>16,0x9cf3);
     }
     switch(demo) {
-    case DEMO_FILL: text_at(32,128,"RGB565 RECTANGLE FILL",0xffff); break;
+    case DEMO_FILL: text_at(32,128,"RGB565 矩形填充",0xffff); break;
     case DEMO_COPY:
-        text_at(64,152,"SOURCE",0xffff); text_at(384,152,"COPY 128X96",0xffff); break;
+        text_at(64,152,"源图像",0xffff); text_at(384,152,"复制 128×96",0xffff); break;
     case DEMO_BUFFER:
-        text_at(32,128,draw_page() ? "PAGE B" : "PAGE A",0xffff);
-        text_at(200,128,"FRAME",0xffff); number_at(272,128,frame,0xffff);
-        text_at(48,372,"SWAP ONLY AT VBLANK",0xffff); break;
-    case DEMO_VIDEO: text_at(32,128,"HDMI COLOR AND ALIGNMENT TEST",0xffff); break;
+        text_at(32,128,draw_page() ? "页面B" : "页面A",0xffff);
+        text_at(200,128,"帧",0xffff); number_at(272,128,frame,0xffff);
+        text_at(48,372,"只在垂直消隐时交换",0xffff); break;
+    case DEMO_VIDEO: text_at(32,128,"HDMI 颜色与对齐测试",0xffff); break;
     case DEMO_KEY:
-        text_at(40,144,"KEY OFF",0xffff);
-        text_at(344,144,variant ? "KEY ON" : "KEY OFF",0xffff); break;
+        text_at(40,144,"颜色键关",0xffff);
+        text_at(344,144,variant ? "颜色键开" : "颜色键关",0xffff); break;
     case DEMO_ALPHA:
-        text_at(40,144,"REFERENCE OPAQUE",0xffff); text_at(344,144,"FPGA ALPHA",0xffff);
+        text_at(40,144,"参考不透明",0xffff); text_at(344,144,"FPGA 透明度",0xffff);
         number_at(480,144,alpha_value(variant),0xffe0); text_at(516,144,"/255",0xffff);
-        text_at(40,400,"STEP 1 / HOLD TO REPEAT / KEY OFF",0x07ff); break;
+        text_at(40,400,"步进1 长按连发 颜色键关",0x07ff); break;
     case DEMO_COLLISION:
-        text_at(32,128,collision_active ? "OVERLAP - RED" : "CLEAR - GREEN",0xffff);
-        text_at(32,368,"RISC-V COMPUTES TWO 80X80 AABBS",0xffff); break;
-    default: text_at(32,128,"RANDOM MOTION / ALPHA + COLOR KEY",0xffff); break;
+        text_at(32,128,collision_active ? "重叠 - 红色" : "空闲 - 绿色",0xffff);
+        text_at(32,368,"RISC-V 计算两个 80×80 包围盒",0xffff); break;
+    default: text_at(32,128,"随机运动 / 透明与颜色键",0xffff); break;
     }
     text_at(16,426,action_labels[demo],0xffff);
-    text_at(16,450,"KEY1 CPU/HW  KEY3 BACK",0x07ff);
+    text_at(16,450,"按键2切换 CPU/FPGA  按键4返回",0x07ff);
     publish_pixels();
 }
 static uint32_t menu_screen(void) {
@@ -417,9 +434,9 @@ static uint32_t menu_screen(void) {
         __asm__ volatile (".word 0x500f" ::: "memory");
         if(fill_rect(0,0,640,480,0x0843)) fail("FAIL menu fill");
         if(fill_rect(24,18,592,64,0x10a6)) fail("FAIL menu header");
-        text_at(40,30,menu_level ? (menu_group ? "ADVANCED DEMOS" : "BASIC DEMOS") :
-                    "TI60 2D LAB",0xffff);
-        text_at(40,54,menu_level ? "SELECT A FUNCTION" : "SELECT A TEST",0x07ff);
+        text_at(40,30,menu_level ? (menu_group ? "高阶演示" : "基础演示") :
+                    "TI60 二维实验室",0xffff);
+        text_at(40,54,menu_level ? "选择功能" : "选择测试",0x07ff);
         draw_player(0,566,34,1);
         uint32_t count=menu_level ? 4 : 3;
         uint32_t choice=menu_level ? menu_item[menu_group] : menu_group;
@@ -428,12 +445,12 @@ static uint32_t menu_screen(void) {
                 uint32_t y=96+n*80;
                 if(fill_rect(32,y,576,68,n==choice ? 0x22ae : 0x10c7)) fail("FAIL menu card");
                 if(n==choice && fill_rect(32,y,4,68,0x07ff)) fail("FAIL menu selection");
-                text_at(52,y+12,n==2 ? "FROSTBOUND SURVIVOR" : n ? "ADVANCED DEMOS" : "BASIC DEMOS",0xffff);
-                text_at(52,y+40,n==2 ? "AUTO SPELLS / SURVIVE 180S" : "4 FUNCTIONS",0x07ff);
+                text_at(52,y+12,n==2 ? "冰霜幸存者" : n ? "高阶演示" : "基础演示",0xffff);
+                text_at(52,y+40,n==2 ? "自动施法 生存180秒" : "4项功能",0x07ff);
             }
-            text_at(40,356,"KEY0 PREVIOUS    KEY1 NEXT",0xffff);
-            text_at(40,384,"KEY2 OPEN        KEY3 BACK",0xffe0);
-            text_at(40,432,"8 DEMOS + SURVIVOR GAME",0x9cf3);
+            text_at(40,356,"按键1上一项    按键2下一项",0xffff);
+            text_at(40,384,"按键5打开      按键4返回",0xffe0);
+            text_at(40,432,"8项演示 + 幸存者游戏",0x9cf3);
         } else {
             for(uint32_t n=0;n<4;++n) {
                 uint32_t y=90+n*72, demo=menu_group*4+n;
@@ -442,8 +459,8 @@ static uint32_t menu_screen(void) {
                 text_at(52,y+8,demo_names[demo],0xffff);
                 text_at(52,y+32,demo_details[demo],0x07ff);
             }
-            text_at(40,404,"KEY0 PREVIOUS    KEY1 NEXT",0xffff);
-            text_at(40,432,"KEY2 START       KEY3 BACK",0xffe0);
+            text_at(40,404,"按键1上一项    按键2下一项",0xffff);
+            text_at(40,432,"按键5开始      按键4返回",0xffe0);
         }
         publish_pixels();
         if(present_frame()) fail("FAIL menu present");
@@ -451,7 +468,7 @@ static uint32_t menu_screen(void) {
         uint32_t keys;
         do { keys=button_event(); } while (!keys);
         if(keys==8) { menu_level=0; continue; }
-        if(keys==4) {
+        if(keys==16) {
             if(!menu_level && menu_group==2) return 8;
             if(menu_level) return menu_group*4+menu_item[menu_group];
             menu_level=1;
@@ -499,6 +516,7 @@ int main(void) {
                 clear_samples(); collision_hits=0; frame=0; reset_sample=1;
             }
             if(keys==2) { hw^=1u; automatic=0; frame=0; reset_sample=1; }
+            if(keys==16) break;
             if(automatic && frame>=8) { hw^=1u; frame=0; reset_sample=1; }
             // Keep each four-frame report tied to one Sprite load. A change in
             // object count starts a fresh measurement window.

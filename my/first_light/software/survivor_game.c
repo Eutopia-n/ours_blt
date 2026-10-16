@@ -43,11 +43,11 @@ void game_reset(SurvivorGame *g,uint32_t seed) {
     g->attack_period=24; g->magnet=48; g->orbit_count=1; g->state=GAME_READY;
 }
 const char *game_upgrade_name(uint32_t n) {
-    static const char *const names[]={"ARCANE POWER","RAPID CAST","FROST ORBIT","SWIFT BOOTS","GEM MAGNET","HEALING RUNE"};
+    static const char *const names[]={"奥术强化","快速施法","冰霜法环","迅捷战靴","宝石磁力","治疗符文"};
     return names[n%6];
 }
 const char *game_upgrade_detail(uint32_t n) {
-    static const char *const details[]={"DMG+1 / L3 PEN / MAX+2","FASTER / MAX 2 SHOTS","MORE ORBS / MAX FROST","SPEED+ / MAX DASH","RANGE+ / MAX ALL","MAX HP+ / LV3 REGEN"};
+    static const char *const details[]={"伤害+1 / 3级穿透 / 上限+2","更快 / 上限2发","法环更多 / 上限冰霜","速度+ / 上限冲刺","范围+ / 上限全图","生命上限+ / 3级再生"};
     return details[n%6];
 }
 uint32_t game_upgrade_max(uint32_t n) {
@@ -103,26 +103,28 @@ static void upgrade(SurvivorGame *g) {
     g->state=GAME_PLAY;
 }
 void game_input(SurvivorGame *g,uint32_t held,uint32_t pressed) {
-    if(g->state==GAME_READY) { if(pressed&4u) g->state=GAME_PLAY; else if(pressed&8u) g->state=GAME_EXIT; return; }
+    (void)held;
+    if(g->state==GAME_READY) { if(pressed&16u) g->state=GAME_PLAY; else if(pressed&8u) g->state=GAME_EXIT; return; }
     if(g->state==GAME_OVER || g->state==GAME_WON) {
-        if(pressed&4u) { uint32_t seed=g->rng; game_reset(g,seed); g->state=GAME_PLAY; }
+        if(pressed&16u) { uint32_t seed=g->rng; game_reset(g,seed); g->state=GAME_PLAY; }
         else if(pressed&8u) g->state=GAME_EXIT;
         return;
     }
     if(g->state==GAME_PAUSED) {
-        if(pressed&4u) g->state=g->resume_state;
+        if(pressed&16u) g->state=g->resume_state;
         else if(pressed&8u) g->state=GAME_EXIT;
         return;
     }
     if(g->state==GAME_UPGRADE) {
         if(pressed==1) g->choice=(g->choice+2)%3;
         if(pressed==2) g->choice=(g->choice+1)%3;
-        if(pressed==4) upgrade(g);
+        if(pressed==16) upgrade(g);
         if(pressed==8) { g->resume_state=GAME_UPGRADE; g->state=GAME_PAUSED; }
         return;
     }
-    // Pending events also preserve a short chord released between rendered frames.
-    if(g->state==GAME_PLAY && pressed && ((held&3u)==3u || (held&12u)==12u || pressed==3u || pressed==12u)) {
+    // The fifth external key is a dedicated action key, so gameplay pause is
+    // deterministic and does not depend on holding a movement chord.
+    if(g->state==GAME_PLAY && (pressed&16u)) {
         g->resume_state=GAME_PLAY; g->state=GAME_PAUSED;
     }
 }

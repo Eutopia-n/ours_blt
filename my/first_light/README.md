@@ -1,6 +1,8 @@
 # Ti60 2D 引擎：独立功能演示与生存游戏
 
-2026-10-10 更新 Alpha 每步 1、KEY2 独立减小且移除 AUTO 控制；改为 2048×1408 跟随相机地图，增加升级菜单图标/等级上限/满级质变，并将治疗符文改为蓝青配色。掉电启动需一次性写入 SPI Flash，步骤见 [FLASH_PROGRAMMING.md](FLASH_PROGRAMMING.md)。
+2026-10-16 更新为 J28 五键输入：J28-34/37/38/39/40 分别连接 GPIOL_09/GPIOL_04/GPIOL_10/GPIOL_06/GPIOR_13，复位键保持不变；菜单、功能页和游戏 HUD 改为中文。弹幕显示池提升到 48 个，使用 CPU 直接写入 5×5/7×7 小矩形，避免 32×32 图像读取和逐弹幕命令等待拖慢 60 Hz。
+
+2026-10-10 更新 Alpha 每步 1、移除 AUTO 控制；改为 2048×1408 跟随相机地图，增加升级菜单图标/等级上限/满级质变，并将治疗符文改为蓝青配色。掉电启动需一次性写入 SPI Flash，步骤见 [FLASH_PROGRAMMING.md](FLASH_PROGRAMMING.md)。
 
 2026-10-08 新增首页第三项 **FROSTBOUND SURVIVOR**：用户人物四方向 16 帧动画、持续按键移动、随机刷怪和追踪、自动魔法弹与环绕法球、碰撞受伤、经验拾取、三选一升级、暂停/继续、死亡重开和 180 秒胜利。当前地图可滚动、人物由相机跟随，技能满级后触发穿透、双发、冲刺等效果。菜单、石砖竞技场和魔法采用统一的深蓝/青色像素风格。操作和存储说明见 [GAME_DEMO.md](GAME_DEMO.md)，开源参考与许可证见 [THIRD_PARTY.md](THIRD_PARTY.md)。
 
@@ -32,9 +34,9 @@
 - 基础与高阶各有 4 个独立功能页；前 7 页默认固定 HW 演示，性能页默认每 8 帧自动切换 CPU/HW；两条路径处理相同负载并从相同帧序列开始。
 - 屏幕并排显示 CPU/HW 的 FPS、平均渲染微秒数和每帧渲染器读写 burst；UART 每 4 帧输出同一组的 FPS/渲染时间、Sprite 数、读写 burst 总数及碰撞累计数。
 - 根据送入 HDMI 编码器的实际 DE/HS/VS，每帧测量有效宽高，HUD 读取对应 APB 寄存器显示分辨率。
-- 游戏使用固定 60 Hz 逻辑更新、256 敌人/48 魔法弹/96 宝石对象池和 6 种升级，FPGA 负责背景拷贝与 Alpha/Color Key 合成。屏幕显示生命、经验、等级、时间、击杀和渲染指标。
+- 游戏使用固定 60 Hz 逻辑更新、256 敌人/48 魔法弹/96 宝石对象池和 6 种升级，FPGA 负责背景拷贝与 Alpha/Color Key 合成。弹幕优先由 CPU 写入 5×5/7×7 RGB565 小矩形，48 个逻辑弹幕都可在一帧内更新；屏幕显示生命、经验、等级、时间、击杀和渲染指标。
 
-菜单中 KEY0 上一项、KEY1 下一项、KEY2 进入、KEY3 返回。Alpha 页支持 KEY0 +1、KEY2 -1，按住自动重复且端点饱和；KEY2 不再开关 AUTO。Sprite Bench 默认自动比较 CPU/HW，KEY1 手动切换。UART 仅输出日志。掉电启动须写入 SPI Flash，完成后断电重上电验证。
+菜单中按键1上一项、按键2下一项、按键5进入、按键4返回；游戏中按键1/2/3/4为上/下/左/右，按键5负责开始、暂停、确认。Alpha 页支持按键1加一、按键3减一，按住自动重复且端点饱和。Sprite 压力页默认自动比较 CPU/FPGA，按键2手动切换。UART 仅输出日志。掉电启动须写入 SPI Flash，完成后断电重上电验证。
 
 ## 2. 为什么这样连接
 
@@ -63,10 +65,10 @@ DDR 与像素时钟不同，所以显示端不能直接跨时钟读取一组普�
 | `rtl/video_mode_measure.v` | 从实际 DE/HS/VS 测量每帧有效宽高 |
 | `rtl/render_subsystem.v` | 模块连接、显示/拷贝读通道仲裁 |
 | `software/main.c` | C 驱动、简洁菜单、按键事件、位置/碰撞、CPU/HW 基线、HUD 与计时 |
-| `software/font5x7.h` | 5×7 字库，屏幕整数放大两倍 |
+| `software/font5x7.h`、`software/font_cn.h` | ASCII 与中文像素字库，中文 12×14 点阵 |
 | `software/player_asset.h` | 从附件像素图整理的四个 32×32 RGB565 方向帧，RLE 压缩后启动解压到 DDR |
 | `assets/player/`、`tools/prepare_player_assets.py` | 附件原图、完整 16 帧图集、RGB565 和方向元数据、可复现的转换工具 |
-| `rtl/button_input.v` | 按键同步、20 ms 消抖、短按暂存，可选长按重复（当前菜单禁用） |
+| `rtl/button_input.v` | 五路按键同步、20 ms 消抖、短按暂存，可选长按重复（当前菜单禁用） |
 | `tools/expand_soc_ram.py` | 对综合/仿真 SoC 同步应用 64 KiB 片内 RAM 扩容 |
 | `software/double_buffer_demo.c` | 保留上一阶段的静态两页校验程序 |
 | `software/start.S`、`software/link.ld` | 片内 RAM 启动、异常处理入口与内存布局 |
@@ -140,7 +142,7 @@ python my\first_light\tools\build.py compile
 | 0x58 | COLOR_KEY | 读写 | 低 16 位 RGB565 透明色；复位 0，高位忽略 |
 | 0x5C | BURST_READ | 只读 | 渲染引擎 AR 握手累计数，复位清零，不含 CPU/视频扫描 |
 | 0x60 | BURST_WRITE | 只读 | 渲染引擎 AW 握手累计数，复位清零，不含 CPU 写入 |
-| 0x64 | BUTTON_HELD | 只读 | 按键消抖后的持续状态，bit0～3 对应 KEY0～3，1 表示按住；不随事件确认清零 |
+| 0x64 | BUTTON_HELD | 只读 | 按键消抖后的持续状态，bit0～4 对应按键1～5，1 表示按住；不随事件确认清零 |
 
 STATUS：bit0 BUSY，bit1 DONE，bit2 渲染命令错误（填充或拷贝），bit3 DDR_READY，bit4 显示欠载，bit5 显示读响应/长度错误，bit6 当前显示页（0=A，1=B），bit7 SWAP_PENDING（换页等待确认）。DONE 和命令错误在下一条命令启动时清除；显示错误保持到复位。拷贝读错误报告在 bit2，不混入显示错误。
 

@@ -10,7 +10,7 @@
 //Modification History
 //1.initial
 //***************************************************************/
-`include "ddr3_controller/ddr3_parameter.vh"
+`include "vendor/ddr3_controller/ddr3_parameter.vh"
 
 `define Efinity_Debug
 `timescale 1ps/1ps
@@ -62,7 +62,7 @@ parameter                       AXI_DATA_WIDTH     = `AXI_DATA_WIDTH
    //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
    output  wire                       system_uart_0_io_txd,
    input                              system_uart_0_io_rxd,   
-   input  [3:0]                       key_i,
+   input  [4:0]                       key_i,
     // debug core ports
 `ifdef  Efinity_Debug  //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& 
 `ifdef SOFT_JTAG
@@ -158,8 +158,9 @@ parameter FREQ = 100;			// default is 100 MHz.  Redefine as needed.
   wire [31:0] apb_pwdata, apb_prdata;
   wire apb_psel, apb_penable, apb_pready, apb_pwrite, apb_pslverror;
   wire soc_reset, master_reset;
-  wire [3:0] button_pending, button_ack, button_held;
-  button_input #(.ENABLE_REPEAT(0)) buttons (
+  wire [4:0] button_pending, button_held;
+  wire [3:0] button_ack;
+  button_input #(.ENABLE_REPEAT(0),.KEY_COUNT(5)) buttons (
       .clk(user_clk),.reset(soc_reset),.key_n(key_i),
       .ack_toggle(button_ack[0]),.pending(button_pending),.held(button_held)
   );
@@ -566,7 +567,7 @@ soc u_sapphire_soc(
     .io_ddrMasters_0_aw_ready (gfx_awready),
     .io_ddrMasters_0_aw_valid (gfx_awvalid),
     .system_gpio_0_io_write (button_ack),
-    .system_gpio_0_io_read (button_pending),
+    .system_gpio_0_io_read (button_pending[3:0]),
     .system_spi_0_io_ss (system_spi_0_io_ss)
 );
 

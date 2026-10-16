@@ -1,6 +1,8 @@
 // APB3 control interface at the existing Sapphire IO_APB_SLAVE_0_INPUT.
 `default_nettype none
-module render_regs (
+module render_regs #(
+    parameter KEY_COUNT = 5
+)(
     input wire clk, reset,
     input wire [15:0] paddr, input wire psel, penable, pwrite,
     input wire [31:0] pwdata,
@@ -8,7 +10,7 @@ module render_regs (
     input wire memory_ready, busy, done, error,
     input wire [31:0] cycles,
     input wire [31:0] burst_reads, burst_writes,
-    input wire [3:0] button_held,
+    input wire [KEY_COUNT-1:0] button_held,
     input wire video_underflow, video_error, display_page_active, swap_ack,
     input wire [15:0] video_width, video_height,
     input wire video_mode_valid,
@@ -69,7 +71,7 @@ module render_regs (
         88: prdata = {16'd0,color_key};
         92: prdata = burst_reads;
         96: prdata = burst_writes;
-        100: prdata = {28'd0,button_held}; // Read-only live game movement input.
+        100: prdata = button_held; // Read-only live game movement and action input.
         default: prdata = 0;
         endcase
     end

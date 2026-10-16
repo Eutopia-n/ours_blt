@@ -4,16 +4,17 @@
 module button_input #(
     parameter DEBOUNCE_CYCLES = 2000000,
     parameter REPEAT_CYCLES = 12000000,
-    parameter ENABLE_REPEAT = 1
+    parameter ENABLE_REPEAT = 1,
+    parameter KEY_COUNT = 5
 ) (
     input wire clk,
     input wire reset,
-    input wire [3:0] key_n,
+    input wire [KEY_COUNT-1:0] key_n,
     input wire ack_toggle,
-    output reg [3:0] pending,
-    output wire [3:0] held
+    output reg [KEY_COUNT-1:0] pending,
+    output wire [KEY_COUNT-1:0] held
 );
-    reg [3:0] key_meta, key_sync, candidate, stable;
+    reg [KEY_COUNT-1:0] key_meta, key_sync, candidate, stable;
     reg [$clog2(DEBOUNCE_CYCLES+1)-1:0] debounce_count;
     reg [$clog2(REPEAT_CYCLES+1)-1:0] repeat_count;
     reg ack_seen, chord_hold;
@@ -21,11 +22,11 @@ module button_input #(
     assign held = stable;
     wire commit = ~key_sync == candidate && candidate != stable &&
                   debounce_count == DEBOUNCE_CYCLES-1;
-    wire single_key = stable == 1 || stable == 2 || stable == 4 || stable == 8;
+    wire single_key = stable != 0 && ((stable & (stable-1'b1)) == 0);
 
     always @(posedge clk) begin
         if (reset) begin
-            key_meta <= 4'hf; key_sync <= 4'hf;
+            key_meta <= {KEY_COUNT{1'b1}}; key_sync <= {KEY_COUNT{1'b1}};
             candidate <= 0; stable <= 0; pending <= 0;
             debounce_count <= 0; repeat_count <= 0;
             ack_seen <= 0; chord_hold <= 0;

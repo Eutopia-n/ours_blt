@@ -1,7 +1,9 @@
 `default_nettype none
-module render_subsystem (
+module render_subsystem #(
+    parameter KEY_COUNT = 5
+)(
     input wire clk, reset, pixel_clk, memory_ready,
-    input wire [3:0] button_held,
+    input wire [KEY_COUNT-1:0] button_held,
     input wire [15:0] paddr, input wire psel, penable, pwrite,
     input wire [31:0] pwdata,
     output wire [31:0] prdata, output wire pready, pslverror,
@@ -110,7 +112,7 @@ module render_subsystem (
     assign fill_rvalid = read_state == READ_DATA && read_owner_copy && rvalid;
     assign video_rvalid = read_state == READ_DATA && !read_owner_copy && rvalid;
     assign rready = read_state == READ_DATA && (read_owner_copy ? fill_rready : video_rready);
-    render_regs regs (
+    render_regs #(.KEY_COUNT(KEY_COUNT)) regs (
         .clk(clk),.reset(reset),.paddr(paddr),.psel(psel),.penable(penable),
         .pwrite(pwrite),.pwdata(pwdata),.prdata(prdata),.pready(pready),.pslverror(pslverror),
         .memory_ready(memory_ready),.busy(busy),.done(done),.error(error),.cycles(cycles),

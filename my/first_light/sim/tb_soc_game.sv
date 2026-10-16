@@ -1,12 +1,13 @@
 `timescale 1ns/1ps
 module tb_soc;
     reg clk=0,pixel_clk=0,reset=1,uart_rx=1;
-    reg [3:0] key_i=15;
+    reg [4:0] key_i=31;
     always #5 clk=~clk;
     always #19.8347107 pixel_clk=~pixel_clk;
     wire soc_reset,master_reset,uart_tx;
-    wire [3:0] button_pending,button_ack,button_held;
-    button_input #(.ENABLE_REPEAT(0),.DEBOUNCE_CYCLES(32)) buttons(
+    wire [3:0] button_pending,button_ack;
+    wire [4:0] button_held;
+    button_input #(.KEY_COUNT(5),.ENABLE_REPEAT(0),.DEBOUNCE_CYCLES(32)) buttons(
         .clk(clk),.reset(soc_reset),.key_n(key_i),.ack_toggle(button_ack[0]),.pending(button_pending),.held(button_held));
     wire [15:0] paddr,pixel;
     wire psel,penable,pwrite,pready,pslverror;
@@ -17,7 +18,7 @@ module tb_soc;
     wire awvalid,awready,wvalid,wready,wlast,bvalid,bready;
     wire arvalid,arready,rvalid,rready,rlast,hs,vs,de;
     `include "soc_wiring.vh"
-    render_subsystem graphics(
+    render_subsystem #(.KEY_COUNT(5)) graphics(
         .clk(clk),.reset(soc_reset|master_reset),.pixel_clk(pixel_clk),.memory_ready(1'b1),.button_held(button_held),
         .paddr(paddr),.psel(psel),.penable(penable),.pwrite(pwrite),.pwdata(pwdata),
         .prdata(prdata),.pready(pready),.pslverror(pslverror),
@@ -145,7 +146,7 @@ module tb_soc;
         if(psel&&penable&&pready) begin
             if(pslverror) $fatal(1,"Game APB error at %h",paddr);
             if(!pwrite && paddr==100) begin
-                held_reads++; if(prdata[3:0]!==button_held) $fatal(1,"Live keys lost at APB");
+                held_reads++; if(prdata[3:0]!==button_held[3:0]) $fatal(1,"Live keys lost at APB");
             end
             if(pwrite&&paddr==8) render_reference();
             if(pwrite&&paddr==64) begin
@@ -179,23 +180,25 @@ module tb_soc;
             uart_line="";
         end
     end
-    task tap(input reg [3:0] mask);
-        key_i=~mask; #2000; key_i=15; #2000;
+    task tap(input reg [4:0] mask);
+        key_i=~mask; #2000;
+        $fdisplay(progress_file,"TAP mask=%h key_n=%h held=%h pending=%h",mask,key_i,button_held,button_pending); $fflush(progress_file);
+        key_i=31; #2000;
     endtask
-    task menu_key(input reg [3:0] mask);
+    task menu_key(input reg [4:0] mask);
         integer previous_count; previous_count=present; tap(mask); wait(present>previous_count);
     endtask
-    task hold_key(input reg [3:0] mask,input integer frames);
+    task hold_key(input reg [4:0] mask,input integer frames);
         integer previous_count; previous_count=game_frames; key_i=~mask;
-        wait(game_frames>=previous_count+frames); key_i=15; #2000;
+        wait(game_frames>=previous_count+frames); key_i=31; #2000;
     endtask
     initial begin
         wait(present>=1 && verified_scans>=1);
-        menu_key(2); menu_key(2); tap(4); // root game entry
-        wait(state_seen[0]>=1); tap(4); wait(state_seen[1]>=1);
+        menu_key(2); menu_key(2); tap(16); // root game entry
+        wait(state_seen[0]>=1); tap(16); wait(state_seen[1]>=1);
         hold_key(8,15); hold_key(1,6); hold_key(4,6); hold_key(2,6);
-        tap(3); wait(state_seen[3]>=1); tap(4); wait(state_seen[1]>=2);
-        hold_key(10,5); tap(12); wait(state_seen[3]>=2); tap(8);
+        tap(16); wait(state_seen[3]>=1); tap(16); wait(state_seen[1]>=2);
+        hold_key(10,5); tap(16); wait(state_seen[3]>=2); tap(8);
         wait(menu_count>=4); // 3 root redraws, then returned root.
         wait(previewed[graphics.display_page_active]==present && acks==present);
         if(held_reads<15 || game_frames<20 || bg_copies<2 || map_copies<40 || floor_source_max<=floor_source_min || blends<20 || enemy_reads==0 || orb_reads==0 ||

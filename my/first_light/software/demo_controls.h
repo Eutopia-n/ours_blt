@@ -9,7 +9,7 @@
 static uint32_t demo_alpha_update(uint32_t value,uint32_t pressed,uint32_t held,
                                   uint32_t now,uint32_t *next_repeat,
                                   int32_t *repeat_direction) {
-    /* KEY0 raises opacity and KEY2 lowers it. A single key is easier to hold. */
+    /* 按键1提高透明度，按键3降低透明度；单键长按更容易操作。 */
     int32_t direction=0;
     if(pressed&1u) direction=1;
     else if(pressed&4u) direction=-1;
