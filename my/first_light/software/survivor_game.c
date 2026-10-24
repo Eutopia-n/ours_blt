@@ -33,14 +33,18 @@ static void recount(SurvivorGame *g) {
     for(uint32_t i=0;i<GAME_MAX_BOLTS;++i) if(g->bolts[i].life) g->bolt_count++;
     for(uint32_t i=0;i<GAME_MAX_GEMS;++i) if(g->gems[i].value) g->gem_count++;
     if(g->enemy_count>g->peak_enemies) g->peak_enemies=g->enemy_count;
+    uint32_t sprites=1u+g->enemy_count+g->bolt_count+g->gem_count+g->orbit_count;
+    if(sprites>g->peak_sprites) g->peak_sprites=(uint16_t)sprites;
 }
 void game_reset(SurvivorGame *g,uint32_t seed) {
     unsigned char *p=(unsigned char *)g;
     for(uint32_t i=0;i<sizeof(*g);++i) p[i]=0;
     g->rng=seed ? seed : 0x6d2b79f5u;
     g->x=(GAME_WORLD_WIDTH/2)*256; g->y=(GAME_WORLD_HEIGHT/2)*256; g->hp=g->max_hp=100;
-    g->level=1; g->xp_target=5; g->speed=512; g->damage=2;
-    g->attack_period=24; g->magnet=48; g->orbit_count=1; g->state=GAME_READY;
+    /* A larger first threshold prevents a single nearby gem from opening the
+     * upgrade screen immediately; the threshold grows with each level below. */
+    g->level=1; g->xp_target=GAME_INITIAL_XP_TARGET; g->speed=512; g->damage=2;
+    g->attack_period=24; g->magnet=48; g->orbit_count=1; g->peak_sprites=2; g->state=GAME_READY;
 }
 const char *game_upgrade_name(uint32_t n) {
     static const char *const names[]={"奥术强化","快速施法","冰霜法环","迅捷战靴","宝石磁力","治疗符文"};
@@ -82,7 +86,7 @@ static void upgrade(SurvivorGame *g) {
         if(level==5) g->rapid_burst=1;
         break;
     case UPGRADE_ORBIT:
-        if(g->orbit_count<4) g->orbit_count++; else if(g->damage<30) g->damage++;
+        if(g->orbit_count<GAME_MAX_ORBITS) g->orbit_count++; else if(g->damage<30) g->damage++;
         if(level>=3) g->orbit_damage=1;
         if(level==4) g->orbit_damage=2;
         break;
@@ -169,8 +173,8 @@ static void drop_gem(SurvivorGame *g,const GameEnemy *e) {
     g->gems[best].kind|=kind;
 }
 static void hurt_enemy(SurvivorGame *g,GameEnemy *e,uint32_t damage) {
-    if(damage>=e->hp) { drop_gem(g,e); e->hp=0; g->kills++; }
-    else { e->hp-=(uint8_t)damage; e->flash=6; }
+    if(damage>=e->hp) { drop_gem(g,e); e->hp=0; e->flash=0; g->kills++; }
+    else { e->hp-=(uint8_t)damage; e->flash=90; }
 }
 void game_orbit_position(const SurvivorGame *g,uint32_t index,int32_t *x,int32_t *y) {
     // Sixteen positions around a circle; interpolation keeps motion continuous.
@@ -234,7 +238,8 @@ void game_tick(SurvivorGame *g,uint32_t held) {
         if(e->flash) e->flash--;
         if(overlap(e->x/32,e->y/32,g->x/256,g->y/256,18) && !g->invincible) {
             uint16_t loss=e->kind==4 ? 18 : (e->kind==1 || e->kind==3) ? 12 : 8;
-            g->hp=g->hp>loss ? g->hp-loss : 0; g->damage_taken+=loss; g->invincible=45;
+            g->hp=g->hp>loss ? g->hp-loss : 0; g->damage_taken+=loss;
+            g->invincible=GAME_INVINCIBLE_TICKS;
         }
         if((g->ticks%15)==0) for(uint32_t n=0;n<g->orbit_count;++n) {
             int32_t x,y; game_orbit_position(g,n,&x,&y);
@@ -267,7 +272,10 @@ void game_tick(SurvivorGame *g,uint32_t held) {
     if(!g->hp) g->state=GAME_OVER;
     else if(g->ticks>=GAME_DURATION_TICKS) g->state=GAME_WON;
     else if(g->xp>=g->xp_target) {
-        g->xp-=g->xp_target; g->level++; g->xp_target=(uint16_t)clamp(g->xp_target+5,0,1000);
+        g->xp-=g->xp_target; g->level++;
+        /* Increase the cost faster than the old fixed +5 schedule. This keeps
+         * later waves from producing an upgrade on every small movement. */
+        g->xp_target=(uint16_t)clamp((int32_t)g->xp_target+8+(int32_t)g->level*2,20,1000);
         for(uint32_t i=0;i<3;++i) g->options[i]=(uint8_t)next_upgrade(g,(g->level*2+i)%6);
         g->choice=0; g->state=GAME_UPGRADE;
     }

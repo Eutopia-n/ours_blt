@@ -29,6 +29,8 @@
 #define GFX_BURST_READ   0x5cu
 #define GFX_BURST_WRITE  0x60u
 #define GFX_BUTTON_HELD  0x64u
+#define GFX_BUTTON_ENTER_EVENT 0x68u
+#define GFX_FRAME_COUNT 0x6cu
 #define GFX_BLEND_ALPHA  1u
 #define GFX_BLEND_KEY    2u
 #define GFX_VIDEO_VALID  1u

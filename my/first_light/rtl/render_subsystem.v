@@ -4,6 +4,7 @@ module render_subsystem #(
 )(
     input wire clk, reset, pixel_clk, memory_ready,
     input wire [KEY_COUNT-1:0] button_held,
+    input wire button_enter_pending,
     input wire [15:0] paddr, input wire psel, penable, pwrite,
     input wire [31:0] pwdata,
     output wire [31:0] prdata, output wire pready, pslverror,
@@ -44,6 +45,7 @@ module render_subsystem #(
     (* async_reg = "true" *) reg [1:0] video_valid_sync;
     reg [15:0] video_width, video_height;
     reg video_mode_valid, video_mode_seen;
+    reg [31:0] video_frame_count;
     always @(posedge clk) begin
         if (reset) begin
             display_page_sync <= 0; swap_ack_sync <= 0;
@@ -53,6 +55,7 @@ module render_subsystem #(
             video_valid_sync <= 0;
             video_width <= 0; video_height <= 0;
             video_mode_valid <= 0; video_mode_seen <= 0;
+            video_frame_count <= 0;
         end
         else begin
             display_page_sync <= {display_page_sync[0],display_page_active};
@@ -66,6 +69,9 @@ module render_subsystem #(
             video_valid_sync <= {video_valid_sync[0],video_mode_valid_pixel};
             video_mode_toggle_sync <= {video_mode_toggle_sync[1:0],video_mode_toggle_pixel};
             if (video_mode_toggle_sync[2] != video_mode_seen) begin
+                // Count in the APB clock domain after the existing VSYNC-toggle
+                // synchronizer. No asynchronous multi-bit counter crosses CDC.
+                video_frame_count <= video_frame_count + 1'b1;
                 video_mode_seen <= video_mode_toggle_sync[2];
                 video_width <= video_width_sync;
                 video_height <= video_height_sync;
@@ -117,7 +123,9 @@ module render_subsystem #(
         .pwrite(pwrite),.pwdata(pwdata),.prdata(prdata),.pready(pready),.pslverror(pslverror),
         .memory_ready(memory_ready),.busy(busy),.done(done),.error(error),.cycles(cycles),
         .burst_reads(burst_reads),.burst_writes(burst_writes),
+        .video_frame_count(video_frame_count),
         .button_held(button_held),
+        .button_enter_pending(button_enter_pending),
         .video_underflow(underflow),.video_error(read_error),.display_page_active(display_page_sync[1]),
         .swap_ack(swap_ack_sync[2]),
         .video_width(video_width),.video_height(video_height),.video_mode_valid(video_mode_valid),

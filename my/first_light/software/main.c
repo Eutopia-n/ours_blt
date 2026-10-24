@@ -1,6 +1,7 @@
 #include "render.h"
 #include "player_asset.h"
 #include "demo_controls.h"
+#include "frame_metrics.h"
 static void init_game_assets(void);
 
 static uint32_t cycle_now(void) {
@@ -24,26 +25,42 @@ void fatal_trap(uint32_t cause, uint32_t pc) {
     for (;;) {}
 }
 static void fail(const char *message) {
-    puts_uart(message); puts_uart("\r\n"); for (;;) {}
+    puts_uart(message);
+    puts_uart(" STATUS=0x"); hex_uart(mmio_read(GFX_BASE+GFX_STATUS));
+    puts_uart(" OP=0x"); hex_uart(mmio_read(GFX_BASE+GFX_OPERATION));
+    puts_uart(" DST=0x"); hex_uart(mmio_read(GFX_BASE+GFX_DST));
+    puts_uart("\r\n"); for (;;) {}
 }
 static uint32_t draw_buffer = FRAMEBUFFER;
-static uint32_t sprite_count = 64;
-static uint32_t collision_hits, collision_active;
+static uint32_t sprite_count = 1;
+static uint32_t bench60_pass;
+#define BENCH_FRAME_BUDGET_CYCLES FRAME_60_CYCLES
+#define BENCH_VARIANTS 4u
+#define BENCH_ASSET_BASE (ASSET_BASE+0x2800u)
+static uint32_t sprite_best_60[BENCH_VARIANTS];
+static const uint8_t bench_sizes[BENCH_VARIANTS]={4u,16u,24u,32u};
+static const uint32_t bench_sources[BENCH_VARIANTS]={
+    BENCH_ASSET_BASE+0x0680u,
+    BENCH_ASSET_BASE,
+    BENCH_ASSET_BASE+0x0200u,
+    BENCH_ASSET_BASE+0x0800u
+};
+static uint32_t bench_size_index=2u;
 enum { DEMO_FILL, DEMO_COPY, DEMO_BUFFER, DEMO_VIDEO,
-       DEMO_KEY, DEMO_ALPHA, DEMO_COLLISION, DEMO_BENCH };
+       DEMO_KEY, DEMO_ALPHA, DEMO_BENCH };
 static const char *const demo_names[8]={
     "矩形填充","图像复制","双缓冲","视频模式",
-    "颜色键","透明混合","碰撞检测","精灵压力"
+    "颜色键","透明混合","SPRITE 压力"
 };
 static const char *const demo_details[8]={
     "RGB565 硬件填充","DDR 图像复制到显存",
     "垂直消隐交换页面","颜色条与实际尺寸",
-    "黑色像素变为透明","按键1加一 按键3减一",
-    "RISC-V 包围盒碰撞","64/128/256 精灵测试"
+    "黑色像素变为透明","W加一 A减一",
+    "FPGA ALPHA + COLOR KEY / 60 FPS"
 };
 static const char *const action_labels[8]={
-    "按键1改变颜色","按键1改变位置","按键1改变速度","按键1改变图案",
-    "按键1开关颜色键","按键1加一 按键3减一","按键1重新开始","按键1改变数量"
+    "W改变颜色","W改变位置","W改变速度","W改变图案",
+    "W开关颜色键","W加一 A减一","W加一 S减一 长按连发"
 };
 static uint32_t menu_level, menu_group, menu_item[2];
 static uint32_t fps[2], render_us[2], samples[2], burst_ar[2], burst_aw[2];
@@ -52,7 +69,10 @@ static int wait_display_page(uint32_t page) {
     uint32_t start = cycle_now();
     for (;;) {
         uint32_t status = mmio_read(GFX_BASE+GFX_STATUS);
-        if (status & (GFX_ERROR|GFX_UNDERFLOW|GFX_READ_ERR)) return -3;
+        if (status & (GFX_ERROR|GFX_READ_ERR)) return -3;
+        // A disabled scanout retires its final line before clearing its sticky
+        // underflow flag. Do not abort that deliberate display shutdown.
+        if ((status & GFX_UNDERFLOW) && (mmio_read(GFX_BASE+GFX_DISPLAY)&1u)) return -3;
         if (!(status & GFX_SWAP_PENDING) && ((status >> 6) & 1u) == page) return 0;
         if ((uint32_t)(cycle_now()-start) > 200000000u) return -4;
     }
@@ -172,11 +192,18 @@ static void cpu_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
         if(col<w) p[col]=c;
     }
 }
+static uint16_t sprite_pixel_sized(uint32_t size, uint32_t row, uint32_t col) {
+    uint32_t center=size-1u,x=col*2u,y=row*2u;
+    uint32_t dx=x>center ? x-center : center-x;
+    uint32_t dy=y>center ? y-center : center-y;
+    /* Keep the same silhouette at every resolution and keep the full image
+     * inside its selected frame instead of cropping the 32x32 source. */
+    if (dx+dy > (size*13u+15u)/16u) return 0x0000;
+    return row*32u < size*10u ? 0x07ff :
+           row*32u < size*20u ? 0xf800 : 0xffe0;
+}
 static uint16_t sprite_pixel(uint32_t row, uint32_t col) {
-    uint32_t dx=col>15 ? col-15 : 15-col;
-    uint32_t dy=row>15 ? row-15 : 15-row;
-    if (dx+dy>13) return 0x0000;
-    return row<10 ? 0x07ff : row<20 ? 0xf800 : 0xffe0;
+    return sprite_pixel_sized(32u,row,col);
 }
 static uint16_t blend_rgb565(uint16_t foreground, uint16_t background,
                              uint32_t alpha, uint16_t key, uint32_t flags) {
@@ -201,27 +228,45 @@ static void cpu_blend_copy(uint32_t x, uint32_t y, uint32_t alpha, uint32_t flag
 }
 #include "font5x7.h"
 #include "font_cn.h"
-static void text_at(uint32_t x,uint32_t y,const char *s,uint16_t color) {
+static uint8_t font_column(uint32_t c,uint32_t col) {
+    if(c>='a'&&c<='z') c=c-'a'+'A';
+    int glyph=c>='0'&&c<='9' ? (int)(c-'0') : c>='A'&&c<='Z' ? (int)(c-'A'+10) : -1;
+    return glyph>=0 ? font5x7[glyph][col] : c=='-' ? 8 :
+           c=='/' ? (1u<<(5-col)) : c=='+' ? (col==2 ? 0x3e : 8) :
+           c=='_' ? 0x40 : 0;
+}
+static void text_at_width(uint32_t x,uint32_t y,const char *s,uint16_t color,uint32_t width) {
+    if(x>=640u || y>466u) return;
+    if(width>640u-x) width=640u-x;
+    uint32_t right=x+width;
     while (*s) {
         uint32_t codepoint=font_cn_utf8_next(&s);
         const uint16_t *cn=font_cn_find(codepoint);
+        uint32_t cell=cn ? 14u : 12u;
+        if(cell>right-x) break; // Keep whole glyphs inside the caller's field.
         if(cn) {
-            for(uint32_t row=0;row<14;++row)
-                for(uint32_t col=0;col<12;++col)
-                    if(cn[row]&(1u<<col)) cpu_fill(x+col,y+row,1,1,color);
+            for(uint32_t row=0;row<14;++row) {
+                /* A one-pixel horizontal weight makes the small bitmap glyphs
+                 * survive HDMI scaling and dark textured backgrounds. */
+                uint32_t bits=cn[row]|(cn[row]<<1);
+                for(uint32_t col=0;col<13;++col)
+                    if(bits&(1u<<col)) cpu_fill(x+col,y+row,1,1,color);
+            }
             x+=14;
             continue;
         }
-        char c=(char)codepoint;
-        int glyph=c>='0'&&c<='9' ? c-'0' : c>='A'&&c<='Z' ? c-'A'+10 : -1;
+        /* The compact 5x7 table stores capitals; normalize lowercase labels
+         * so English metrics remain visible instead of leaving blank cells. */
         for (uint32_t col=0;col<5;++col) {
-            uint8_t bits=glyph>=0 ? font5x7[glyph][col] : c=='-' ? 8 :
-                         c=='/' ? (1u<<(5-col)) : c=='+' ? (col==2 ? 0x3e : 8) : 0;
+            uint8_t bits=font_column(codepoint,col);
             for (uint32_t row=0;row<7;++row)
                 if (bits&(1u<<row)) cpu_fill(x+col*2,y+row*2,2,2,color);
         }
         x+=12;
     }
+}
+static void text_at(uint32_t x,uint32_t y,const char *s,uint16_t color) {
+    text_at_width(x,y,s,color,640u);
 }
 static char *decimal(char *out,uint32_t value) {
     char digits[10]; uint32_t n=0;
@@ -232,19 +277,27 @@ static char *decimal(char *out,uint32_t value) {
 static void number_at(uint32_t x,uint32_t y,uint32_t value,uint16_t color) {
     char number[11]; decimal(number,value); text_at(x,y,number,color);
 }
+// A '+' after the largest fitting prefix denotes overflow; the full value is
+// still reported over UART. No numeric field may overwrite its next label.
+static void decimal_field(char *out,uint32_t value,uint32_t cells) {
+    char *end=decimal(out,value);
+    if(cells && (uint32_t)(end-out)>cells) {
+        for(uint32_t n=0;n+1u<cells;++n) out[n]='9';
+        out[cells-1u]='+'; out[cells]=0;
+    }
+}
+static void number_field_at(uint32_t x,uint32_t y,uint32_t width,uint32_t value,uint16_t color) {
+    char number[11]; decimal_field(number,value,width/12u);
+    text_at_width(x,y,number,color,width);
+}
 static void uart_number(const char *label,uint32_t value) {
     char number[11]; decimal(number,value); puts_uart(label); puts_uart(number);
 }
 static uint32_t button_event(void) {
-    static uint32_t action_held;
-    uint32_t held=mmio_read(GFX_BASE+GFX_BUTTON_HELD)&31u;
     uint32_t keys=mmio_read(SYSTEM_GPIO_0_IO_CTRL)&15u;
-    // The Sapphire GPIO peripheral is four bits wide in the generated SoC.
-    // The fifth J28 key is therefore edge-detected from the renderer's live
-    // debounced register; it still shares the normal GPIO acknowledgement.
-    if((held&16u) && !(action_held&16u)) keys|=16u;
-    action_held=held&16u;
-    // The FPGA retains one debounced event until this GPIO toggle acknowledges it.
+    // GPIO exposes four event bits; the renderer preserves key five separately.
+    if(mmio_read(GFX_BASE+GFX_BUTTON_ENTER_EVENT)&1u) keys=16u;
+    // The FPGA clears both event sources on the same GPIO acknowledgement toggle.
     if (keys) mmio_write(SYSTEM_GPIO_0_IO_CTRL+4,mmio_read(SYSTEM_GPIO_0_IO_CTRL+4)^1u);
     return keys;
 }
@@ -255,18 +308,24 @@ static void init_assets(void) {
     for (uint32_t row=0;row<32;++row)
         for (uint32_t col=0;col<32;++col)
             p[row*32+col]=sprite_pixel(row,col);
+    for (uint32_t variant=0;variant<BENCH_VARIANTS;++variant) {
+        uint32_t size=bench_sizes[variant];
+        volatile uint16_t *bench=(volatile uint16_t *)(uintptr_t)bench_sources[variant];
+        for (uint32_t row=0;row<size;++row)
+            for (uint32_t col=0;col<size;++col)
+                bench[row*size+col]=sprite_pixel_sized(size,row,col);
+    }
+    init_game_assets();
+    // The game atlas already contains these identical four direction frames.
+    // Reuse its decoded DDR pixels instead of embedding a second RLE palette.
     for (uint32_t frame=0;frame<PLAYER_FRAME_COUNT;++frame) {
-        volatile uint16_t *player=(volatile uint16_t *)(uintptr_t)
+        volatile uint32_t *player=(volatile uint32_t *)(uintptr_t)
             (PLAYER_ASSET_BASE+frame*PLAYER_FRAME_BYTES);
-        uint32_t out=0;
-        for (uint32_t at=player_rle_offsets[frame];at<player_rle_offsets[frame+1];++at) {
-            uint32_t count=player_rle[at]>>9;
-            uint16_t color=player_palette[player_rle[at]&511u];
-            while (count--) player[out++]=color;
-        }
+        const volatile uint32_t *source=(const volatile uint32_t *)(uintptr_t)
+            (ASSET_BASE+0x4000u+frame*4u*PLAYER_FRAME_BYTES);
+        for(uint32_t word=0;word<PLAYER_FRAME_BYTES/4u;++word) player[word]=source[word];
     }
     publish_pixels(); // Drain CPU stores before any hardware source reads.
-    init_game_assets();
 }
 static uint32_t bounce(uint32_t phase, uint32_t limit) {
     phase %= limit*2;
@@ -285,6 +344,13 @@ static void draw_image(uint32_t x,uint32_t y,uint32_t flags,uint32_t alpha,uint3
                            copy_image(ASSET_BASE,SPRITE_STRIDE,x,y,32,32);
         if (result) fail("FAIL image");
     } else cpu_blend_copy(x,y,alpha,flags);
+}
+static void draw_bench_sprite(uint32_t x,uint32_t y) {
+    uint32_t size=bench_sizes[bench_size_index];
+    uint32_t source=bench_sources[bench_size_index];
+    if (blend_image(source,size*2u,x,y,size,size,128,0,
+                    GFX_BLEND_ALPHA|GFX_BLEND_KEY))
+        fail("FAIL bench sprite");
 }
 static void draw_player(uint32_t frame,uint32_t x,uint32_t y,uint32_t hw) {
     uint32_t source=PLAYER_ASSET_BASE+(frame%PLAYER_FRAME_COUNT)*PLAYER_FRAME_BYTES;
@@ -313,7 +379,8 @@ static void scene(uint32_t frame,uint32_t hw,uint32_t demo,uint32_t variant) {
     static const uint16_t colors[8]={0xffff,0xffe0,0x07ff,0x07e0,0xf81f,0xf800,0x001f,0};
     // Sapphire BSP 0x500F invalidates stale reads left by hardware writes.
     __asm__ volatile (".word 0x500f" ::: "memory");
-    paint(0,0,640,480,0x0862,hw);
+    // The pressure HUD persists in both pages; only its moving viewport clears.
+    if(demo!=DEMO_BENCH) paint(0,0,640,480,0x0862,hw);
     switch(demo) {
     case DEMO_FILL:
         for(uint32_t n=0;n<3;++n)
@@ -351,21 +418,14 @@ static void scene(uint32_t frame,uint32_t hw,uint32_t demo,uint32_t variant) {
                 draw_image(x+112+(n&1u)*16,208+(n>>1)*96,flags,alpha_value(variant),hw);
         }
         break;
-    case DEMO_COLLISION: {
-        uint32_t x=200+bounce(frame*16,200);
-        collision_active=x<360 && x+80>280; // Two 80x80 AABBs, edge contact excluded.
-        if(collision_active) collision_hits++;
-        paint(280,224,80,80,0x07ff,hw);
-        paint(x,240,80,80,collision_active ? 0xf800 : 0x07e0,hw);
-        break;
-    }
     default: // Performance scene contains only the selected moving Sprite load.
-        paint(0,152,640,256,0x2945,hw);
+        paint(0,152,640,256,0x0843,hw);
         for(uint32_t n=0;n<sprite_count;++n) {
             uint32_t seed=sprite_seed(n);
-            uint32_t x=8+bounce((seed&65535u)+frame*(1+((seed>>16)&7u)),600);
-            uint32_t y=160+bounce((seed>>16)+frame*(1+((seed>>24)&3u)),208);
-            draw_image(x,y,3,128,hw);
+            uint32_t size=bench_sizes[bench_size_index];
+            uint32_t x=8+bounce((seed&65535u)+frame*(1+((seed>>16)&7u)),632u-size);
+            uint32_t y=160+bounce((seed>>16)+frame*(1+((seed>>24)&3u)),240u-size);
+            draw_bench_sprite(x,y);
         }
         break;
     }
@@ -376,31 +436,29 @@ static void clear_samples(void) {
 }
 static void hud(uint32_t hw,uint32_t demo,uint32_t automatic,uint32_t frame,uint32_t variant) {
     text_at(16,8,demo_names[demo],0x07ff);
-    if(demo==DEMO_BENCH) { text_at(200,8,"精灵",0xffff); number_at(260,8,sprite_count,0xffe0); }
-    text_at(400,8,automatic ? "自动 CPU/FPGA" : "手动",0x07ff);
-    for (uint32_t n=0;n<2;++n) {
-        uint32_t x=16+n*320;
-        uint16_t color=n==hw ? 0xffe0 : 0xffff;
-        text_at(x,32,n ? "FPGA 帧率" : "RISC-V 帧率",color);
-        if(samples[n]) number_at(x+108,32,fps[n],color);
-        else text_at(x+108,32,"-",color);
-        text_at(x,54,"渲染微秒",color);
-        if(samples[n]) number_at(x+120,54,render_us[n],color);
-        else text_at(x+120,54,"-",color);
-        text_at(x,76,"DDR 读",color); text_at(x+160,76,"写",color);
-        if(samples[n]) {
-            number_at(x+72,76,burst_ar[n],color);
-            number_at(x+184,76,burst_aw[n],color);
+    {
+        text_at(400,8,automatic ? "自动 CPU/FPGA" : "手动",0x07ff);
+        for (uint32_t n=0;n<2;++n) {
+            uint32_t x=16+n*320;
+            uint16_t color=n==hw ? 0xffe0 : 0xffff;
+            text_at(x,32,n ? "FPGA FPS" : "RISC-V FPS",color);
+            if(samples[n]) number_field_at(x+132,32,60,fps[n],color);
+            else text_at(x+132,32,"-",color);
+            text_at(x,54,"RENDER_US",color);
+            if(samples[n]) number_field_at(x+120,54,144,render_us[n],color);
+            else text_at(x+120,54,"-",color);
+            text_at(x,76,"DDR_RD",color); text_at(x,96,"DDR_WR",color);
+            if(samples[n]) {
+                number_field_at(x+120,76,144,burst_ar[n],color);
+                number_field_at(x+120,96,144,burst_aw[n],color);
+            }
         }
     }
-    text_at(16,102,"每帧突发",0x9cf3);
-    if(demo==DEMO_COLLISION) {
-        text_at(240,102,"命中",0x9cf3); number_at(288,102,collision_hits,0x9cf3);
-    }
+    text_at(16,114,"每帧突发",0x9cf3);
     if(mmio_read(GFX_BASE+GFX_VIDEO_STATUS)&GFX_VIDEO_VALID) {
         uint32_t size=mmio_read(GFX_BASE+GFX_VIDEO_SIZE);
-        number_at(448,102,size&65535,0x9cf3); text_at(484,102,"×",0x9cf3);
-        number_at(496,102,size>>16,0x9cf3);
+        number_field_at(448,114,60,size&65535,0x9cf3); text_at(520,114,"×",0x9cf3);
+        number_field_at(548,114,60,size>>16,0x9cf3);
     }
     switch(demo) {
     case DEMO_FILL: text_at(32,128,"RGB565 矩形填充",0xffff); break;
@@ -416,15 +474,12 @@ static void hud(uint32_t hw,uint32_t demo,uint32_t automatic,uint32_t frame,uint
         text_at(344,144,variant ? "颜色键开" : "颜色键关",0xffff); break;
     case DEMO_ALPHA:
         text_at(40,144,"参考不透明",0xffff); text_at(344,144,"FPGA 透明度",0xffff);
-        number_at(480,144,alpha_value(variant),0xffe0); text_at(516,144,"/255",0xffff);
+        number_field_at(480,144,36,alpha_value(variant),0xffe0); text_at(528,144,"/255",0xffff);
         text_at(40,400,"步进1 长按连发 颜色键关",0x07ff); break;
-    case DEMO_COLLISION:
-        text_at(32,128,collision_active ? "重叠 - 红色" : "空闲 - 绿色",0xffff);
-        text_at(32,368,"RISC-V 计算两个 80×80 包围盒",0xffff); break;
     default: text_at(32,128,"随机运动 / 透明与颜色键",0xffff); break;
     }
     text_at(16,426,action_labels[demo],0xffff);
-    text_at(16,450,"按键2切换 CPU/FPGA  按键4返回",0x07ff);
+    text_at(16,450,"S切换 CPU/FPGA  D返回",0x07ff);
     publish_pixels();
 }
 static uint32_t menu_screen(void) {
@@ -438,7 +493,7 @@ static uint32_t menu_screen(void) {
                     "TI60 二维实验室",0xffff);
         text_at(40,54,menu_level ? "选择功能" : "选择测试",0x07ff);
         draw_player(0,566,34,1);
-        uint32_t count=menu_level ? 4 : 3;
+        uint32_t count=menu_level ? (menu_group ? 3u : 4u) : 3u;
         uint32_t choice=menu_level ? menu_item[menu_group] : menu_group;
         if (!menu_level) {
             for(uint32_t n=0;n<3;++n) {
@@ -446,21 +501,22 @@ static uint32_t menu_screen(void) {
                 if(fill_rect(32,y,576,68,n==choice ? 0x22ae : 0x10c7)) fail("FAIL menu card");
                 if(n==choice && fill_rect(32,y,4,68,0x07ff)) fail("FAIL menu selection");
                 text_at(52,y+12,n==2 ? "冰霜幸存者" : n ? "高阶演示" : "基础演示",0xffff);
-                text_at(52,y+40,n==2 ? "自动施法 生存180秒" : "4项功能",0x07ff);
+                text_at(52,y+40,n==2 ? "自动施法 生存180秒" : n==1 ? "3项功能" : "4项功能",0x07ff);
             }
-            text_at(40,356,"按键1上一项    按键2下一项",0xffff);
-            text_at(40,384,"按键5打开      按键4返回",0xffe0);
-            text_at(40,432,"8项演示 + 幸存者游戏",0x9cf3);
+            text_at(40,356,"W上一项    S下一项",0xffff);
+            text_at(40,384,"ENTER打开      D返回",0xffe0);
+            text_at(40,432,"7项演示 + 幸存者游戏",0x9cf3);
         } else {
-            for(uint32_t n=0;n<4;++n) {
-                uint32_t y=90+n*72, demo=menu_group*4+n;
+            for(uint32_t n=0;n<count;++n) {
+                uint32_t y=90+n*68, demo=menu_group ? 4u+n : n;
                 if(fill_rect(32,y,576,58,n==choice ? 0x22ae : 0x10c7)) fail("FAIL menu card");
                 if(n==choice && fill_rect(32,y,4,58,0x07ff)) fail("FAIL menu selection");
                 text_at(52,y+8,demo_names[demo],0xffff);
                 text_at(52,y+32,demo_details[demo],0x07ff);
             }
-            text_at(40,404,"按键1上一项    按键2下一项",0xffff);
-            text_at(40,432,"按键5开始      按键4返回",0xffe0);
+            text_at(40,374,"W上一项    S下一项",0xffff);
+            text_at(40,402,"ENTER开始      D返回",0xffe0);
+            text_at(40,442,"碰撞与移动计算在游戏中运行",0x9cf3);
         }
         publish_pixels();
         if(present_frame()) fail("FAIL menu present");
@@ -480,27 +536,97 @@ static uint32_t menu_screen(void) {
     }
 }
 #include "game_view.h"
+// Game and pressure pages never run together, so share their per-page HUD cache.
+static void bench_hud(void) {
+    uint32_t page=draw_page(),size=bench_sizes[bench_size_index];
+    game_hud_number(page,0,112,32,120,sprite_count,0xffe0);
+    game_hud_number(page,1,414,32,120,sprite_best_60[bench_size_index],0xffe0);
+    game_hud_number(page,2,160,56,24,size,0xffe0);
+    game_hud_number(page,3,220,56,24,size,0xffe0);
+    game_hud_number(page,4,64,80,36,fps[1],0xffe0);
+    game_hud_number(page,5,272,80,120,render_us[1],0xffff);
+    game_hud_number(page,6,100,104,120,burst_ar[1],0xffff);
+    game_hud_number(page,7,414,104,120,burst_aw[1],0xffff);
+    uint32_t state=samples[1] ? (bench60_pass ? 2u : 1u) : 0u;
+    if(!(game_hud_number_valid[page]&256u) || game_hud_numbers[page][8]!=state) {
+        cpu_fill(424,80,144,14,0x10a6);
+        text_at(424,80,state==2u ? "60FPS PASS" : state ? "60FPS FAIL" : "60FPS WAIT",0x9cf3);
+        game_hud_numbers[page][8]=state;
+        game_hud_number_valid[page]|=256u;
+    }
+    publish_pixels();
+}
+static void bench_prime_framebuffers(void) {
+    // Pause DDR scanout at a frame boundary before the one-time CPU text upload.
+    // Keep HDMI sync running, and retire the last outstanding old-page fetch.
+    puts_uart("BENCH INIT\r\n");
+    mmio_write(GFX_BASE+GFX_DISPLAY,0);
+    if(present_frame()) fail("FAIL bench pause");
+    // Draw static text before sampling, once in each retired back buffer.
+    game_hud_number_valid[0]=game_hud_number_valid[1]=0;
+    for(uint32_t page=0;page<2;++page) {
+        paint(0,0,640,480,0x0862,1);
+        paint(0,0,640,144,0x10a6,1);
+        text_at(16,8,demo_names[DEMO_BENCH],0x07ff);
+        text_at(400,8,"FIXED 60 FPS",0xffe0);
+        text_at(16,32,"SPRITES",0xffff); text_at(330,32,"MAX60",0x07ff);
+        text_at(16,56,"SPRITE SIZE",0xffff); text_at(196,56,"X",0xffff);
+        text_at(16,80,"FPS",0xffff); text_at(152,80,"RENDER_US",0xffff);
+        text_at(16,104,"DDR_RD",0xffff); text_at(330,104,"DDR_WR",0xffff);
+        text_at(16,128,demo_details[DEMO_BENCH],0xffff);
+        text_at(16,426,action_labels[DEMO_BENCH],0xffff);
+        text_at(16,450,"A/D换尺寸  ENTER返回",0x07ff);
+        // Seed the moving region too: the first visible pressure page already
+        // contains its Sprite rather than waiting for the measurement loop.
+        scene(0,1,DEMO_BENCH,0);
+        bench_hud();
+        if(present_frame()) fail("FAIL bench init");
+    }
+    mmio_write(GFX_BASE+GFX_DISPLAY,1);
+    if(present_frame()) fail("FAIL bench resume");
+    puts_uart("BENCH RUN\r\n");
+}
 int main(void) {
     mmio_write(SYSTEM_UART_0_IO_CTRL+8,SYSTEM_CLINT_HZ/(115200u*8u)-1u);
     mmio_write(SYSTEM_UART_0_IO_CTRL+12,7u); // 8 data bits, no parity, one stop bit
     mmio_write(SYSTEM_GPIO_0_IO_CTRL+8,0); // Board keys are input-only.
     mmio_write(SYSTEM_GPIO_0_IO_CTRL+4,0);
-    puts_uart("Ti60 INDIVIDUAL DEMOS 64/128/256\r\n");
+    puts_uart("Ti60 INDIVIDUAL DEMOS\r\n");
     if(mmio_read(GFX_BASE+GFX_ID)!=0x32444631u) fail("FAIL ID");
     init_assets();
     for (;;) {
         uint32_t demo=menu_screen();
         if(demo==8) { puts_uart("GAME\r\n"); game_loop(); continue; }
-        clear_samples(); collision_hits=collision_active=0;
+        clear_samples();
+        if(demo==DEMO_BENCH) {
+            for (uint32_t n=0;n<BENCH_VARIANTS;++n) sprite_best_60[n]=0;
+            bench_size_index=2u;
+            bench60_pass=0;
+        }
         uint32_t variant=demo==DEMO_ALPHA ? 128 : demo==DEMO_KEY ? 1 : 0;
         uart_number("DEMO ",demo); puts_uart("\r\n");
-        uint32_t automatic=demo==DEMO_BENCH,hw=automatic ? 0 : 1;
+        uint32_t automatic=0,hw=1;
+        if(demo==DEMO_BENCH) {
+            sprite_count=1;
+            bench_prime_framebuffers();
+        }
         uint32_t frame=0,previous=cycle_now();
+        uint32_t previous_video=mmio_read(GFX_BASE+GFX_FRAME_COUNT);
         uint32_t elapsed=0,render=0,count=0,read_bursts=0,write_bursts=0,alpha_next_repeat=0;
-        int32_t alpha_repeat_direction=0;
+        uint32_t render_peak=0,missed_refreshes=0;
+        uint32_t bench60_frame_ok=1;
+        int32_t alpha_repeat_direction=0,bench_repeat_direction=0;
+        uint32_t bench_next_repeat=0;
         for (;;) {
             uint32_t keys=button_event(), reset_sample=0;
-            if(keys==8) break;
+            if(keys==8 && demo!=DEMO_BENCH) break;
+            if(demo==DEMO_BENCH) {
+                uint32_t old_count=sprite_count;
+                sprite_count=demo_bench_update(sprite_count,keys,
+                    mmio_read(GFX_BASE+GFX_BUTTON_HELD),cycle_now(),
+                    &bench_next_repeat,&bench_repeat_direction);
+                if(sprite_count!=old_count) { clear_samples(); reset_sample=1; }
+            }
             if(demo==DEMO_ALPHA) {
                 uint32_t old_variant=variant;
                 variant=demo_alpha_update(variant,keys&5u,
@@ -508,40 +634,83 @@ int main(void) {
                                           cycle_now(),&alpha_next_repeat,&alpha_repeat_direction);
                 if(variant!=old_variant) { clear_samples(); reset_sample=1; }
             }
-            if(keys==1) {
-                if(demo==DEMO_BENCH) sprite_count=sprite_count==256 ? 64 : sprite_count*2;
-                else if(demo==DEMO_ALPHA) { /* handled by demo_alpha_update() above */ }
+            if(keys==1 && demo!=DEMO_BENCH) {
+                // One pressure step adds exactly one Sprite in demo_bench_update().
+                // There is no coarse load table or artificial benchmark ceiling.
+                if(demo==DEMO_ALPHA) { /* handled by demo_alpha_update() above */ }
                 else if(demo==DEMO_FILL) variant=(variant+1)%3;
                 else variant^=1u;
-                clear_samples(); collision_hits=0; frame=0; reset_sample=1;
+                clear_samples(); frame=0; reset_sample=1;
             }
-            if(keys==2) { hw^=1u; automatic=0; frame=0; reset_sample=1; }
+            if((keys==4 || keys==8) && demo==DEMO_BENCH) {
+                bench_size_index=(bench_size_index+(keys==8 ? 1u : BENCH_VARIANTS-1u))%BENCH_VARIANTS;
+                clear_samples(); frame=0; reset_sample=1; bench60_pass=0;
+            }
+            if(keys==2 && demo!=DEMO_BENCH) { hw^=1u; automatic=0; frame=0; reset_sample=1; }
             if(keys==16) break;
             if(automatic && frame>=8) { hw^=1u; frame=0; reset_sample=1; }
-            // Keep each four-frame report tied to one Sprite load. A change in
+            // Keep each report tied to one Sprite load. A change in
             // object count starts a fresh measurement window.
             // Never mix two rendering modes in one report either.
             if(reset_sample) {
-                count=elapsed=render=read_bursts=write_bursts=0; previous=cycle_now();
+                count=elapsed=render=read_bursts=write_bursts=0;
+                render_peak=missed_refreshes=0;
+                bench60_frame_ok=1; bench60_pass=0;
+                if(demo!=DEMO_BENCH) previous=cycle_now();
             }
             uint32_t start=cycle_now();
             uint32_t read_before=mmio_read(GFX_BASE+GFX_BURST_READ);
             uint32_t write_before=mmio_read(GFX_BASE+GFX_BURST_WRITE);
             scene(frame,hw,demo,variant);
+            if(demo==DEMO_BENCH) bench_hud();
             read_bursts+=mmio_read(GFX_BASE+GFX_BURST_READ)-read_before;
             write_bursts+=mmio_read(GFX_BASE+GFX_BURST_WRITE)-write_before;
-            render+=cycle_now()-start;
-            hud(hw,demo,automatic,frame++,variant);
+            uint32_t frame_render=cycle_now()-start;
+            render+=frame_render;
+            if(frame_render>render_peak) render_peak=frame_render;
+            if(demo!=DEMO_BENCH) hud(hw,demo,automatic,frame,variant);
+            ++frame;
             if(present_frame()) fail("FAIL present");
-            uint32_t now=cycle_now(); elapsed+=now-previous; previous=now;
-            if(++count==4) {
-                fps[hw]=400000000u/elapsed; render_us[hw]=render/400u; samples[hw]=1;
-                burst_ar[hw]=read_bursts/4; burst_aw[hw]=write_bursts/4;
+            uint32_t now=cycle_now(),frame_elapsed=now-previous;
+            elapsed+=frame_elapsed; previous=now;
+            if(demo==DEMO_BENCH) {
+                uint32_t video=mmio_read(GFX_BASE+GFX_FRAME_COUNT);
+                uint32_t refreshes=video-previous_video;
+                // Exactly one display refresh per new frame, with the complete
+                // scene + HUD inside 1/60 s. Avoid APB poll jitter at the limit.
+                if(frame_render>BENCH_FRAME_BUDGET_CYCLES || refreshes!=1u)
+                    bench60_frame_ok=0;
+                if(refreshes>1u) missed_refreshes+=refreshes-1u;
+                previous_video=video;
+            }
+            uint32_t sample_target=demo==DEMO_BENCH ? 30u : 4u;
+            if(++count==sample_target) {
+                fps[hw]=(count*100000000u+elapsed/2u)/elapsed;
+                render_us[hw]=render/(count*100u); samples[hw]=1;
+                burst_ar[hw]=read_bursts/count; burst_aw[hw]=write_bursts/count;
+                if(demo==DEMO_BENCH) {
+                    // Every sampled frame must meet its render budget and
+                    // retire on the next display refresh; never force FPS=60.
+                    bench60_pass=bench60_frame_ok;
+                    if(bench60_pass && sprite_count>sprite_best_60[bench_size_index])
+                        sprite_best_60[bench_size_index]=sprite_count;
+                }
                 uart_number(hw ? "HW FPS " : "CPU FPS ",fps[hw]);
                 uart_number(" RENDER_US ",render_us[hw]); uart_number(" SPRITES ",scene_sprites(demo));
+                if(demo==DEMO_BENCH) {
+                    uart_number(" SIZE ",bench_sizes[bench_size_index]);
+                    uart_number(" MAX60 ",sprite_best_60[bench_size_index]);
+                    puts_uart(bench60_pass ? " PASS" : " FAIL");
+                    uart_number(" MAX_US ",render_peak/100u);
+                    uart_number(" MISSED ",missed_refreshes);
+                }
                 uart_number(" DDR_AR ",read_bursts); uart_number(" DDR_AW ",write_bursts);
-                uart_number(" HIT ",collision_hits); puts_uart("\r\n");
-                count=elapsed=render=read_bursts=write_bursts=0; previous=cycle_now();
+                puts_uart("\r\n");
+                count=elapsed=render=read_bursts=write_bursts=0;
+                render_peak=missed_refreshes=0;
+                bench60_frame_ok=1; // A later complete window may recover.
+                // Retain the last presentation timestamp: the next interval
+                // includes UART reporting instead of hiding serial overhead.
             }
         }
     }

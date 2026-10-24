@@ -39,6 +39,7 @@ if args.step=='prepare':
     extra=['--board-root',board_root] if board_root else []
     run([sys.executable,ROOT/'tools/prepare.py',*extra],'prepare.log')
 elif args.step=='firmware':
+    run([sys.executable,ROOT/'tools/prepare_game_assets.py'],'game_assets.log')
     out=ROOT/'software/build'; out.mkdir(exist_ok=True)
     gcc=EF/'toolchain/bin/riscv-none-elf-gcc.exe'
     run([gcc,'-march=rv32im_zicsr_zifencei','-mabi=ilp32','-Os','-g','-flto',
@@ -99,6 +100,7 @@ elif args.step in ['sim','sim-soc','sim-game']:
     suffix='_soc_game' if args.step=='sim-game' else '_soc_ui' if args.ui_smoke else '_soc' if soc_test else ''
     extra=[]
     if soc_test:
+        run([sys.executable,ROOT/'tools/export_font.py'],'font_export.log')
         run([sys.executable,ROOT/'tools/prepare_soc_sim.py'],'prepare_soc_sim.log')
         extra=['+incdir+sim','sim/soc_modelsim.v']
     library='sim/work_game' if args.step=='sim-game' else 'sim/work_ui' if args.ui_smoke else 'sim/work'

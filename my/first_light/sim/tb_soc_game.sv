@@ -5,7 +5,8 @@ module tb_soc;
     always #5 clk=~clk;
     always #19.8347107 pixel_clk=~pixel_clk;
     wire soc_reset,master_reset,uart_tx;
-    wire [3:0] button_pending,button_ack;
+    wire [4:0] button_pending;
+    wire [3:0] button_ack;
     wire [4:0] button_held;
     button_input #(.KEY_COUNT(5),.ENABLE_REPEAT(0),.DEBOUNCE_CYCLES(32)) buttons(
         .clk(clk),.reset(soc_reset),.key_n(key_i),.ack_toggle(button_ack[0]),.pending(button_pending),.held(button_held));
@@ -20,6 +21,7 @@ module tb_soc;
     `include "soc_wiring.vh"
     render_subsystem #(.KEY_COUNT(5)) graphics(
         .clk(clk),.reset(soc_reset|master_reset),.pixel_clk(pixel_clk),.memory_ready(1'b1),.button_held(button_held),
+        .button_enter_pending(button_pending[4]),
         .paddr(paddr),.psel(psel),.penable(penable),.pwrite(pwrite),.pwdata(pwdata),
         .prdata(prdata),.pready(pready),.pslverror(pslverror),
         .awaddr(awaddr),.awlen(awlen),.awvalid(awvalid),.awready(awready),

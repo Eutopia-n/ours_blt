@@ -576,6 +576,7 @@ render_subsystem graphics (
     .clk(user_clk),.reset(renderer_reset),.pixel_clk(hdmi_tx_slow_clk),
     .memory_ready(calibration_sync[1]),
     .button_held(button_held),
+    .button_enter_pending(button_pending[4]),
     .paddr(apb_paddr),.psel(apb_psel),.penable(apb_penable),.pwrite(apb_pwrite),
     .pwdata(apb_pwdata),.prdata(apb_prdata),.pready(apb_pready),.pslverror(apb_pslverror),
     .awaddr(gfx_awaddr),.awlen(gfx_awlen),.awvalid(gfx_awvalid),.awready(gfx_awready),

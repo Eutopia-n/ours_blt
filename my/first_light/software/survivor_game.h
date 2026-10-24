@@ -5,8 +5,12 @@
 #define GAME_MAX_ENEMIES 256
 #define GAME_MAX_BOLTS 48
 #define GAME_MAX_GEMS 96
+#define GAME_MAX_ORBITS 4u
+#define GAME_MAX_SPRITES (1u+GAME_MAX_ENEMIES+GAME_MAX_BOLTS+GAME_MAX_GEMS+GAME_MAX_ORBITS)
 #define GAME_TICKS_PER_SECOND 60u
 #define GAME_DURATION_TICKS (180u*GAME_TICKS_PER_SECOND)
+#define GAME_INITIAL_XP_TARGET 20u
+#define GAME_INVINCIBLE_TICKS 18u
 #define GAME_X_MIN 8
 #define GAME_X_MAX 632
 #define GAME_Y_MIN 80
@@ -20,6 +24,7 @@
 enum { GAME_READY, GAME_PLAY, GAME_UPGRADE, GAME_PAUSED, GAME_OVER, GAME_WON, GAME_EXIT };
 enum { UPGRADE_POWER, UPGRADE_RATE, UPGRADE_ORBIT, UPGRADE_SPEED, UPGRADE_MAGNET, UPGRADE_HEAL };
 
+/* flash is a short hit flash followed by a longer health-bar display window. */
 typedef struct { int32_t x,y; uint8_t hp,max_hp,kind,flash; } GameEnemy;
 typedef struct { int32_t x,y,vx,vy; uint16_t life; uint8_t damage,pierce; } GameBolt;
 /* kind 0 is XP; kind 1 is a healing rune. */
@@ -32,7 +37,7 @@ typedef struct {
     uint32_t ticks,rng,kills,spawned,damage_taken,shots,pickups;
     uint16_t hp,max_hp,level,xp,xp_target,invincible,attack_wait,spawn_wait;
     uint16_t speed,damage,attack_period,magnet;
-    uint16_t enemy_count,bolt_count,gem_count,peak_enemies;
+    uint16_t enemy_count,bolt_count,gem_count,peak_enemies,peak_sprites;
     uint8_t state,resume_state,direction,walk_frame,orbit_count,choice,options[3],moving;
     uint8_t upgrade_level[6],bolt_pierce,orbit_damage,regeneration,magnet_all,dash,rapid_burst;
 } SurvivorGame;

@@ -18,6 +18,7 @@ module tb_soc;
     render_subsystem #(.KEY_COUNT(4)) graphics(
         .clk(clk),.reset(soc_reset|master_reset),.pixel_clk(pixel_clk),.memory_ready(1'b1),
         .button_held(4'd0),
+        .button_enter_pending(1'b0),
         .paddr(paddr),.psel(psel),.penable(penable),.pwrite(pwrite),.pwdata(pwdata),
         .prdata(prdata),.pready(pready),.pslverror(pslverror),
         .awaddr(awaddr),.awlen(awlen),.awvalid(awvalid),.awready(awready),

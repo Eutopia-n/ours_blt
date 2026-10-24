@@ -17,7 +17,7 @@ ports = re.findall(r'\b(input|output)\s*(\[[^]]+\])?\s*(\w+)\s*[,\n]', header)
 mapping = dict(io_systemClk='clk', io_memoryClk='clk', io_ddrMasters_0_clk='clk',
                io_asyncReset='reset', io_systemReset='soc_reset',
                io_ddrMasters_0_reset='master_reset', system_uart_0_io_rxd='uart_rx',
-               system_uart_0_io_txd='uart_tx',system_gpio_0_io_read='button_pending',
+               system_uart_0_io_txd='uart_tx',system_gpio_0_io_read='button_pending[3:0]',
                system_gpio_0_io_write='button_ack')
 for field in ['PADDR','PENABLE','PRDATA','PREADY','PSEL','PSLVERROR','PWDATA','PWRITE']:
     mapping['io_apbSlave_0_'+field] = field.lower()

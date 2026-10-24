@@ -202,6 +202,6 @@ soc cpu(
     .io_ddrMasters_0_aw_ready(awready),
     .io_ddrMasters_0_aw_valid(awvalid),
     .system_gpio_0_io_write(button_ack),
-    .system_gpio_0_io_read(button_pending),
+    .system_gpio_0_io_read(button_pending[3:0]),
     .system_spi_0_io_ss()
 );

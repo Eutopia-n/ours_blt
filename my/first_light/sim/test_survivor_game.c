@@ -3,6 +3,7 @@
 #include <string.h>
 #include "../software/survivor_game.h"
 #include "../software/demo_controls.h"
+#include "../software/frame_metrics.h"
 static SurvivorGame g,copy;
 #define TEST_PLAYER_X (GAME_WORLD_WIDTH/2)
 #define TEST_PLAYER_Y (GAME_WORLD_HEIGHT/2)
@@ -12,6 +13,40 @@ static void isolate(void) {
     memset(g.gems,0,sizeof(g.gems)); g.spawn_wait=60000; g.attack_wait=60000;
 }
 int main(void) {
+    uint32_t count=1,repeat_at=0; int32_t repeat_direction=0;
+    count=demo_bench_update(count,1,1,100,&repeat_at,&repeat_direction); assert(count==2);
+    assert(demo_bench_update(count,0,1,repeat_at-1,&repeat_at,&repeat_direction)==2);
+    count=demo_bench_update(count,0,1,repeat_at,&repeat_at,&repeat_direction); assert(count==3);
+    assert(repeat_at==100+DEMO_BENCH_REPEAT_DELAY+DEMO_BENCH_REPEAT_PERIOD);
+    count=demo_bench_update(count,0,1,repeat_at+100000000u,&repeat_at,&repeat_direction);
+    assert(count==4); // A slow frame does not replay many repeats at once.
+    assert(demo_bench_update(count,0,0,repeat_at,&repeat_at,&repeat_direction)==4 && !repeat_direction);
+    count=demo_bench_update(count,2,2,500,&repeat_at,&repeat_direction); assert(count==3);
+    count=demo_bench_update(count,0,2,repeat_at,&repeat_at,&repeat_direction); assert(count==2);
+    assert(demo_bench_update(1,2,2,700,&repeat_at,&repeat_direction)==1);
+    assert(demo_bench_update(UINT32_MAX,1,1,800,&repeat_at,&repeat_direction)==UINT32_MAX);
+    assert(demo_bench_update(100,3,3,900,&repeat_at,&repeat_direction)==100 && !repeat_direction);
+    assert(demo_bench_update(100,1,3,901,&repeat_at,&repeat_direction)==100);
+    count=demo_bench_update(100,1,0,1000,&repeat_at,&repeat_direction); assert(count==101); // Retained short tap.
+    count=demo_bench_update(count,1,1,0xfffffff0u,&repeat_at,&repeat_direction); assert(count==102);
+    assert(demo_bench_update(count,0,1,repeat_at-1,&repeat_at,&repeat_direction)==102);
+    count=demo_bench_update(count,0,1,repeat_at,&repeat_at,&repeat_direction); assert(count==103);
+    assert(demo_bench_update(count,0,2,repeat_at,&repeat_at,&repeat_direction)==103); // Direction change rearms delay.
+
+    FrameMax60 metrics={0};
+    for(unsigned n=0;n<29;++n) frame_max60_sample(&metrics,FRAME_60_CYCLES,1,10+n);
+    assert(metrics.maximum==0);
+    frame_max60_sample(&metrics,FRAME_60_CYCLES,1,12); assert(metrics.maximum==38);
+    for(unsigned n=0;n<30;++n) frame_max60_sample(&metrics,n==15 ? FRAME_60_CYCLES+1u : 1000,1,100);
+    assert(metrics.maximum==38); // One slow render invalidates the whole window.
+    for(unsigned n=0;n<30;++n) frame_max60_sample(&metrics,1000,n==12 ? 2u : 1u,200);
+    assert(metrics.maximum==38); // 30 FPS must not certify its large load.
+    for(unsigned n=0;n<30;++n) frame_max60_sample(&metrics,1000,n==12 ? 0u : 1u,250);
+    assert(metrics.maximum==38);
+    for(unsigned n=0;n<15;++n) frame_max60_sample(&metrics,1000,1,300);
+    frame_max60_clear_window(&metrics); assert(metrics.maximum==38 && !metrics.frames);
+    for(unsigned n=0;n<30;++n) frame_max60_sample(&metrics,1000,1,60);
+    assert(metrics.maximum==60); // Clean samples recover, preserving the record across pauses.
     start(); isolate();
     for(unsigned i=0;i<GAME_MAX_BOLTS;++i)
         g.bolts[i]=(GameBolt){TEST_PLAYER_X*32,TEST_PLAYER_Y*32,0,0,10,1,0};
@@ -47,14 +82,14 @@ int main(void) {
     game_input(&g,0,16); assert(g.state==GAME_PAUSED);
     game_input(&g,0,8); assert(g.state==GAME_EXIT);
     start(); isolate(); g.enemies[0]=(GameEnemy){TEST_PLAYER_X*32,TEST_PLAYER_Y*32,20,20,0,0};
-    game_tick(&g,0); assert(g.hp==92 && g.invincible==45);
-    game_tick(&g,0); assert(g.hp==92 && g.invincible==44);
+    game_tick(&g,0); assert(g.hp==92 && g.invincible==GAME_INVINCIBLE_TICKS);
+    game_tick(&g,0); assert(g.hp==92 && g.invincible==GAME_INVINCIBLE_TICKS-1);
     g.invincible=0; g.hp=1; g.ticks=GAME_DURATION_TICKS-1;
     game_tick(&g,0); assert(g.state==GAME_OVER); // Death precedence.
     game_input(&g,0,16); assert(g.state==GAME_PLAY && g.hp==100 && g.kills==0);
     isolate(); g.ticks=GAME_DURATION_TICKS-1; game_tick(&g,0); assert(g.state==GAME_WON);
-    start(); isolate(); g.gems[0]=(GameGem){TEST_PLAYER_X,TEST_PLAYER_Y,7,0,0};
-    game_tick(&g,0); assert(g.state==GAME_UPGRADE && g.level==2 && g.xp==2 && g.xp_target==10);
+    start(); isolate(); g.gems[0]=(GameGem){TEST_PLAYER_X,TEST_PLAYER_Y,22,0,0};
+    game_tick(&g,0); assert(g.state==GAME_UPGRADE && g.level==2 && g.xp==2 && g.xp_target==32);
     assert(g.options[0]!=g.options[1] && g.options[1]!=g.options[2]);
     before=g.ticks; game_tick(&g,8); assert((int32_t)g.ticks==before);
     game_input(&g,0,8); assert(g.state==GAME_PAUSED && g.resume_state==GAME_UPGRADE);
@@ -133,6 +168,12 @@ int main(void) {
     for(int i=0;i<18 && !g.kills;++i) game_tick(&g,0);
     assert(g.kills>=1 && g.gem_count>=1);
     start(); isolate();
+    g.enemies[0]=(GameEnemy){(TEST_PLAYER_X+100)*32,TEST_PLAYER_Y*32,20,20,0,0};
+    g.bolts[0]=(GameBolt){(TEST_PLAYER_X+100)*32,TEST_PLAYER_Y*32,0,0,10,2,0};
+    g.bolt_count=1; game_tick(&g,0);
+    assert(g.enemies[0].hp==18 && g.enemies[0].flash==90);
+    game_tick(&g,0); assert(g.enemies[0].flash==89);
+    start(); isolate();
     for(int i=0;i<GAME_MAX_GEMS;++i) g.gems[i]=(GameGem){40,120,1,0,0};
     g.enemies[0]=(GameEnemy){(TEST_PLAYER_X+180)*32,(TEST_PLAYER_Y-60)*32,1,1,0,0};
     g.bolts[0]=(GameBolt){(TEST_PLAYER_X+180)*32,(TEST_PLAYER_Y-60)*32,0,0,5,2,0};
@@ -153,6 +194,6 @@ int main(void) {
         assert(g.enemy_count<=256 && g.bolt_count<=48 && g.gem_count<=96);
     assert(g.hp<=g.max_hp && g.x>0 && g.y>0 && g.x/256<GAME_WORLD_WIDTH && g.y/256<GAME_WORLD_HEIGHT);
     }
-	printf("GAME LOGIC TESTS PASSED: Alpha +/-1, hold delay/repeat/release/saturation/timer wrap; world/camera bounds, movement, diagonal, pause/return, nearest attack, collision/invulnerability, HP/max HP, healing/cap/lethal collision, elite spawn/drop, XP, all 6 capped upgrades and max effects, death/restart, 180s victory, full pools, 30000 deterministic ticks; upgrades=%u end_states=%u peak_enemies=%u\n",levels,deaths,max_enemies);
+	printf("GAME LOGIC TESTS PASSED: pressure +/-1 and hold/release/chord/saturation/timer wrap; MAX60 complete windows/render deadline/missed refresh/recovery/pause; Alpha +/-1; world/camera bounds, movement, diagonal, pause/return, nearest attack, collision/invulnerability, HP/max HP, healing/cap/lethal collision, elite spawn/drop, XP, all 6 capped upgrades and max effects, death/restart, 180s victory, full pools, 30000 deterministic ticks; upgrades=%u end_states=%u peak_enemies=%u\n",levels,deaths,max_enemies);
     return 0;
 }

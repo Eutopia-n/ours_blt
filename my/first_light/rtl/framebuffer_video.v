@@ -68,6 +68,10 @@ module framebuffer_video #(
         end else begin
             done_sync <= {done_sync[0],done_toggle};
             enable_sync <= {enable_sync[0],display_enable};
+            // A deliberate display pause is the recovery boundary for a
+            // transient missed line. Clear only after scanout has stopped;
+            // active-frame underflow remains sticky for software diagnostics.
+            if (!running && !enable_sync[1]) underflow_pixel <= 0;
             swap_page_sync <= {swap_page_sync[0],swap_page};
             // The page settles before the extra request synchronizer stage.
             // Registers hold page/toggle until this domain acknowledges it.

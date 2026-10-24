@@ -2,13 +2,14 @@
 module tb_soc;
     reg clk=0,pixel_clk=0,reset=1;
     reg uart_rx=1;
-    reg [3:0] key_i=4'hf;
-    wire [3:0] button_pending,button_ack,button_held;
+    reg [4:0] key_i=5'h1f;
+    wire [4:0] button_pending,button_held;
+    wire [3:0] button_ack;
     always #5 clk=~clk;
     always #19.8347107 pixel_clk=~pixel_clk;
     wire soc_reset,master_reset,uart_tx;
     // Debounce timing is tested separately; retain real CPU, DDR and HDMI clocks.
-    button_input #(.KEY_COUNT(4),.ENABLE_REPEAT(0),.DEBOUNCE_CYCLES(32)) buttons(.clk(clk),.reset(soc_reset),.key_n(key_i),
+    button_input #(.KEY_COUNT(5),.ENABLE_REPEAT(0),.DEBOUNCE_CYCLES(32)) buttons(.clk(clk),.reset(soc_reset),.key_n(key_i),
                          .ack_toggle(button_ack[0]),.pending(button_pending),.held(button_held));
     wire [15:0] paddr,pixel;
     wire psel,penable,pwrite,pready,pslverror;
@@ -19,9 +20,10 @@ module tb_soc;
     wire awvalid,awready,wvalid,wready,wlast,bvalid,bready;
     wire arvalid,arready,rvalid,rready,rlast,hs,vs,de;
     `include "soc_wiring.vh"
-    render_subsystem #(.KEY_COUNT(4)) graphics(
+    render_subsystem #(.KEY_COUNT(5)) graphics(
         .clk(clk),.reset(soc_reset|master_reset),.pixel_clk(pixel_clk),.memory_ready(1'b1),
         .button_held(button_held),
+        .button_enter_pending(button_pending[4]),
         .paddr(paddr),.psel(psel),.penable(penable),.pwrite(pwrite),.pwdata(pwdata),
         .prdata(prdata),.pready(pready),.pslverror(pslverror),
         .awaddr(awaddr),.awlen(awlen),.awvalid(awvalid),.awready(awready),
@@ -44,17 +46,16 @@ module tb_soc;
     integer cpu_target=64;
     integer menu_level=0,menu_group=0,menu_item[0:1],demo=0,variant=0;
     integer variant_coverage[0:7][0:255],demo_hw[0:7],demo_cpu[0:7];
-    integer collision_clear=0,collision_overlap=0;
     bit test_done=0;
     bit ui_smoke=$test$plusargs("UI_SMOKE");
-    string names[0:7]='{"SOLID FILL","BLOCK COPY","DOUBLE BUFFER","HDMI / RES",
-        "COLOR KEY","ALPHA BLEND","COLLISION","SPRITE BENCH"};
-    string details[0:7]='{"RGB565 RECTANGLES","SOURCE DDR TO DESTINATION DDR",
-        "FRAME BOUNDARY PAGE SWAP","COLOR BARS AND MEASURED SIZE",
-        "BLACK PIXELS BECOME TRANSPARENT","KEY0 +1 / KEY2 -1 OPACITY",
-        "RISC-V AABB OVERLAP DETECTION","64/128/256 CPU AND FPGA TEST"};
-    string actions[0:7]='{"KEY0 COLOR","KEY0 POSITION","KEY0 SPEED","KEY0 PATTERN",
-        "KEY0 KEY ON/OFF","KEY0 +1  KEY2 -1","KEY0 RESTART","KEY0 COUNT"};
+    // Chinese UI literals are UTF-8 octal escapes for ModelSim 10.6 source compatibility.
+    string names[0:7]='{"\347\237\251\345\275\242\345\241\253\345\205\205","\345\233\276\345\203\217\345\244\215\345\210\266","\345\217\214\347\274\223\345\206\262","\350\247\206\351\242\221\346\250\241\345\274\217",
+        "\351\242\234\350\211\262\351\224\256","\351\200\217\346\230\216\346\267\267\345\220\210","Sprite \345\216\213\345\212\233",""};
+    string details[0:7]='{"RGB565 \347\241\254\344\273\266\345\241\253\345\205\205","DDR \345\233\276\345\203\217\345\244\215\345\210\266\345\210\260\346\230\276\345\255\230",
+        "\345\236\202\347\233\264\346\266\210\351\232\220\344\272\244\346\215\242\351\241\265\351\235\242","\351\242\234\350\211\262\346\235\241\344\270\216\345\256\236\351\231\205\345\260\272\345\257\270",
+        "\351\273\221\350\211\262\345\203\217\347\264\240\345\217\230\344\270\272\351\200\217\346\230\216","W\345\212\240\344\270\200 A\345\207\217\344\270\200","Alpha + Color Key / 64-4096",""};
+    string actions[0:7]='{"W\346\224\271\345\217\230\351\242\234\350\211\262","W\346\224\271\345\217\230\344\275\215\347\275\256","W\346\224\271\345\217\230\351\200\237\345\272\246","W\346\224\271\345\217\230\345\233\276\346\241\210",
+        "W\345\274\200\345\205\263\351\242\234\350\211\262\351\224\256","W\345\212\240\344\270\200 A\345\207\217\344\270\200","W\345\212\240\345\216\213 A\345\207\217\345\216\213",""};
     reg [15:0] colors[0:7]='{16'hffff,16'hffe0,16'h07ff,16'h07e0,16'hf81f,16'hf800,16'h001f,16'h0000};
     integer menu_choice=0,menu_count=0,menu_frames=0,demo_count=0;
     integer model_hw=0,model_auto=1,model_frame=0;
@@ -62,7 +63,9 @@ module tb_soc;
     integer coverage_cpu[0:3],coverage_hw[0:3],scene_coverage_cpu[0:3],scene_coverage_hw[0:3];
     bit demo_active=0,reset_sample=0;
     integer manual_events=0,auto_events=0,alpha_decrements=0;
+    integer sprite_best_60_model=0;
     reg [7:0] font_columns[0:179];
+    reg [31:0] font_cn_records[0:4095];
     reg [15:0] player_expected[0:PLAYER_BYTES/2-1];
     reg [15:0] game_expected[0:GAME_BYTES/2-1];
     integer cpu_reads=0,cpu_read_bytes=0,copy_reads=0,progress_file;
@@ -72,8 +75,8 @@ module tb_soc;
     integer last_scene_sprites=0;
     integer page_present[0:1],page_verified[0:1],verified_present[0:1],page_mode[0:1];
     integer previewed_present[0:1],bus_cycle=0,cpu_writes=0;
-    integer expected_hits=0,sample_frames=0,sample_ar=0,sample_aw=0;
-    integer last_burst_ar=0,last_burst_aw=0,expected_metric_hits=0;
+    integer sample_frames=0,sample_ar=0,sample_aw=0;
+    integer last_burst_ar=0,last_burst_aw=0;
     integer expected_metric_ar=0,expected_metric_aw=0,expected_metric_sprites=0;
     integer verified_scenes=0,verified_scan_frames=0;
     integer video_status_reads=0,video_size_reads=0;
@@ -171,7 +174,7 @@ module tb_soc;
                             $fatal(1,"Menu player blend controls/resource mismatch");
                     end else if(graphics.src!=ASSET_BASE || graphics.src_stride!=64 ||
                        graphics.blend_ctrl!=(demo==4 ? 2 : demo==5 ? 1 : 3) ||
-                       graphics.blend_alpha!=(demo==7 ? 128 : alpha_value(variant)) || graphics.color_key!=0)
+                       graphics.blend_alpha!=(demo==6 ? 128 : alpha_value(variant)) || graphics.color_key!=0)
                         $fatal(1,"Demo blend controls/resource mismatch");
                     blend_commands=blend_commands+1;
                 end else $fatal(1,"Unexpected graphics operation %0d",graphics.operation);
@@ -187,7 +190,7 @@ module tb_soc;
     end
     // Decode the real UART pin using the firmware's 100 MHz / 115200 divider.
     reg [7:0] uart_char;
-    integer metric_fps,metric_us,metric_sprites,metric_ar,metric_aw,metric_hits,metric_fields;
+    integer metric_fps,metric_us,metric_sprites,metric_ar,metric_aw,metric_fields;
     integer scene_sprites;
     integer hw_seen_64=0,hw_seen_128=0,hw_seen_256=0;
     string uart_line="";
@@ -207,41 +210,39 @@ module tb_soc;
                 if($sscanf(uart_line,"DEMO %d",demo)!=1 || demo!=menu_group*4+menu_item[menu_group])
                     $fatal(1,"Wrong selected demo: %s",uart_line);
                 demo_active=1; variant=demo==5 ? 128 : demo==4 ? 1 : 0;
-                demo_count=demo_count+1; model_hw=demo!=7; model_auto=demo==7; model_frame=0;
-                last_mode=-1; sample_frames=0; sample_ar=0; sample_aw=0; expected_hits=0;
+                demo_count=demo_count+1; model_hw=1; model_auto=0; model_frame=0;
+                last_mode=-1; sample_frames=0; sample_ar=0; sample_aw=0;
                 for(integer i=0;i<2;i=i+1) measured_valid[i]=0;
             end
             if(uart_line.substr(0,6)=="CPU FPS" || uart_line.substr(0,5)=="HW FPS") begin
                 if(uart_line.substr(0,6)=="CPU FPS") begin
                     reports_cpu=reports_cpu+1;
-                    metric_fields=$sscanf(uart_line,"CPU FPS %d RENDER_US %d SPRITES %d DDR_AR %d DDR_AW %d HIT %d",
-                                          metric_fps,metric_us,metric_sprites,metric_ar,metric_aw,metric_hits);
+                    metric_fields=$sscanf(uart_line,"CPU FPS %d RENDER_US %d SPRITES %d DDR_AR %d DDR_AW %d",
+                                          metric_fps,metric_us,metric_sprites,metric_ar,metric_aw);
                 end else begin
                     reports_hw=reports_hw+1;
-                    metric_fields=$sscanf(uart_line,"HW FPS %d RENDER_US %d SPRITES %d DDR_AR %d DDR_AW %d HIT %d",
-                                          metric_fps,metric_us,metric_sprites,metric_ar,metric_aw,metric_hits);
+                    metric_fields=$sscanf(uart_line,"HW FPS %d RENDER_US %d SPRITES %d DDR_AR %d DDR_AW %d",
+                                          metric_fps,metric_us,metric_sprites,metric_ar,metric_aw);
                 end
-                if(metric_fields!=6) begin
+                if(metric_fields!=5) begin
                     $write("UART metric bytes:");
                     for(integer k=0;k<uart_line.len();k=k+1) $write(" %02x",uart_line[k]);
                     $display("");
                 end
-                if(metric_fields!=6 || metric_fps<1 || metric_fps>61 || metric_us<1 ||
-                   (metric_sprites!=0 && metric_sprites!=8 && metric_sprites!=64 && metric_sprites!=128 && metric_sprites!=256) ||
-                   metric_ar<0 || metric_aw<0 || metric_hits<0)
+                if(metric_fields!=5 || metric_fps<1 || metric_fps>61 || metric_us<1 ||
+                   (metric_sprites!=0 && metric_sprites!=8 && metric_sprites<64) ||
+                   metric_ar<0 || metric_aw<0)
                     $fatal(1,"Invalid measured UART metrics: %s",uart_line);
-                if(metric_hits!=expected_metric_hits || metric_ar!=expected_metric_ar ||
-                   metric_aw!=expected_metric_aw || metric_sprites!=expected_metric_sprites)
-                    $fatal(1,"UART metrics mismatch: got HIT/AR/AW/SPRITES=%0d/%0d/%0d/%0d expected=%0d/%0d/%0d/%0d",
-                        metric_hits,metric_ar,metric_aw,metric_sprites,
-                        expected_metric_hits,expected_metric_ar,expected_metric_aw,expected_metric_sprites);
+                if(metric_ar!=expected_metric_ar || metric_aw!=expected_metric_aw || metric_sprites!=expected_metric_sprites)
+                    $fatal(1,"UART metrics mismatch: got AR/AW/SPRITES=%0d/%0d/%0d expected=%0d/%0d/%0d",
+                        metric_ar,metric_aw,metric_sprites,expected_metric_ar,expected_metric_aw,expected_metric_sprites);
                 begin
                     integer side,load_index;
                     side=uart_line.substr(0,5)=="HW FPS";
                     measured_fps[side]=metric_fps; measured_us[side]=metric_us;
-                    measured_ar[side]=metric_ar/4; measured_aw[side]=metric_aw/4;
+                    measured_ar[side]=metric_ar/(demo==6 ? 30 : 4); measured_aw[side]=metric_aw/(demo==6 ? 30 : 4);
                     measured_valid[side]=1;
-                    load_index=demo==7 ? (metric_sprites==64 ? 1 : metric_sprites==128 ? 2 : 3) : 0;
+                    load_index=demo==6 ? (metric_sprites==64 ? 1 : metric_sprites==128 ? 2 : 3) : 0;
                     if(side) coverage_hw[load_index]=coverage_hw[load_index]+1;
                     else coverage_cpu[load_index]=coverage_cpu[load_index]+1;
                 end
@@ -249,10 +250,12 @@ module tb_soc;
                     if(metric_sprites==64) hw_seen_64=1;
                     else if(metric_sprites==128) hw_seen_128=1;
                     else if(metric_sprites==256) hw_seen_256=1;
+                    if(demo==6 && metric_fps>=59 && metric_sprites>sprite_best_60_model)
+                        sprite_best_60_model=metric_sprites;
                 end
                 if(uart_line.substr(0,6)=="CPU FPS" && (metric_ar!=0 || metric_aw!=0))
                     $fatal(1,"CPU baseline must not increment renderer burst counters");
-                if(uart_line.substr(0,5)=="HW FPS" && (metric_aw==0 || ((demo==1 || demo>=4 && demo!=6) && metric_ar==0)))
+            if(uart_line.substr(0,5)=="HW FPS" && (metric_aw==0 || ((demo==1 || demo>=4) && metric_ar==0)))
                     $fatal(1,"FPGA blend pass did not report DDR read/write bursts");
             end
             uart_line="";
@@ -295,17 +298,47 @@ module tb_soc;
             golden[(y+r)*640+x+c]=color;
     endtask
     task golden_text(input integer x,y,input string label,input reg [15:0] color);
-        integer glyph, bits;
-        reg [7:0] c;
+        integer glyph, bits,codepoint,bytes_used,cursor_x;
+        reg [7:0] c,b1,b2;
+        cursor_x=x;
         for(integer k=0;k<label.len();k=k+1) begin
-            c=label[k]; glyph=-1;
-            if(c>="0" && c<="9") glyph=c-"0";
-            if(c>="A" && c<="Z") glyph=c-"A"+10;
-            for(integer column=0;column<5;column=column+1) begin
-                bits=glyph>=0 ? font_columns[glyph*5+column] : c=="-" ? 8 :
-                     c=="/" ? (1<<(5-column)) : c=="+" ? (column==2 ? 62 : 8) : 0;
-                for(integer row=0;row<7;row=row+1)
-                    if((bits>>row)&1) golden_fill(x+k*12+column*2,y+row*2,2,2,color);
+            c=label.getc(k); codepoint=c; bytes_used=1;
+            if((c&8'he0)==8'hc0 && k+1<label.len()) begin
+                b1=label.getc(k+1); codepoint=(c&8'h1f); codepoint=codepoint<<6;
+                bits=(b1&8'h3f); codepoint=codepoint|bits; bytes_used=2;
+            end else if((c&8'hf0)==8'he0 && k+2<label.len()) begin
+                b1=label.getc(k+1); b2=label.getc(k+2);
+                codepoint=(c&8'h0f); codepoint=codepoint<<12;
+                bits=(b1&8'h3f); bits=bits<<6;
+                codepoint=codepoint|bits|(b2&8'h3f); bytes_used=3;
+            end
+            if(codepoint>=128) begin
+                glyph=-1;
+                for(integer n=0;n<font_cn_records[0];n=n+1)
+                    if(font_cn_records[1+n*15]==codepoint) glyph=n;
+                if(glyph>=0) begin
+                    for(integer row=0;row<14;row=row+1) begin
+                        bits=font_cn_records[2+glyph*15+row] |
+                             (font_cn_records[2+glyph*15+row]<<1);
+                        for(integer column=0;column<13;column=column+1)
+                            if((bits>>column)&1) golden_fill(cursor_x+column,y+row,1,1,color);
+                    end
+                    cursor_x=cursor_x+14;
+                end else cursor_x=cursor_x+12;
+                k=k+bytes_used-1;
+            end else begin
+                glyph=-1;
+                if(c>="a" && c<="z") c=c-"a"+"A";
+                if(c>="0" && c<="9") glyph=c-"0";
+                if(c>="A" && c<="Z") glyph=c-"A"+10;
+                for(integer column=0;column<5;column=column+1) begin
+                    bits=glyph>=0 ? font_columns[glyph*5+column] : c=="-" ? 8 :
+                         c=="/" ? (1<<(5-column)) : c=="+" ? (column==2 ? 62 : 8) :
+                         c=="_" ? 64 : 0;
+                    for(integer row=0;row<7;row=row+1)
+                        if((bits>>row)&1) golden_fill(cursor_x+column*2,y+row*2,2,2,color);
+                end
+                cursor_x=cursor_x+12;
             end
         end
     endtask
@@ -357,31 +390,46 @@ module tb_soc;
             check_player_assets();
             golden_fill(0,0,640,480,16'h0843);
             golden_fill(24,18,592,64,16'h10a6);
-            golden_text(40,30,menu_level ? (menu_group ? "ADVANCED DEMOS" : "BASIC DEMOS") : "TI60 2D LAB",16'hffff);
-            golden_text(40,54,menu_level ? "SELECT A FUNCTION" : "SELECT A TEST",16'h07ff);
+            if(menu_level) begin
+                if(menu_group) golden_text(40,30,"\351\253\230\351\230\266\346\274\224\347\244\272",16'hffff);
+                else golden_text(40,30,"\345\237\272\347\241\200\346\274\224\347\244\272",16'hffff);
+                golden_text(40,54,"\351\200\211\346\213\251\345\212\237\350\203\275",16'h07ff);
+            end else begin
+                golden_text(40,30,"TI60 \344\272\214\347\273\264\345\256\236\351\252\214\345\256\244",16'hffff);
+                golden_text(40,54,"\351\200\211\346\213\251\346\265\213\350\257\225",16'h07ff);
+            end
             golden_player(566,34);
-            count=menu_level ? 4 : 3; choice=menu_level ? menu_item[menu_group] : menu_group;
+            count=menu_level ? (menu_group ? 3 : 4) : 3; choice=menu_level ? menu_item[menu_group] : menu_group;
             if(!menu_level) begin
                 for(integer n=0;n<3;n=n+1) begin
                     y=96+n*80;
                     golden_fill(32,y,576,68,n==choice ? 16'h22ae : 16'h10c7);
                     if(n==choice) golden_fill(32,y,4,68,16'h07ff);
-                    golden_text(52,y+12,n==2 ? "FROSTBOUND SURVIVOR" : n ? "ADVANCED DEMOS" : "BASIC DEMOS",16'hffff);
-                    golden_text(52,y+40,n==2 ? "AUTO SPELLS / SURVIVE 180S" : "4 FUNCTIONS",16'h07ff);
+                    if(n==2) begin
+                        golden_text(52,y+12,"\345\206\260\351\234\234\345\271\270\345\255\230\350\200\205",16'hffff);
+                        golden_text(52,y+40,"\350\207\252\345\212\250\346\226\275\346\263\225 \347\224\237\345\255\230180\347\247\222",16'h07ff);
+                    end else if(n==1) begin
+                        golden_text(52,y+12,"\351\253\230\351\230\266\346\274\224\347\244\272",16'hffff);
+                        golden_text(52,y+40,"3\351\241\271\345\212\237\350\203\275",16'h07ff);
+                    end else begin
+                        golden_text(52,y+12,"\345\237\272\347\241\200\346\274\224\347\244\272",16'hffff);
+                        golden_text(52,y+40,"4\351\241\271\345\212\237\350\203\275",16'h07ff);
+                    end
                 end
-                golden_text(40,356,"KEY0 PREVIOUS    KEY1 NEXT",16'hffff);
-                golden_text(40,384,"KEY2 OPEN        KEY3 BACK",16'hffe0);
-                golden_text(40,432,"8 DEMOS + SURVIVOR GAME",16'h9cf3);
+                golden_text(40,356,"W\344\270\212\344\270\200\351\241\271    S\344\270\213\344\270\200\351\241\271",16'hffff);
+                golden_text(40,384,"ENTER\346\211\223\345\274\200      D\350\277\224\345\233\236",16'hffe0);
+                golden_text(40,432,"7\351\241\271\346\274\224\347\244\272 + \345\271\270\345\255\230\350\200\205\346\270\270\346\210\217",16'h9cf3);
             end else begin
-                for(integer n=0;n<4;n=n+1) begin
-                    y=90+n*72;
+                for(integer n=0;n<count;n=n+1) begin
+                    y=90+n*68;
                     golden_fill(32,y,576,58,n==choice ? 16'h22ae : 16'h10c7);
                     if(n==choice) golden_fill(32,y,4,58,16'h07ff);
                     golden_text(52,y+8,names[menu_group*4+n],16'hffff);
                     golden_text(52,y+32,details[menu_group*4+n],16'h07ff);
                 end
-                golden_text(40,404,"KEY0 PREVIOUS    KEY1 NEXT",16'hffff);
-                golden_text(40,432,"KEY2 START       KEY3 BACK",16'hffe0);
+                golden_text(40,374,"W\344\270\212\344\270\200\351\241\271    S\344\270\213\344\270\200\351\241\271",16'hffff);
+                golden_text(40,402,"ENTER\345\274\200\345\247\213      D\350\277\224\345\233\236",16'hffe0);
+                golden_text(40,442,"\347\242\260\346\222\236\344\270\216\347\247\273\345\212\250\350\256\241\347\256\227\345\234\250\346\270\270\346\210\217\344\270\255\350\277\220\350\241\214",16'h9cf3);
             end
             compare_page(0); menu_frames=menu_frames+1;
             last_burst_ar=graphics.burst_reads; last_burst_aw=graphics.burst_writes;
@@ -395,10 +443,9 @@ module tb_soc;
         reg [15:0] color;
         begin
             mode=commands!=last_commands;
-            if(model_auto && model_frame>=8) begin model_hw=model_hw^1; model_frame=0; reset_sample=1; end
             if(mode!=model_hw) $fatal(1,"CPU/HW selection mismatch");
             scene_frame=model_frame; model_frame=model_frame+1;
-            scene_sprites=demo==7 ? cpu_target : (demo==4 || demo==5) ? 8 : 0;
+            scene_sprites=demo==6 ? cpu_target : (demo==4 || demo==5) ? 8 : 0;
             nfill=1; ncopy=0; nblend=0;
             case(demo)
                 0: nfill=4;
@@ -407,8 +454,7 @@ module tb_soc;
                 3: nfill=variant ? 23 : 9;
                 4: begin nfill=5; ncopy=variant ? 4 : 8; nblend=variant ? 4 : 0; end
                 5: begin nfill=5; ncopy=4; nblend=4; end
-                6: nfill=3;
-                7: begin nfill=2; nblend=cpu_target; end
+                6: begin nfill=2; nblend=cpu_target; end
             endcase
             if(mode && (fill_commands-last_fills!=nfill || copy_commands-last_copies!=ncopy || blend_commands-last_blends!=nblend))
                 $fatal(1,"Demo %0d includes unexpected or missing operations",demo);
@@ -422,7 +468,7 @@ module tb_soc;
             mode_frames[mode]=mode_frames[mode]+1;
             begin
                 integer load_index;
-                load_index=demo==7 ? (cpu_target==64 ? 1 : cpu_target==128 ? 2 : 3) : 0;
+                load_index=demo==6 ? (cpu_target==64 ? 1 : cpu_target==128 ? 2 : 3) : 0;
                 if(mode) scene_coverage_hw[load_index]=scene_coverage_hw[load_index]+1;
                 else scene_coverage_cpu[load_index]=scene_coverage_cpu[load_index]+1;
             end
@@ -455,14 +501,7 @@ module tb_soc;
                     for(integer n=0;n<4;n=n+1) golden_sprite(x+112+(n&1)*16,208+(n>>1)*96,flags,alpha_value(variant));
                 end
                 6: begin
-                    x=200+bounce(scene_frame*16,200); overlap=x<360 && x+80>280;
-                    if(overlap) begin expected_hits=expected_hits+1; collision_overlap=collision_overlap+1; end
-                    else collision_clear=collision_clear+1;
-                    golden_fill(280,224,80,80,16'h07ff);
-                    golden_fill(x,240,80,80,overlap ? 16'hf800 : 16'h07e0);
-                end
-                7: begin
-                    golden_fill(0,152,640,256,16'h2945);
+                    golden_fill(0,152,640,256,16'h0843);
                     for(integer n=0;n<cpu_target;n=n+1) begin
                         seed=sprite_seed(n);
                         x=8+bounce((seed&65535)+scene_frame*(1+((seed>>16)&7)),600);
@@ -472,59 +511,64 @@ module tb_soc;
                 end
             endcase
             golden_text(16,8,names[demo],16'h07ff);
-            if(demo==7) begin
+            if(demo==6) begin
                 golden_text(200,8,"SPRITES",16'hffff); golden_text(296,8,$sformatf("%0d",cpu_target),16'hffe0);
-            end
-            golden_text(400,8,model_auto ? "AUTO CPU/HW" : "MANUAL",16'h07ff);
-            for(integer n=0;n<2;n=n+1) begin
-                x=16+n*320; color=n==mode ? 16'hffe0 : 16'hffff;
-                golden_text(x,32,n ? "FPGA FPS" : "RISCV FPS",color);
-                golden_text(x+108,32,measured_valid[n] ? $sformatf("%0d",measured_fps[n]) : "-",color);
-                golden_text(x,54,"RENDER US",color);
-                golden_text(x+120,54,measured_valid[n] ? $sformatf("%0d",measured_us[n]) : "-",color);
-                golden_text(x,76,"DDR R",color); golden_text(x+160,76,"W",color);
-                if(measured_valid[n]) begin
-                    golden_text(x+72,76,$sformatf("%0d",measured_ar[n]),color);
-                    golden_text(x+184,76,$sformatf("%0d",measured_aw[n]),color);
+                golden_text(400,8,"BEST60",16'h07ff); golden_text(484,8,$sformatf("%0d",sprite_best_60_model),16'hffe0);
+                golden_text(16,32,"FPGA FPS",16'hffe0); golden_text(124,32,measured_valid[1] ? $sformatf("%0d",measured_fps[1]) : "-",16'hffe0);
+                golden_text(220,32,"RENDER_US",16'hffff); golden_text(340,32,measured_valid[1] ? $sformatf("%0d",measured_us[1]) : "-",16'hffff);
+                golden_text(430,32,"DDR_RD",16'hffff); golden_text(510,32,measured_valid[1] ? $sformatf("%0d",measured_ar[1]) : "-",16'hffff);
+                golden_text(16,56,"DDR_WR",16'hffff); golden_text(96,56,measured_valid[1] ? $sformatf("%0d",measured_aw[1]) : "-",16'hffff);
+                golden_text(220,56,"30-FRAME STABLE WINDOW",16'h9cf3);
+            end else begin
+                if(model_auto) golden_text(400,8,"\350\207\252\345\212\250 CPU/FPGA",16'h07ff);
+                else golden_text(400,8,"\346\211\213\345\212\250",16'h07ff);
+                for(integer n=0;n<2;n=n+1) begin
+                    x=16+n*320; color=n==mode ? 16'hffe0 : 16'hffff;
+                    golden_text(x,32,n ? "FPGA FPS" : "RISC-V FPS",color);
+                    golden_text(x+108,32,measured_valid[n] ? $sformatf("%0d",measured_fps[n]) : "-",color);
+                    golden_text(x,54,"RENDER_US",color);
+                    golden_text(x+120,54,measured_valid[n] ? $sformatf("%0d",measured_us[n]) : "-",color);
+                    golden_text(x,76,"DDR_RD",color); golden_text(x+160,76,"DDR_WR",color);
+                    if(measured_valid[n]) begin
+                        golden_text(x+72,76,$sformatf("%0d",measured_ar[n]),color);
+                        golden_text(x+184,76,$sformatf("%0d",measured_aw[n]),color);
+                    end
                 end
             end
-            golden_text(16,102,"BURSTS/FRAME",16'h9cf3);
-            if(demo==6) begin
-                golden_text(240,102,"HIT",16'h9cf3); golden_text(288,102,$sformatf("%0d",expected_hits),16'h9cf3);
-            end
+            golden_text(16,102,"\346\257\217\345\270\247\347\252\201\345\217\221",16'h9cf3);
             if(last_video_valid) begin
                 if(last_video_size!={16'd480,16'd640}) $fatal(1,"Wrong measured video size");
-                golden_text(448,102,"640X480",16'h9cf3);
+                golden_text(448,102,"640",16'h9cf3); golden_text(484,102,"\303\227",16'h9cf3);
+                golden_text(496,102,"480",16'h9cf3);
             end
             case(demo)
-                0: golden_text(32,128,"RGB565 RECTANGLE FILL",16'hffff);
-                1: begin golden_text(64,152,"SOURCE",16'hffff); golden_text(384,152,"COPY 128X96",16'hffff); end
+                0: golden_text(32,128,"RGB565 \347\237\251\345\275\242\345\241\253\345\205\205",16'hffff);
+                1: begin golden_text(64,152,"\346\272\220\345\233\276\345\203\217",16'hffff); golden_text(384,152,"\345\244\215\345\210\266 128\303\22796",16'hffff); end
                 2: begin
-                    golden_text(32,128,graphics.swap_page ? "PAGE B" : "PAGE A",16'hffff);
-                    golden_text(200,128,"FRAME",16'hffff); golden_text(272,128,$sformatf("%0d",scene_frame),16'hffff);
-                    golden_text(48,372,"SWAP ONLY AT VBLANK",16'hffff);
+                    // The label describes the page being rendered. SWAP_PAGE
+                    // may still name the previously presented buffer while
+                    // the CPU is preparing the next back page.
+                    golden_text(32,128,graphics.draw_page ? "\351\241\265\351\235\242B" : "\351\241\265\351\235\242A",16'hffff);
+                    golden_text(200,128,"\345\270\247",16'hffff); golden_text(272,128,$sformatf("%0d",scene_frame),16'hffff);
+                    golden_text(48,372,"\345\217\252\345\234\250\345\236\202\347\233\264\346\266\210\351\232\220\346\227\266\344\272\244\346\215\242",16'hffff);
                 end
-                3: golden_text(32,128,"HDMI COLOR AND ALIGNMENT TEST",16'hffff);
-                4: begin golden_text(40,144,"KEY OFF",16'hffff); golden_text(344,144,variant ? "KEY ON" : "KEY OFF",16'hffff); end
+                3: golden_text(32,128,"HDMI \351\242\234\350\211\262\344\270\216\345\257\271\351\275\220\346\265\213\350\257\225",16'hffff);
+                4: begin golden_text(40,144,"\351\242\234\350\211\262\351\224\256\345\205\263",16'hffff); golden_text(344,144,variant ? "\351\242\234\350\211\262\351\224\256\345\274\200" : "\351\242\234\350\211\262\351\224\256\345\205\263",16'hffff); end
                 5: begin
-                    golden_text(40,144,"REFERENCE OPAQUE",16'hffff); golden_text(344,144,"FPGA ALPHA",16'hffff);
+                    golden_text(40,144,"\345\217\202\350\200\203\344\270\215\351\200\217\346\230\216",16'hffff); golden_text(344,144,"FPGA \351\200\217\346\230\216\345\272\246",16'hffff);
                     golden_text(480,144,$sformatf("%0d",alpha_value(variant)),16'hffe0); golden_text(516,144,"/255",16'hffff);
-                    golden_text(40,400,"STEP 1 / HOLD TO REPEAT / KEY OFF",16'h07ff);
+                    golden_text(40,400,"\346\255\245\350\277\2331 \351\225\277\346\214\211\350\277\236\345\217\221 \351\242\234\350\211\262\351\224\256\345\205\263",16'h07ff);
                 end
-                6: begin
-                    golden_text(32,128,overlap ? "OVERLAP - RED" : "CLEAR - GREEN",16'hffff);
-                    golden_text(32,368,"RISC-V COMPUTES TWO 80X80 AABBS",16'hffff);
-                end
-                7: golden_text(32,128,"RANDOM MOTION / ALPHA + COLOR KEY",16'hffff);
+                6: golden_text(32,128,"ALPHA + COLOR KEY / GOAL 60 FPS",16'hffff);
             endcase
             golden_text(16,426,actions[demo],16'hffff);
-            golden_text(16,450,"KEY1 CPU/HW  KEY3 BACK",16'h07ff);
+            if(demo==6) golden_text(16,450,"FPGA \347\241\254\344\273\266\345\220\210\346\210\220  W\345\212\240\345\216\213 A\345\207\217\345\216\213  D\350\277\224\345\233\236",16'h07ff);
+            else golden_text(16,450,"S\345\210\207\346\215\242 CPU/FPGA  D\350\277\224\345\233\236",16'h07ff);
             sample_ar=sample_ar+graphics.burst_reads-last_burst_ar;
             sample_aw=sample_aw+graphics.burst_writes-last_burst_aw;
             last_burst_ar=graphics.burst_reads; last_burst_aw=graphics.burst_writes;
             sample_frames=sample_frames+1;
-            if(sample_frames==4) begin
-                expected_metric_hits=expected_hits;
+            if(sample_frames==(demo==6 ? 30 : 4)) begin
                 expected_metric_ar=sample_ar; expected_metric_aw=sample_aw;
                 expected_metric_sprites=scene_sprites;
                 sample_frames=0; sample_ar=0; sample_aw=0;
@@ -542,34 +586,48 @@ module tb_soc;
         ack_seen=button_ack[0]; button_events=button_events+1;
         if(!demo_active) begin
             if(button_pending==8) menu_level=0;
-            if(button_pending==4) menu_level=1;
+            if(button_pending==16) menu_level=1;
             if(button_pending==1 || button_pending==2) begin
-                if(menu_level) menu_item[menu_group]=(menu_item[menu_group]+(button_pending==1 ? 3 : 1))%4;
+                if(menu_level) menu_item[menu_group]=(menu_item[menu_group]+(button_pending==1 ? (menu_group ? 2 : 3) : 1))%(menu_group ? 3 : 4);
                 else menu_group=(menu_group+(button_pending==1 ? 2 : 1))%3;
             end
         end else case(button_pending)
             1: begin
-                if(demo==7) cpu_target=cpu_target==256 ? 64 : cpu_target*2;
+                if(demo==6) begin
+                    case(cpu_target) 64:cpu_target=128; 128:cpu_target=256; 256:cpu_target=384;
+                        384:cpu_target=512; 512:cpu_target=768; 768:cpu_target=1024;
+                        1024:cpu_target=1536; 1536:cpu_target=2048; 2048:cpu_target=3072;
+                        3072:cpu_target=4096; default:cpu_target=4096; endcase
+                end
                 else if(demo==5) variant=variant<255 ? variant+1 : 255;
                 else if(demo==0) variant=(variant+1)%3;
                 else variant=variant^1;
-                model_frame=0; reset_sample=1; expected_hits=0;
+                model_frame=0; reset_sample=1;
                 for(integer i=0;i<2;i=i+1) measured_valid[i]=0;
             end
             2: begin model_hw=model_hw^1; model_auto=0; model_frame=0; reset_sample=1; manual_events=manual_events+1; end
-            4: if(demo==5) begin variant=variant>0 ? variant-1 : 0; alpha_decrements=alpha_decrements+1; model_frame=0; reset_sample=1; end
+            4: if(demo==6) begin
+                    case(cpu_target) 128:cpu_target=64; 256:cpu_target=128; 384:cpu_target=256;
+                        512:cpu_target=384; 768:cpu_target=512; 1024:cpu_target=768;
+                        1536:cpu_target=1024; 2048:cpu_target=1536; 3072:cpu_target=2048;
+                        4096:cpu_target=3072; default:cpu_target=64; endcase
+                    model_frame=0; reset_sample=1;
+                end
+                else if(demo==5) begin variant=variant>0 ? variant-1 : 0; alpha_decrements=alpha_decrements+1; model_frame=0; reset_sample=1; end
             8: demo_active=0;
             default: $fatal(1,"Unexpected button event %h",button_pending);
         endcase
     end
-    task press_keys(input reg [3:0] mask);
+    task press_keys(input reg [4:0] mask);
         begin
             key_i=~mask; #2000;
-            key_i=4'hf; #2000;
+            // Keep the fifth (Enter) key live long enough for the real CPU
+            // polling loop, then let its debounced release settle as well.
+            #20000; key_i=5'h1f; #2000;
         end
     endtask
     // Wait for each menu redraw and event acknowledgement so no key is lost.
-    task menu_key(input reg [3:0] mask);
+    task menu_key(input reg [4:0] mask);
         integer before_frames;
         before_frames=menu_frames; press_keys(mask); wait(menu_frames>before_frames);
     endtask
@@ -580,42 +638,38 @@ module tb_soc;
     initial begin
         wait(menu_frames>=1 && page_frames[0]+page_frames[1]>=1);
         menu_key(1); menu_key(2); // root wrap in both directions
-        menu_key(4);
+        menu_key(16);
         if(ui_smoke) begin
             // Focus on changed UI/assets; exercise both HW and CPU scene access.
-            press_keys(4); wait(demo_hw[0]>=1);
+            press_keys(16); wait(demo_hw[0]>=1);
             press_keys(1); wait(variant_coverage[0][1]>=1); leave_demo();
             for(integer i=0;i<4;i=i+1) menu_key(2); // forward wrap of all basic entries
-            menu_key(8); menu_key(2); menu_key(4);
-            for(integer i=0;i<4;i=i+1) menu_key(1); // reverse wrap of all advanced entries
-            menu_key(2); press_keys(4); wait(variant_coverage[5][128]>=1);
+            menu_key(8); menu_key(2); menu_key(16);
+            for(integer i=0;i<3;i=i+1) menu_key(1); // reverse wrap of all advanced entries
+            menu_key(2); press_keys(16); wait(variant_coverage[5][128]>=1);
             press_keys(1); wait(variant_coverage[5][129]>=1);
             press_keys(2); wait(demo_cpu[5]>=1);
             leave_demo(); menu_key(8); test_done=1;
         end else begin
         for(integer d=0;d<4;d=d+1) begin
-            press_keys(4); wait(demo_hw[d]>=1);
+            press_keys(16); wait(demo_hw[d]>=1);
             press_keys(1); wait(variant_coverage[d][1]>=1);
             if(d==1) begin press_keys(2); wait(demo_cpu[d]>=1); end
             leave_demo();
             if(d<3) menu_key(2);
         end
-        menu_key(8); menu_key(2); menu_key(4);
-        press_keys(4); wait(variant_coverage[4][1]>=1);
+        menu_key(8); menu_key(2); menu_key(16);
+        press_keys(16); wait(variant_coverage[4][1]>=1);
         press_keys(1); wait(variant_coverage[4][0]>=1); leave_demo(); menu_key(2);
-        press_keys(4); wait(variant_coverage[5][128]>=1);
+        press_keys(16); wait(variant_coverage[5][128]>=1);
         for(integer a=0;a<3;a=a+1) begin press_keys(1); wait(variant_coverage[5][129+a]>=1); end
         press_keys(4); wait(alpha_decrements==1 && variant==130);
         press_keys(2); wait(demo_cpu[5]>=1); leave_demo(); menu_key(2);
-        press_keys(4); wait(demo_hw[6]>=11 && collision_clear>=2 && collision_overlap>=1);
-        press_keys(1); wait(variant_coverage[6][1]>=1); leave_demo(); menu_key(2);
-        press_keys(4); wait(coverage_cpu[1]>=1); press_keys(2);
+        press_keys(16); wait(demo_hw[6]>=1);
         wait(coverage_hw[1]>=1); press_keys(1);
         wait(coverage_hw[2]>=1); press_keys(1);
-        wait(coverage_hw[3]>=1); press_keys(1);
-        wait(cpu_target==64 && model_frame>=1);
-        wait(model_hw==0 && demo_cpu[7]>=5);
-        leave_demo(); menu_key(8); test_done=1;
+        wait(coverage_hw[3]>=1); leave_demo();
+        leave_demo(); test_done=1;
         end
     end
     integer px=0,py=0;
@@ -675,6 +729,7 @@ module tb_soc;
     end
     initial begin
         $readmemh("sim/font5x7.hex",font_columns);
+        $readmemh("sim/font_cn.hex",font_cn_records);
         $readmemh("sim/player_expected.hex",player_expected);
         $readmemh("sim/game_expected.hex",game_expected);
         for(integer i=0;i<4;i=i+1) begin coverage_cpu[i]=0; coverage_hw[i]=0; scene_coverage_cpu[i]=0; scene_coverage_hw[i]=0; end
@@ -708,7 +763,7 @@ module tb_soc;
             $display("PASS UI: all four direction frames match source-derived RGB565; %0d bytes uploaded once; forward/reverse menu wrap; Fill and Alpha HW/CPU; no front-page writes",
                      asset_write_bytes);
         end else begin
-        for(integer d=0;d<8;d=d+1)
+        for(integer d=0;d<7;d=d+1)
             if(demo_hw[d]<1) $fatal(1,"Missing independent demo %0d",d);
         if(variant_coverage[5][128]<1 || variant_coverage[5][129]<1 || variant_coverage[5][130]<1)
             $fatal(1,"Missing alpha levels 128/129/130");
@@ -717,15 +772,15 @@ module tb_soc;
         if(coverage_cpu[1]<1 || demo_cpu[1]<1 || demo_cpu[5]<1 || variant_coverage[4][0]<1 || variant_coverage[4][1]<1)
             $fatal(1,"Missing CPU baseline or isolated Color Key coverage");
         if(hw_asset_reads==0 || cpu_asset_reads==0 || asset_write_bytes!=ASSET_UPLOAD_BYTES ||
-           verified_scenes<50 || verified_scan_frames<40 || collision_clear<2 || collision_overlap<1 ||
-           manual_events!=3 || auto_events!=0 || video_size_reads==0)
+           verified_scenes<50 || verified_scan_frames<40 ||
+           manual_events!=2 || auto_events!=0 || video_size_reads==0)
             $fatal(1,"Missing UI/mode/button/asset coverage");
         $display("PASS: real CPU/HW/CPU, %0d CPU frames, %0d HW frames, %0d swaps; same scene pixels; UART metrics; no front writes",
                  mode_frames[0],mode_frames[1],swap_acks);
         $display("PASS: %0d complete A frames, %0d complete B frames, no scanout mismatch",page_frames[0],page_frames[1]);
         $display("PASS: DDR image uploaded once (%0d bytes), immutable across A/B clears; CPU resource bursts=%0d, HW resource bursts=%0d",
                  asset_write_bytes,cpu_asset_reads,hw_asset_reads);
-        $display("PASS: hardware burst counters read=%0d write=%0d; Sprite targets 64/128/256; 8 independent demos, Alpha 1-step levels, Key toggle, two-level menu, full HUD and RISC-V collision covered",
+        $display("PASS: hardware burst counters read=%0d write=%0d; Sprite targets 64/128/256; 7 independent demos, FPGA Alpha+Key stress, Alpha 1-step levels, Color Key toggle, Chinese two-level menu and full HUD covered",
                  graphics.burst_reads,graphics.burst_writes);
         end
         if(graphics.underflow||graphics.read_error) $fatal(1,"SoC scanout error");

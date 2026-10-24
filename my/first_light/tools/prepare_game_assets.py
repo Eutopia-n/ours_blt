@@ -9,6 +9,58 @@ import zlib
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'assets/game'
 
+def read_rgba_png(path):
+    data = path.read_bytes()
+    if data[:8] != b'\x89PNG\r\n\x1a\n':
+        raise ValueError(f'{path} is not a PNG image')
+    width = height = color_type = bit_depth = interlace = None
+    compressed = bytearray()
+    at = 8
+    while at < len(data):
+        size = struct.unpack('>I', data[at:at+4])[0]
+        kind = data[at+4:at+8]
+        chunk = data[at+8:at+8+size]
+        at += size + 12
+        if kind == b'IHDR':
+            width, height, bit_depth, color_type, _, _, interlace = struct.unpack('>IIBBBBB', chunk)
+        elif kind == b'IDAT':
+            compressed.extend(chunk)
+        elif kind == b'IEND':
+            break
+    if bit_depth != 8 or color_type != 6 or interlace != 0:
+        raise ValueError('Healing-heart source must be a non-interlaced 8-bit RGBA PNG')
+    bpp, stride = 4, width * 4
+    raw = zlib.decompress(compressed)
+    rows, previous, offset = [], bytearray(stride), 0
+    for _ in range(height):
+        filter_type = raw[offset]
+        offset += 1
+        source = raw[offset:offset+stride]
+        offset += stride
+        row = bytearray(stride)
+        for i, value in enumerate(source):
+            left = row[i-bpp] if i >= bpp else 0
+            above = previous[i]
+            upper_left = previous[i-bpp] if i >= bpp else 0
+            if filter_type == 1:
+                value += left
+            elif filter_type == 2:
+                value += above
+            elif filter_type == 3:
+                value += (left + above) // 2
+            elif filter_type == 4:
+                estimate = left + above - upper_left
+                distances = (abs(estimate-left), abs(estimate-above), abs(estimate-upper_left))
+                predictor = left if distances[0] <= distances[1] and distances[0] <= distances[2] else \
+                            above if distances[1] <= distances[2] else upper_left
+                value += predictor
+            elif filter_type != 0:
+                raise ValueError(f'Unsupported PNG filter {filter_type}')
+            row[i] = value & 255
+        rows.append(row)
+        previous = row
+    return width, height, rows
+
 def main():
     # Reuse the checked-in source frames, then append only the new sprites.
     # This keeps normal regeneration independent of external Python packages.
@@ -16,19 +68,20 @@ def main():
     assert len(original)>=23*2048
     frames = [list(struct.unpack('<1024H',original[n*2048:(n+1)*2048])) for n in range(23)]
     def rgb(r,g,b): return ((r>>3)<<11)|((g>>2)<<5)|(b>>3)
+    # Use the user's pink heart from the 10x8 icon sheet. Each 16x16 cell is
+    # enlarged 2x with nearest-neighbour sampling to preserve its pixel-art edge.
+    heart_width,heart_height,heart_rows=read_rgba_png(OUT/'source/user_hearts.png')
+    assert heart_width>=112 and heart_height>=80
     heart=[]
-    row_ranges={4:((7,12),(19,24)),5:((5,14),(17,26)),6:((4,27),),
-                7:((3,28),),8:((3,28),),9:((4,27),),10:((5,26),),
-                11:((6,25),),12:((7,24),),13:((8,23),),14:((9,22),),
-                15:((10,21),),16:((11,20),),17:((12,19),),18:((13,18),),
-                19:((14,17),)}
     for y in range(32):
         for x in range(32):
-            span=row_ranges.get(y)
-            if not span or not any(lo<=x<=hi for lo,hi in span): heart.append(0); continue
-            edge=any(x==lo or x==hi for lo,hi in span)
-            highlight=(7<=x<=11 and 7<=y<=9) or (20<=x<=22 and 7<=y<=8)
-            heart.append(rgb(3,18,46) if edge else rgb(90,235,255) if highlight else rgb(8,94,166))
+            sx=96+x//2; sy=64+y//2
+            r,g,b,a=heart_rows[sy][sx*4:sx*4+4]
+            if not a: heart.append(0); continue
+            # The sheet uses opaque black outlines on transparency-key black.
+            # Recolour only the outline so it stays visible against the navy floor.
+            if r+g+b<24: r,g,b=8,18,38
+            heart.append(rgb(r,g,b))
     frames.append(heart)
     skeleton=frames[17]; warden=[]
     for p in skeleton:
@@ -81,6 +134,7 @@ def main():
     (OUT/'atlas_preview.png').write_bytes(png)
     manifest={'frames':len(frames),'player':'direction*4+walk_frame','slime':16,'skeleton':17,'bat':18,
               'gem':19,'bolt':20,'orb':21,'spark':22,'healing_heart':23,'ice_warden':24,
+              'healing_heart_source':'user_hearts.png (pink icon, crop 96,64 to 112,80)',
               'width':32,'height':32,'stride':64,
               'format':'RGB565 little endian','key':0,'ddr_base':'0x01204000','compressed_bytes':2*(len(palette)+len(tokens)+len(offsets)),
               'kenney_source_sha256':hashlib.sha256((OUT/'source/kenney_tiny_dungeon.png').read_bytes()).hexdigest()}

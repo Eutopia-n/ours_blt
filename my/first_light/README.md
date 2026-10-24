@@ -1,12 +1,22 @@
 # Ti60 2D 引擎：独立功能演示与生存游戏
 
+2026-10-23 修复压力页每帧清整屏、重复绘制全部 HUD 导致的固定 30 FPS 开销：两页静态说明分别只初始化一次，每帧只清 640×256 运动区域，数值按页缓存并以连续 32 位写入更新。压力页 `RENDER_US` 纳入 HUD，FPS 保留 UART 报告实际耗时；`MAX60` 同时核对每帧完整渲染 ≤16.6667 ms 和显示刷新计数增量为 1。UART 新增 `MAX_US`、`MISSED` 诊断字段。菜单复用游戏图集中的同像素人物代表帧，减少重复固件资源。编译结果与实测限制见 [压力页修复记录](reports/pressure_60fps_fix_20261023.md)。
+
+2026-10-23 更新文字布局、压力页长按与游戏 MAX60：游戏 HUD 的 `SPRITES` 为本帧实际绘制到屏内的 Sprite 数，`MAX60` 为本局连续 30 帧满足 60 FPS 条件的窗口中最大实际同屏数量；屏外和未绘制对象不计入。Sprite 压力页固定开启 FPGA Alpha + Color Key，提供完整 4×4、16×16、24×24、32×32 素材；从 1 个 Sprite 开始，W 增加 1 个、S 减少 1 个，按住 300 ms 后约每 60 ms 连发一次，A/D 双向循环切换尺寸，Enter 返回；每个采样窗口逐帧检查完整渲染 16.6667 ms 预算和实际显示刷新计数，`MAX60` 按尺寸分别记录已通过的最高数量，不设置 4096 等人为档位上限。文本字段增加宽度与边界保护，普通功能页 DDR 指标分行，游戏指标栏独立排版；主机文字布局检查见 `tools/check_ui.py`。
+
+2026-10-19 优化压力页：每个测试 Sprite 采用完整尺寸素材，提供 16×16、24×24、32×32 三档，仍由 FPGA 同时执行 Alpha 与 Color Key；游戏人物和敌怪仍使用完整 32×32 图像。
+
+2026-10-19 使用用户提供的粉色像素爱心替换治疗掉落图标；游戏敌怪图像预算提升到最高 64 个，仅在 FPS≥59 且场景渲染低于 12 ms 时开启，其他情况回退到 32 个以优先保帧。
+
+2026-10-18 更新游戏绘制预算：按画面内距离优先选择敌怪，避免离屏对象占满图像合成命令；敌怪血条只在受击后的短时间内显示；HUD 显示 Sprite 当前数/405 上限。五个 J28 按键在界面中统一命名为 W/S/A/D/Enter，仍对应原来的五个逻辑位。
+
 2026-10-16 更新为 J28 五键输入：J28-34/37/38/39/40 分别连接 GPIOL_09/GPIOL_04/GPIOL_10/GPIOL_06/GPIOR_13，复位键保持不变；菜单、功能页和游戏 HUD 改为中文。弹幕显示池提升到 48 个，使用 CPU 直接写入 5×5/7×7 小矩形，避免 32×32 图像读取和逐弹幕命令等待拖慢 60 Hz。
 
 2026-10-10 更新 Alpha 每步 1、移除 AUTO 控制；改为 2048×1408 跟随相机地图，增加升级菜单图标/等级上限/满级质变，并将治疗符文改为蓝青配色。掉电启动需一次性写入 SPI Flash，步骤见 [FLASH_PROGRAMMING.md](FLASH_PROGRAMMING.md)。
 
 2026-10-08 新增首页第三项 **FROSTBOUND SURVIVOR**：用户人物四方向 16 帧动画、持续按键移动、随机刷怪和追踪、自动魔法弹与环绕法球、碰撞受伤、经验拾取、三选一升级、暂停/继续、死亡重开和 180 秒胜利。当前地图可滚动、人物由相机跟随，技能满级后触发穿透、双发、冲刺等效果。菜单、石砖竞技场和魔法采用统一的深蓝/青色像素风格。操作和存储说明见 [GAME_DEMO.md](GAME_DEMO.md)，开源参考与许可证见 [THIRD_PARTY.md](THIRD_PARTY.md)。
 
-保留 8 个独立功能页：纯色填充、块拷贝、双缓冲、HDMI/分辨率、Color Key、Alpha 混合、RISC-V 碰撞检测、64/128/256 Sprite 性能测试，带 RISCV/FPGA FPS、渲染时间及 DDR burst 对比。操作见 [MENU_DEMO.md](MENU_DEMO.md)，上一版菜单记录见 [menu_player_validation_20261008.md](reports/menu_player_validation_20261008.md)，完整功能历史回归见 [individual_validation_20261006.md](reports/individual_validation_20261006.md)。按键引脚依据见 [BUTTON_CONTROL.md](BUTTON_CONTROL.md)。游戏实板手感、观感及性能需要下载后验证。
+提供 7 个独立功能页：纯色填充、块拷贝、双缓冲、HDMI/分辨率、Color Key、Alpha 混合和 FPGA Alpha+Color Key Sprite 压力测试。压力页从 1 个 Sprite 开始，W/S 单个增减，A/D 双向循环 4×4、16×16、24×24、32×32 完整素材，Enter 返回，显示实际 FPS、RENDER_US、DDR_RD/WR 与对应尺寸的 `MAX60`；具体可达到的负载以固定 60 FPS 帧预算下的实测记录为准。碰撞检测留在游戏逻辑中，不单独占用演示页。操作见 [MENU_DEMO.md](MENU_DEMO.md)，按键引脚依据见 [BUTTON_CONTROL.md](BUTTON_CONTROL.md)。
 
 2026-09-22 在分辨率显示与写 FIFO 版本上增加独立 DDR 图片资源区和源行距。当前版本说明见 [DDR_ASSETS.md](DDR_ASSETS.md)；此前同步记录见 [SYNC_FIFO_RESOLUTION.md](SYNC_FIFO_RESOLUTION.md)，FIFO 原理见 [FIFO_CACHE.md](FIFO_CACHE.md)。
 
@@ -21,7 +31,7 @@
 - 独立 Efinity 工程 `first_light.xml`，顶层为 `competition_top`，器件为 Ti60F225 / I3。
 - RGB565 矩形纯色填充，支持奇数 X、奇数宽度、AXI 写响应错误上报。
 - RGB565 图像块拷贝：支持同页显存内重叠拷贝，以及独立 DDR 资源区到所选绘制页的拷贝；源行距可单独配置，目标行距固定 1280 字节。
-- 图片资源区为 `0x01200000～0x012FFFFF`（1 MiB）。启动上传原测试/菜单资源 10240 字节及游戏图集 51200 字节，共 61440 字节；首次进入游戏时额外生成并复用 614400 字节背景，均在同一资源池内。
+- 图片资源区为 `0x01200000～0x012FFFFF`（1 MiB）。启动上传原测试/菜单资源、四档压力素材共 13984 字节及游戏图集 51200 字节，共 65184 字节；首次进入游戏时额外生成并复用 614400 字节背景，均在同一资源池内。
 - 每次最多 16 个 32 位 beat，遇到 4 KB 边界自动拆分，最终 B 响应返回后才置 DONE。
 - 两个 DDR framebuffer：A=`0x01000000`、B=`0x01096000`，每页 640×480、RGB565、每像素 2 字节、每行 1280 字节，每页 614400 字节。
 - 双缓冲换页：RISC-V 在后台页完成渲染后写入换页请求，视频端只在垂直消隐的帧边界采纳请求，避免一帧中途改变显示基址。
@@ -30,13 +40,13 @@
 - 加速器写通道包含 16×37 位同步 FIFO，缓存 `{WLAST,WSTRB,WDATA}`；拷贝时连续预取行 RAM，在 `WREADY` 连续有效时每周期发送一个 beat。
 - 640×480 HDMI 视频输出；实际像素时钟约 25.208333 MHz，800×525 总时序，对应约 60.01984 Hz。此数值是设计刷新率，不是实测渲染性能。
 - C 固件及驱动、渲染模块仿真、实际 Sapphire 核执行固件的联合仿真入口。
-- RISC-V 在性能页计算 64、128 或 256 个 Sprite 坐标；独立碰撞页计算两个 80×80 矩形重叠并显示红/绿状态。当前演示取消手动移动方块。
-- 基础与高阶各有 4 个独立功能页；前 7 页默认固定 HW 演示，性能页默认每 8 帧自动切换 CPU/HW；两条路径处理相同负载并从相同帧序列开始。
-- 屏幕并排显示 CPU/HW 的 FPS、平均渲染微秒数和每帧渲染器读写 burst；UART 每 4 帧输出同一组的 FPS/渲染时间、Sprite 数、读写 burst 总数及碰撞累计数。
+- RISC-V 在游戏中计算玩家、敌人和碰撞；Sprite 压力页从 1 个开始按键逐个增加随机运动坐标，A/D 双向循环选择 4×4、16×16、24×24、32×32 完整素材，由 FPGA 开启 Alpha + Color Key 完成合成。
+- 基础菜单含 4 项、高阶菜单含 3 项；压力页每档采样 30 帧，逐帧检查完整渲染预算及无漏刷新，并记录已通过的最高 Sprite 数量。未实测的数量不会被视作达到目标。
+- 普通功能页显示 CPU/FPGA 的 FPS、平均渲染时间和 DDR burst；压力页显示 FPGA FPS、RENDER_US、DDR_RD/WR、当前 Sprite 数和 `MAX60`。UART 普通页每 4 帧、压力页每 30 帧输出指标，并输出本窗口 `PASS/FAIL` 状态，不输出碰撞累计数。
 - 根据送入 HDMI 编码器的实际 DE/HS/VS，每帧测量有效宽高，HUD 读取对应 APB 寄存器显示分辨率。
 - 游戏使用固定 60 Hz 逻辑更新、256 敌人/48 魔法弹/96 宝石对象池和 6 种升级，FPGA 负责背景拷贝与 Alpha/Color Key 合成。弹幕优先由 CPU 写入 5×5/7×7 RGB565 小矩形，48 个逻辑弹幕都可在一帧内更新；屏幕显示生命、经验、等级、时间、击杀和渲染指标。
 
-菜单中按键1上一项、按键2下一项、按键5进入、按键4返回；游戏中按键1/2/3/4为上/下/左/右，按键5负责开始、暂停、确认。Alpha 页支持按键1加一、按键3减一，按住自动重复且端点饱和。Sprite 压力页默认自动比较 CPU/FPGA，按键2手动切换。UART 仅输出日志。掉电启动须写入 SPI Flash，完成后断电重上电验证。
+菜单中 W 上一项、S 下一项、Enter 进入、D 返回；游戏中 W/S/A/D 为上/下/左/右，Enter 负责开始、暂停、确认。Alpha 页支持 W 加一、A 减一，按住自动重复且端点饱和。Sprite 压力页固定运行 FPGA 合成，W 加 1、S 减 1、A/D 换尺寸、Enter 返回。UART 仅输出日志。掉电启动须写入 SPI Flash，完成后断电重上电验证。
 
 ## 2. 为什么这样连接
 
@@ -65,7 +75,7 @@ DDR 与像素时钟不同，所以显示端不能直接跨时钟读取一组普�
 | `rtl/video_mode_measure.v` | 从实际 DE/HS/VS 测量每帧有效宽高 |
 | `rtl/render_subsystem.v` | 模块连接、显示/拷贝读通道仲裁 |
 | `software/main.c` | C 驱动、简洁菜单、按键事件、位置/碰撞、CPU/HW 基线、HUD 与计时 |
-| `software/font5x7.h`、`software/font_cn.h` | ASCII 与中文像素字库，中文 12×14 点阵 |
+| `software/font5x7.h`、`software/font_cn.h` | ASCII 与原有中文像素字库，中文 12×14 点阵 |
 | `software/player_asset.h` | 从附件像素图整理的四个 32×32 RGB565 方向帧，RLE 压缩后启动解压到 DDR |
 | `assets/player/`、`tools/prepare_player_assets.py` | 附件原图、完整 16 帧图集、RGB565 和方向元数据、可复现的转换工具 |
 | `rtl/button_input.v` | 五路按键同步、20 ms 消抖、短按暂存，可选长按重复（当前菜单禁用） |
@@ -101,7 +111,7 @@ python my\first_light\tools\build.py compile
 
 每一步退出码必须为 0，失败时先读 `my\first_light\reports` 中对应日志，再继续。只改 C 代码时执行 `firmware`、`sim-soc`、`compile`；只改渲染 RTL 时执行 `sim`、`sim-soc`、`compile`。
 
-仅验证本次菜单/人物可执行 `python my/first_light/tools/build.py sim-soc --ui-smoke`，日志为 `reports/simulation_soc_ui.log`，覆盖菜单循环和返回、四方向资源上传、整帧/扫描像素、填充与 Alpha 的代表性功能；完整 8 项功能测试仍使用不带参数的 `sim-soc`。
+仅验证本次菜单/人物可执行 `python my/first_light/tools/build.py sim-soc --ui-smoke`，日志为 `reports/simulation_soc_ui.log`，覆盖菜单循环和返回、四方向资源上传、整帧/扫描像素、填充与 Alpha 的代表性功能；完整 7 页功能测试使用不带参数的 `sim-soc`。
 
 仅在重新导入完整随板资料时，运行 `python my/first_light/tools/build.py prepare --board-root S:/Ti60F225_DemoBoard_v4`，其中路径应替换为实际资料根目录。prepare 会覆盖 vendor 初始化文件，因此随后必须执行 firmware。本仓库已附 SoC 专用 ModelSim 模型，正常联合仿真无需访问仓库外的随板目录。
 
@@ -143,6 +153,8 @@ python my\first_light\tools\build.py compile
 | 0x5C | BURST_READ | 只读 | 渲染引擎 AR 握手累计数，复位清零，不含 CPU/视频扫描 |
 | 0x60 | BURST_WRITE | 只读 | 渲染引擎 AW 握手累计数，复位清零，不含 CPU 写入 |
 | 0x64 | BUTTON_HELD | 只读 | 按键消抖后的持续状态，bit0～4 对应按键1～5，1 表示按住；不随事件确认清零 |
+| 0x68 | BUTTON_ENTER_EVENT | 只读 | 第五键（Enter）消抖事件，按下后保持为 1，GPIO 写入确认位后清零 |
+| 0x6C | VIDEO_FRAME_COUNT | 只读 | 显示刷新累计计数，复位清零；用于检查连续换页是否漏刷新，不能当作渲染 FPS |
 
 STATUS：bit0 BUSY，bit1 DONE，bit2 渲染命令错误（填充或拷贝），bit3 DDR_READY，bit4 显示欠载，bit5 显示读响应/长度错误，bit6 当前显示页（0=A，1=B），bit7 SWAP_PENDING（换页等待确认）。DONE 和命令错误在下一条命令启动时清除；显示错误保持到复位。拷贝读错误报告在 bit2，不混入显示错误。
 
@@ -160,17 +172,17 @@ VIDEO_SIZE 测量的是 FPGA 输出的有效画面，当前应为 `0x01E00280`�
 
 `copy_rect(src_x,src_y,dst_x,dst_y,width,height)` 配置源与目标，由硬件完成搬运，也不使用 CPU 写像素。CPU 写像素后必须确保 DDR 写响应完成；本核使用 write-through 缓存，由 `publish_pixels()` 失效缓存并强制 DDR 读回进行同步，不能调用本核未实现的 CSR 0x810。
 
-`copy_image(source,source_stride,dst_x,dst_y,width,height)` 接受 DDR 图片地址和源行距；`copy_rect()` 通过它保留同页接口。`init_assets()` 启动时上传 2048 字节测试 Sprite、8192 字节菜单代表帧及 51200 字节游戏图集，并排空 CPU 写操作。性能页仍绘制 64、128 或 256 个 Sprite；游戏选择完整人物动画帧，并使用独立怪物、宝石、治疗符文和魔法图像。菜单预览使用玩家正面代表帧。
+`copy_image(source,source_stride,dst_x,dst_y,width,height)` 接受 DDR 图片地址和源行距；`copy_rect()` 通过它保留同页接口。`init_assets()` 启动时上传 2048 字节测试 Sprite、32/512/1152/2048 字节四档压力 Sprite 及 51200 字节游戏图集，再从解码后的游戏图集复制四个方向的首帧到原有 8192 字节菜单区，并排空 CPU 写操作；代表帧像素与原菜单资源一致。压力页从 1 个开始绘制带 Alpha/Color Key 的 Sprite，W/S 每次只增减 1 个、A/D 切换尺寸、Enter 返回；游戏使用独立怪物、宝石、粉色治疗爱心和魔法图像。菜单预览使用玩家正面代表帧。
 
 `cycle_now()` 读取官方 CLINT 的 MTIME 低 32 位（基址加 `0xBFF8`），用于超时和延时。该 Sapphire 配置读 `mcycle` CSR 会产生非法指令异常，因此使用已在 BSP 中定义的 CLINT 接口。时间差用无符号减法计算，以处理低 32 位翻转。
 
-当前 `scene()` 按相同坐标分别调用 CPU 逐像素或硬件 Fill/Blend 路径；UART 每 4 帧输出性能和累计碰撞数；`fatal_trap()` 输出异常原因和地址。`handle_buttons()` 在绘制下一帧之前读取并确认按键事件，更新玩家/数量/模式；模式由组合键选择，取消每 4 秒自动切换。详细计时口径见 `ADVANCED_V1.md`。
+普通 `scene()` 按相同坐标分别调用 CPU 逐像素或硬件 Fill/Blend 路径；Sprite 压力页固定使用 FPGA Alpha + Color Key。UART 普通页每 4 帧、压力页每 30 帧报告一次测量值；`fatal_trap()` 输出异常原因和地址。按键事件在绘制下一帧前读取并确认。
 
 历史静态程序保存在 `double_buffer_demo.c`，其中 `expected_pixel_page()` 用于 CPU 全帧读回核验：先绘制 A 页并开启显示，再绘制 B 页并提交，两页共校验 614400 个像素。它不再是默认固件。
 
 `present_frame()` 等待本次提交被确认，成功后把旧前台页设为绘制页；返回 -2 表示命令或换页忙，-3 表示渲染/视频错误，-4 表示 2 秒超时。超时不撤销硬件请求，不能据此继续绘制，应停止并排查/复位。
 
-以下表格是早期静态/动画版本的图案参数记录；当前互动 Sprite 版每帧清屏，再绘制所选数量的 32×32 菱形：
+以下表格是早期静态/动画版本的图案参数记录；当前互动 Sprite 版每帧清屏，再绘制所选数量和尺寸的完整菱形素材：
 
 | 图案 | X | Y | 宽 | 高 | RGB565 |
 |---|---:|---:|---:|---:|---|

@@ -2,6 +2,7 @@
 module tb_render;
     reg clk=0, pixel_clk=0, reset=1, memory_ready=1;
     reg [4:0] button_held=0;
+    reg button_enter_pending=0;
     always #5 clk=~clk;
     always #19.8347107 pixel_clk=~pixel_clk;
     reg [15:0] paddr=0;
@@ -361,6 +362,10 @@ module tb_render;
         read_reg(100,status); if(status!=10) $fatal(1,"Live button register mismatch");
         button_held=5'h10;
         read_reg(100,status); if(status!=16) $fatal(1,"Fifth action key missing from live button register");
+        button_enter_pending=1;
+        read_reg(104,status); if(status!=1) $fatal(1,"Fifth key event register mismatch");
+        button_enter_pending=0;
+        read_reg(104,status); if(status!=0) $fatal(1,"Fifth key event did not clear");
         write_reg(100,0,1);
         button_held=0;
         fill(1,0,0,1,16'hffff,1);
