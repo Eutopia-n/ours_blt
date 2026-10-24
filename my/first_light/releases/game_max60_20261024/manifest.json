@@ -1,0 +1,43 @@
+{
+  "snapshot_date": "2026-10-24",
+  "source_commit": "0b2cab9b9aba2fc5a8d5cb221b636826cdffe18f",
+  "project": "my/first_light",
+  "target": "Ti60F225",
+  "tool_version": "Efinity 2026.1.132",
+  "bitstream_build_time_local": "2026-10-23 18:02:21 Asia/Shanghai",
+  "files": [
+    {
+      "name": "first_light.bit",
+      "bytes": 2375394,
+      "sha256": "b58de120a87050f352bab4c5814c970cb9adf9e695b00e6f4f90488d9982ceca",
+      "source_path": "my/first_light/outflow/first_light.bit"
+    },
+    {
+      "name": "first_light.hex",
+      "bytes": 2375454,
+      "sha256": "faabb79ba6be3f0d77070a2d8608aa855ef4506b3d85e895e2d08b130f6b72e2",
+      "source_path": "my/first_light/outflow/first_light.hex"
+    },
+    {
+      "name": "first_light.elf",
+      "bytes": 175184,
+      "sha256": "cf113346cb95be275af020765313ea42795d60855288fcf2d5c58add1fa7b6ca",
+      "source_path": "my/first_light/software/build/first_light.elf"
+    },
+    {
+      "name": "first_light.bin",
+      "bytes": 53124,
+      "sha256": "eefe3d363fa6905a49c9b5d0abb51288e4f4f3aa28f056c8941c9b789d2356ba",
+      "source_path": "my/first_light/software/build/first_light.bin"
+    },
+    {
+      "name": "first_light.map",
+      "bytes": 18233,
+      "sha256": "17bbd21bccc37bb9a300103ed3a5a55d96481d20582a30f8bd066b5bd90586e9",
+      "source_path": "my/first_light/software/build/first_light.map"
+    }
+  ],
+  "validation_report": "../../reports/ui_controls_max60_check_20261023.md",
+  "board_observation": "../../reports/board_observation_20261024.md",
+  "note": "Archived existing build, no rebuild, simulation, or board programming during upload. Board observation was supplied by the user, not independently measured."
+}
