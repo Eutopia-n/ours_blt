@@ -71,7 +71,7 @@ module tb_soc;
         begin
             commands++;
             if(graphics.operation==1 && graphics.src==BG) bg_copies++;
-            if(graphics.operation==1 && graphics.src>=BG+PAGE_BYTES && graphics.src<BG+PAGE_BYTES+131072) begin
+            if(graphics.operation==1 && graphics.src>=BG && graphics.src<BG+524288) begin
                 map_copies++;
                 if(graphics.src<floor_source_min) floor_source_min=graphics.src;
                 if(graphics.src>floor_source_max) floor_source_max=graphics.src;
@@ -106,7 +106,7 @@ module tb_soc;
     endtask
     task check_assets;
         begin
-        if(asset_writes!=61440) $fatal(1,"Game resources not uploaded once: %0d",asset_writes);
+        if(asset_writes!=65184) $fatal(1,"Game resources not uploaded once: %0d",asset_writes);
             for(integer n=0;n<4096;n++)
                 if({mem[ASSET_BASE-BASE+2048+n*2+1],mem[ASSET_BASE-BASE+2048+n*2]}!==player_expected[n])
                     $fatal(1,"Menu player asset mismatch");
@@ -119,9 +119,9 @@ module tb_soc;
         bus_cycle++;
         if(m_awvalid&&m_awready) begin
             if(!((m_awaddr>=BASE && m_awaddr<BASE+2*PAGE_BYTES) ||
-                 (m_awaddr>=ASSET_BASE && m_awaddr<ASSET_BASE+10240) ||
+                 (m_awaddr>=ASSET_BASE && m_awaddr<GAME_BASE) ||
                  (m_awaddr>=GAME_BASE && m_awaddr<GAME_BASE+GAME_BYTES) ||
-                 (m_awaddr>=BG && m_awaddr<BG+PAGE_BYTES+131072))) $fatal(1,"Unexpected DDR write %h",m_awaddr);
+                 (m_awaddr>=BG && m_awaddr<BG+524288))) $fatal(1,"Unexpected DDR write %h",m_awaddr);
             if(m_awaddr>=ASSET_BASE && m_awid[7]) $fatal(1,"Hardware overwrote assets");
             if(graphics.display_enable && m_awaddr<BASE+2*PAGE_BYTES &&
                ((m_awaddr>=BASE+PAGE_BYTES)==graphics.display_page_sync[1])) $fatal(1,"Front page write");
@@ -200,12 +200,12 @@ module tb_soc;
         wait(state_seen[0]>=1); tap(16); wait(state_seen[1]>=1);
         hold_key(8,15); hold_key(1,6); hold_key(4,6); hold_key(2,6);
         tap(16); wait(state_seen[3]>=1); tap(16); wait(state_seen[1]>=2);
-        hold_key(10,5); tap(16); wait(state_seen[3]>=2); tap(8);
+        hold_key(10,5); tap(16); wait(state_seen[3]>=2); tap(4);
         wait(menu_count>=4); // 3 root redraws, then returned root.
         wait(previewed[graphics.display_page_active]==present && acks==present);
         if(held_reads<15 || game_frames<20 || bg_copies<2 || map_copies<40 || floor_source_max<=floor_source_min || blends<20 || enemy_reads==0 || orb_reads==0 ||
            game_perf_samples==0 || game_fps<60 || game_render_us>=16667 ||
-           direction_mask!=15 || frame_mask!=15 || bg_writes!=PAGE_BYTES+131072)
+           direction_mask!=15 || frame_mask!=15 || bg_writes!=524288)
             $fatal(1,"Missing game input/animation/asset/pause/camera coverage: dirs=%h frames=%h floor=%h..%h",direction_mask,frame_mask,floor_source_min,floor_source_max);
         if(graphics.underflow||graphics.read_error) $fatal(1,"Game scanout error");
         $display("SOC GAME TEST PASSED: %0d pages, %0d game frames, %0d verified HDMI scans, %0d commands, live keys, all directions/walk frames, enemy/orbit Alpha+Key, pause/resume/menu, no front writes; %0d sprite asset bytes, %0d background bytes",present,game_frames,verified_scans,commands,asset_writes,bg_writes);

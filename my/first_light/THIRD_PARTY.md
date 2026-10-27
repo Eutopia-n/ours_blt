@@ -6,7 +6,7 @@
 - 固定提交：`1c90e4f49363bd392d6da6cac01a9880ae2cdf21`。
 - 许可证：MIT，原文保存在 [third_party/survivors_reference/LICENSE](third_party/survivors_reference/LICENSE)。
 - 参考源码：敌人生成管理、经验阈值、升级选择暂停、最近目标选择、速度追踪；五个 GDScript 原始快照保存在 `third_party/survivors_reference`。
-- 使用方式：结构和规则参考，改写到 `software/survivor_game.c` 的定点 C 实现。Godot 场景、引擎、音频和该仓库图像没有加入 FPGA 构建。升级数值、180 秒关卡、对象池与板上操作由本工程定义。
+- 使用方式：结构和规则参考，改写到 `software/survivor_game.c` 的定点 C 实现。Godot 场景、引擎、音频和该仓库图像没有加入 FPGA 构建。升级数值、360 秒关卡、对象池与板上操作由本工程定义。
 
 ## 敌人图像
 
@@ -28,5 +28,6 @@
 
 ## 中文字体
 
-- 当前固件恢复使用工程原有的简洁中文像素字库，字形保存在 [software/font_cn.h](software/font_cn.h)，采用 12×14 点阵。
-- 字库作为 C 头文件编译进片内固件，不依赖字体运行时，也不会读取外部字体文件。
+- 中文字形使用 [TakWolf/fusion-pixel-font](https://github.com/TakWolf/fusion-pixel-font) 的 Fusion Pixel 12px zh_Hans 点阵字形；当前实际使用的字符子集保存在 [software/font_cn.h](software/font_cn.h)，按 12×12 点阵绘制并置于现有 14×14 字符单元中央。
+- 上游字体版本为 `2026.10.25`，字体授权为 SIL Open Font License 1.1；许可证副本保存在 [third_party/fusion-pixel-font/OFL.txt](third_party/fusion-pixel-font/OFL.txt)。本项目仅保留界面需要的字形，不包含完整上游字库。
+- 字库作为 C 头文件编译进片内固件，不依赖字体运行时，也不会读取外部字体文件。需要更新字形时，可按 [third_party/fusion-pixel-font/README.md](third_party/fusion-pixel-font/README.md) 的步骤重新生成。

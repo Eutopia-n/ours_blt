@@ -19,6 +19,7 @@ module fill_engine #(
     output wire busy, output reg done, output reg error,
     output reg [31:0] cycles,
     output reg [31:0] burst_reads, output reg [31:0] burst_writes,
+    output reg [31:0] ddr_read_wait_cycles, output reg [31:0] ddr_write_wait_cycles,
     output reg [31:0] awaddr, output wire [7:0] awlen,
     output wire awvalid, input wire awready,
     output wire [31:0] wdata, output wire [3:0] wstrb,
@@ -99,6 +100,11 @@ module fill_engine #(
                 blend_pixel = bg_pixel;
             end else if (!ctrl_value[0]) begin
                 blend_pixel = fg_pixel;
+            end else if (alpha_value == 8'hff) begin
+                // Opaque foreground pixels do not depend on the background.
+                blend_pixel = fg_pixel;
+            end else if (alpha_value == 8'h00) begin
+                blend_pixel = bg_pixel;
             end else begin
                 out_r = blend_channel({1'b0,fg_pixel[15:11]},{1'b0,bg_pixel[15:11]},alpha_value);
                 out_g = blend_channel(fg_pixel[10:5],bg_pixel[10:5],alpha_value);
@@ -208,6 +214,7 @@ module fill_engine #(
         if (reset) begin
             state <= IDLE; done <= 0; error <= 0; cycles <= 0;
             burst_reads <= 0; burst_writes <= 0;
+            ddr_read_wait_cycles <= 0; ddr_write_wait_cycles <= 0;
             awaddr <= 0; araddr <= 0; row_addr <= 0; source_row_addr <= 0;
             source_row_step <= 1280; copy_width <= 0;
             rows_left <= 0; row_step <= 1280; copy_mode <= 0; blend_mode <= 0;
@@ -226,6 +233,15 @@ module fill_engine #(
             if (busy) cycles <= cycles + 1'b1;
             if (arvalid && arready) burst_reads <= burst_reads + 1'b1;
             if (awvalid && awready) burst_writes <= burst_writes + 1'b1;
+            // Count only cycles where a valid AXI phase is waiting for the
+            // memory/interconnect response, not internal raster work.
+            if (((state == C_RADDR || state == B_RADDR) && !arready) ||
+                ((state == C_RDATA || state == B_RDATA) && !rvalid))
+                ddr_read_wait_cycles <= ddr_read_wait_cycles + 1'b1;
+            if (((state == F_ADDR || state == C_WADDR) && !awready) ||
+                ((state == F_DATA || state == C_WDATA) && wvalid && !wready) ||
+                ((state == F_RESP || state == C_WRESP) && !bvalid))
+                ddr_write_wait_cycles <= ddr_write_wait_cycles + 1'b1;
             case (state)
             IDLE: if (start) begin
                 done <= 0; error <= 0; cycles <= 0;
@@ -321,7 +337,7 @@ module fill_engine #(
                         done <= 1; state <= IDLE;
                     end else if (copy_read_words_left == {5'd0,copy_read_burst_words}) begin
                         copy_write_word_index <= 0;
-                        if (blend_mode) begin
+                        if (blend_mode && blend_ctrl[0] && blend_alpha != 8'hff) begin
                             araddr <= {row_addr[31:2],2'b00};
                             bg_read_words_left <= bg_read_row_words;
                             bg_read_word_index <= 0;

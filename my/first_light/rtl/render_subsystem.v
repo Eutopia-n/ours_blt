@@ -26,6 +26,7 @@ module render_subsystem #(
     wire [1:0] operation;
     wire [31:0] src, dst, stride, src_stride, cycles;
     wire [31:0] burst_reads, burst_writes;
+    wire [31:0] ddr_read_wait_cycles, ddr_write_wait_cycles;
     wire [15:0] width, height, color;
     wire [1:0] blend_ctrl;
     wire [7:0] blend_alpha;
@@ -123,6 +124,7 @@ module render_subsystem #(
         .pwrite(pwrite),.pwdata(pwdata),.prdata(prdata),.pready(pready),.pslverror(pslverror),
         .memory_ready(memory_ready),.busy(busy),.done(done),.error(error),.cycles(cycles),
         .burst_reads(burst_reads),.burst_writes(burst_writes),
+        .ddr_read_wait_cycles(ddr_read_wait_cycles),.ddr_write_wait_cycles(ddr_write_wait_cycles),
         .video_frame_count(video_frame_count),
         .button_held(button_held),
         .button_enter_pending(button_enter_pending),
@@ -141,6 +143,7 @@ module render_subsystem #(
         .blend_ctrl(blend_ctrl),.blend_alpha(blend_alpha),.color_key(color_key),
         .busy(busy),.done(done),.error(error),.cycles(cycles),
         .burst_reads(burst_reads),.burst_writes(burst_writes),
+        .ddr_read_wait_cycles(ddr_read_wait_cycles),.ddr_write_wait_cycles(ddr_write_wait_cycles),
         .awaddr(awaddr),.awlen(awlen),.awvalid(awvalid),.awready(awready),
         .wdata(wdata),.wstrb(wstrb),.wlast(wlast),.wvalid(wvalid),.wready(wready),
         .bresp(bresp),.bvalid(bvalid),.bready(bready),

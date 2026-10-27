@@ -55,12 +55,12 @@ static const char *const demo_names[8]={
 static const char *const demo_details[8]={
     "RGB565 硬件填充","DDR 图像复制到显存",
     "垂直消隐交换页面","颜色条与实际尺寸",
-    "黑色像素变为透明","W加一 A减一",
+    "黑色像素变为透明","W加一 D减一",
     "FPGA ALPHA + COLOR KEY / 60 FPS"
 };
 static const char *const action_labels[8]={
     "W改变颜色","W改变位置","W改变速度","W改变图案",
-    "W开关颜色键","W加一 A减一","W加一 S减一 长按连发"
+    "W开关颜色键","W加一 D减一","W加一 S减一 长按连发"
 };
 static uint32_t menu_level, menu_group, menu_item[2];
 static uint32_t fps[2], render_us[2], samples[2], burst_ar[2], burst_aw[2];
@@ -246,11 +246,10 @@ static void text_at_width(uint32_t x,uint32_t y,const char *s,uint16_t color,uin
         if(cell>right-x) break; // Keep whole glyphs inside the caller's field.
         if(cn) {
             for(uint32_t row=0;row<14;++row) {
-                /* A one-pixel horizontal weight makes the small bitmap glyphs
-                 * survive HDMI scaling and dark textured backgrounds. */
-                uint32_t bits=cn[row]|(cn[row]<<1);
-                for(uint32_t col=0;col<13;++col)
-                    if(bits&(1u<<col)) cpu_fill(x+col,y+row,1,1,color);
+                /* Fusion Pixel glyphs already contain their designed pixel
+                 * weight. Draw the centered 12x12 bitmap without widening it. */
+                for(uint32_t col=0;col<14;++col)
+                    if(cn[row]&(1u<<col)) cpu_fill(x+col,y+row,1,1,color);
             }
             x+=14;
             continue;
@@ -465,7 +464,7 @@ static void hud(uint32_t hw,uint32_t demo,uint32_t automatic,uint32_t frame,uint
     case DEMO_COPY:
         text_at(64,152,"源图像",0xffff); text_at(384,152,"复制 128×96",0xffff); break;
     case DEMO_BUFFER:
-        text_at(32,128,draw_page() ? "页面B" : "页面A",0xffff);
+        text_at(32,128,"双缓冲演示",0xffff);
         text_at(200,128,"帧",0xffff); number_at(272,128,frame,0xffff);
         text_at(48,372,"只在垂直消隐时交换",0xffff); break;
     case DEMO_VIDEO: text_at(32,128,"HDMI 颜色与对齐测试",0xffff); break;
@@ -479,7 +478,7 @@ static void hud(uint32_t hw,uint32_t demo,uint32_t automatic,uint32_t frame,uint
     default: text_at(32,128,"随机运动 / 透明与颜色键",0xffff); break;
     }
     text_at(16,426,action_labels[demo],0xffff);
-    text_at(16,450,"S切换 CPU/FPGA  D返回",0x07ff);
+    text_at(16,450,demo==DEMO_ALPHA ? "S切换 CPU/FPGA  A返回" : "D调整参数  S切换 CPU/FPGA  A返回",0x07ff);
     publish_pixels();
 }
 static uint32_t menu_screen(void) {
@@ -501,10 +500,10 @@ static uint32_t menu_screen(void) {
                 if(fill_rect(32,y,576,68,n==choice ? 0x22ae : 0x10c7)) fail("FAIL menu card");
                 if(n==choice && fill_rect(32,y,4,68,0x07ff)) fail("FAIL menu selection");
                 text_at(52,y+12,n==2 ? "冰霜幸存者" : n ? "高阶演示" : "基础演示",0xffff);
-                text_at(52,y+40,n==2 ? "自动施法 生存180秒" : n==1 ? "3项功能" : "4项功能",0x07ff);
+            text_at(52,y+40,n==2 ? "自动施法 生存360秒" : n==1 ? "3项功能" : "4项功能",0x07ff);
             }
             text_at(40,356,"W上一项    S下一项",0xffff);
-            text_at(40,384,"ENTER打开      D返回",0xffe0);
+            text_at(40,384,"ENTER打开",0xffe0);
             text_at(40,432,"7项演示 + 幸存者游戏",0x9cf3);
         } else {
             for(uint32_t n=0;n<count;++n) {
@@ -515,7 +514,7 @@ static uint32_t menu_screen(void) {
                 text_at(52,y+32,demo_details[demo],0x07ff);
             }
             text_at(40,374,"W上一项    S下一项",0xffff);
-            text_at(40,402,"ENTER开始      D返回",0xffe0);
+            text_at(40,402,"ENTER开始      A返回",0xffe0);
             text_at(40,442,"碰撞与移动计算在游戏中运行",0x9cf3);
         }
         publish_pixels();
@@ -523,7 +522,7 @@ static uint32_t menu_screen(void) {
         mmio_write(GFX_BASE+GFX_DISPLAY,1);
         uint32_t keys;
         do { keys=button_event(); } while (!keys);
-        if(keys==8) { menu_level=0; continue; }
+        if(keys==4 && menu_level) { menu_level=0; continue; }
         if(keys==16) {
             if(!menu_level && menu_group==2) return 8;
             if(menu_level) return menu_group*4+menu_item[menu_group];
@@ -575,7 +574,7 @@ static void bench_prime_framebuffers(void) {
         text_at(16,104,"DDR_RD",0xffff); text_at(330,104,"DDR_WR",0xffff);
         text_at(16,128,demo_details[DEMO_BENCH],0xffff);
         text_at(16,426,action_labels[DEMO_BENCH],0xffff);
-        text_at(16,450,"A/D换尺寸  ENTER返回",0x07ff);
+        text_at(16,450,"D换尺寸  A返回",0x07ff);
         // Seed the moving region too: the first visible pressure page already
         // contains its Sprite rather than waiting for the measurement loop.
         scene(0,1,DEMO_BENCH,0);
@@ -619,7 +618,7 @@ int main(void) {
         uint32_t bench_next_repeat=0;
         for (;;) {
             uint32_t keys=button_event(), reset_sample=0;
-            if(keys==8 && demo!=DEMO_BENCH) break;
+            if(keys==4) break;
             if(demo==DEMO_BENCH) {
                 uint32_t old_count=sprite_count;
                 sprite_count=demo_bench_update(sprite_count,keys,
@@ -629,25 +628,30 @@ int main(void) {
             }
             if(demo==DEMO_ALPHA) {
                 uint32_t old_variant=variant;
-                variant=demo_alpha_update(variant,keys&5u,
-                                          mmio_read(GFX_BASE+GFX_BUTTON_HELD),
+                uint32_t held=mmio_read(GFX_BASE+GFX_BUTTON_HELD);
+                uint32_t alpha_keys=(keys&1u)|((keys&8u)?4u:0u);
+                uint32_t alpha_held=(held&1u)|((held&8u)?4u:0u);
+                variant=demo_alpha_update(variant,alpha_keys,alpha_held,
                                           cycle_now(),&alpha_next_repeat,&alpha_repeat_direction);
                 if(variant!=old_variant) { clear_samples(); reset_sample=1; }
             }
-            if(keys==1 && demo!=DEMO_BENCH) {
+            if(keys==1 && demo!=DEMO_BENCH && demo!=DEMO_ALPHA) {
                 // One pressure step adds exactly one Sprite in demo_bench_update().
                 // There is no coarse load table or artificial benchmark ceiling.
-                if(demo==DEMO_ALPHA) { /* handled by demo_alpha_update() above */ }
-                else if(demo==DEMO_FILL) variant=(variant+1)%3;
+                if(demo==DEMO_FILL) variant=(variant+1)%3;
                 else variant^=1u;
                 clear_samples(); frame=0; reset_sample=1;
             }
-            if((keys==4 || keys==8) && demo==DEMO_BENCH) {
-                bench_size_index=(bench_size_index+(keys==8 ? 1u : BENCH_VARIANTS-1u))%BENCH_VARIANTS;
+            if(keys==8 && demo==DEMO_BENCH) {
+                bench_size_index=(bench_size_index+1u)%BENCH_VARIANTS;
                 clear_samples(); frame=0; reset_sample=1; bench60_pass=0;
             }
+            if(keys==8 && demo!=DEMO_BENCH && demo!=DEMO_ALPHA) {
+                if(demo==DEMO_FILL) variant=(variant+1u)%3u;
+                else variant^=1u;
+                clear_samples(); frame=0; reset_sample=1;
+            }
             if(keys==2 && demo!=DEMO_BENCH) { hw^=1u; automatic=0; frame=0; reset_sample=1; }
-            if(keys==16) break;
             if(automatic && frame>=8) { hw^=1u; frame=0; reset_sample=1; }
             // Keep each report tied to one Sprite load. A change in
             // object count starts a fresh measurement window.

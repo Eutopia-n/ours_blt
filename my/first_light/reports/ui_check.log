@@ -17,4 +17,4 @@ UI PASS state_0: 35 text/number fields
 UI PASS state_3: 36 text/number fields
 UI PASS state_4: 36 text/number fields
 UI PASS state_5: 36 text/number fields
-UI CHECK PASSED: 19 previews; collision/edge/overflow guards; actual Sprite clipping and 32/64 budgets
+UI CHECK PASSED: 19 previews; collision/edge/overflow guards; actual Sprite clipping and 32/128 budgets

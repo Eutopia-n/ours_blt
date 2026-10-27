@@ -27,9 +27,10 @@ def read_rgba_png(path):
             compressed.extend(chunk)
         elif kind == b'IEND':
             break
-    if bit_depth != 8 or color_type != 6 or interlace != 0:
-        raise ValueError('Healing-heart source must be a non-interlaced 8-bit RGBA PNG')
-    bpp, stride = 4, width * 4
+    if bit_depth != 8 or color_type not in (2, 6) or interlace != 0:
+        raise ValueError('Game art must be a non-interlaced 8-bit RGB/RGBA PNG')
+    bpp = 4 if color_type == 6 else 3
+    stride = width * bpp
     raw = zlib.decompress(compressed)
     rows, previous, offset = [], bytearray(stride), 0
     for _ in range(height):
@@ -57,8 +58,16 @@ def read_rgba_png(path):
             elif filter_type != 0:
                 raise ValueError(f'Unsupported PNG filter {filter_type}')
             row[i] = value & 255
+        if bpp == 3:
+            previous = row
+            rgba = bytearray(width * 4)
+            for x in range(width):
+                rgba[x*4:x*4+3] = row[x*3:x*3+3]
+                rgba[x*4+3] = 255
+            row = rgba
         rows.append(row)
-        previous = row
+        if bpp == 4:
+            previous = row
     return width, height, rows
 
 def main():
@@ -68,20 +77,72 @@ def main():
     assert len(original)>=23*2048
     frames = [list(struct.unpack('<1024H',original[n*2048:(n+1)*2048])) for n in range(23)]
     def rgb(r,g,b): return ((r>>3)<<11)|((g>>2)<<5)|(b>>3)
-    # Use the user's pink heart from the 10x8 icon sheet. Each 16x16 cell is
-    # enlarged 2x with nearest-neighbour sampling to preserve its pixel-art edge.
-    heart_width,heart_height,heart_rows=read_rgba_png(OUT/'source/user_hearts.png')
-    assert heart_width>=112 and heart_height>=80
-    heart=[]
-    for y in range(32):
-        for x in range(32):
-            sx=96+x//2; sy=64+y//2
-            r,g,b,a=heart_rows[sy][sx*4:sx*4+4]
-            if not a: heart.append(0); continue
-            # The sheet uses opaque black outlines on transparency-key black.
-            # Recolour only the outline so it stays visible against the navy floor.
-            if r+g+b<24: r,g,b=8,18,38
-            heart.append(rgb(r,g,b))
+    # Convert the user's red heart icon into the 32x32 RGB565 game frame.
+    # Its gray canvas is removed by an edge-connected flood fill, preserving
+    # the dark contour enclosed by the heart and leaving the outside Color-Key zero.
+    heart_width,heart_height,heart_rows=read_rgba_png(OUT/'source/healing_heart.png')
+    corners=[heart_rows[y][x*4:x*4+3] for y in (0,heart_height-1)
+             for x in (0,heart_width-1)]
+    background=tuple((sorted(px[c] for px in corners)[1]+
+                      sorted(px[c] for px in corners)[2])//2 for c in range(3))
+    def is_canvas(x,y):
+        pixel=heart_rows[y][x*4:x*4+4]
+        return not pixel[3] or max(abs(pixel[c]-background[c]) for c in range(3))<=10
+    canvas=bytearray(heart_width*heart_height)
+    edge=[]
+    for x in range(heart_width):
+        for y in (0,heart_height-1):
+            index=y*heart_width+x
+            if not canvas[index] and is_canvas(x,y): canvas[index]=1; edge.append(index)
+    for y in range(heart_height):
+        for x in (0,heart_width-1):
+            index=y*heart_width+x
+            if not canvas[index] and is_canvas(x,y): canvas[index]=1; edge.append(index)
+    while edge:
+        index=edge.pop()
+        x=index%heart_width; y=index//heart_width
+        for nx,ny in ((x-1,y),(x+1,y),(x,y-1),(x,y+1)):
+            if 0<=nx<heart_width and 0<=ny<heart_height:
+                neighbor=ny*heart_width+nx
+                if not canvas[neighbor] and is_canvas(nx,ny):
+                    canvas[neighbor]=1; edge.append(neighbor)
+    colored=[(x,y) for y in range(heart_height) for x in range(heart_width)
+             if heart_rows[y][x*4+3] and not canvas[y*heart_width+x]]
+    if not colored:
+        raise ValueError('Healing-heart source contains no visible pixels')
+    min_x=min(x for x,_ in colored); max_x=max(x for x,_ in colored)
+    min_y=min(y for _,y in colored); max_y=max(y for _,y in colored)
+    min_x=max(0,min_x-2); max_x=min(heart_width-1,max_x+2)
+    min_y=max(0,min_y-2); max_y=min(heart_height-1,max_y+2)
+    crop_w,crop_h=max_x-min_x+1,max_y-min_y+1
+    out_w=max(1,round(32*crop_w/max(crop_w,crop_h)))
+    out_h=max(1,round(32*crop_h/max(crop_w,crop_h)))
+    offset_x=(32-out_w)//2; offset_y=(32-out_h)//2
+    heart=[0]*1024
+    sampled=[]
+    for y in range(out_h):
+        row=[]
+        sy=min_y+y*crop_h//out_h
+        for x in range(out_w):
+            sx=min_x+x*crop_w//out_w
+            pixel=heart_rows[sy][sx*4:sx*4+4]
+            row.append((pixel[0],pixel[1],pixel[2],pixel[3],canvas[sy*heart_width+sx]))
+        sampled.append(row)
+    for y in range(out_h):
+        for x in range(out_w):
+            r,g,b,a,is_canvas_pixel=sampled[y][x]
+            if not a or is_canvas_pixel:
+                continue
+            if r+g+b<=24:
+                near_icon=any(
+                    sampled[ny][nx][3] and not sampled[ny][nx][4] and
+                    sum(sampled[ny][nx][:3])>64
+                    for ny in range(max(0,y-2),min(out_h,y+3))
+                    for nx in range(max(0,x-2),min(out_w,x+3)))
+                if not near_icon:
+                    continue
+                r,g,b=5,10,22
+            heart[(offset_y+y)*32+offset_x+x]=rgb(r,g,b)
     frames.append(heart)
     skeleton=frames[17]; warden=[]
     for p in skeleton:
@@ -134,7 +195,7 @@ def main():
     (OUT/'atlas_preview.png').write_bytes(png)
     manifest={'frames':len(frames),'player':'direction*4+walk_frame','slime':16,'skeleton':17,'bat':18,
               'gem':19,'bolt':20,'orb':21,'spark':22,'healing_heart':23,'ice_warden':24,
-              'healing_heart_source':'user_hearts.png (pink icon, crop 96,64 to 112,80)',
+              'healing_heart_source':'healing_heart.png (user-supplied red heart, edge-connected gray canvas removed to Color Key)',
               'width':32,'height':32,'stride':64,
               'format':'RGB565 little endian','key':0,'ddr_base':'0x01204000','compressed_bytes':2*(len(palette)+len(tokens)+len(offsets)),
               'kenney_source_sha256':hashlib.sha256((OUT/'source/kenney_tiny_dungeon.png').read_bytes()).hexdigest()}

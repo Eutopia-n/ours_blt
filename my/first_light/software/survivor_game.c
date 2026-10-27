@@ -10,12 +10,16 @@ static int32_t clamp(int32_t v,int32_t lo,int32_t hi) { return v<lo ? lo : v>hi 
 int32_t game_camera_x(const SurvivorGame *g) {
     int32_t camera=g->x/256-312;
     int32_t maximum=GAME_WORLD_WIDTH-(GAME_X_MAX-GAME_X_MIN);
-    return camera<0 ? 0 : camera>maximum ? maximum : camera;
+    if(camera<0) camera=0;
+    if(camera>maximum) camera=maximum;
+    return camera;
 }
 int32_t game_camera_y(const SurvivorGame *g) {
     int32_t camera=g->y/256-180;
     int32_t maximum=GAME_WORLD_HEIGHT-(GAME_Y_MAX-GAME_Y_MIN);
-    return camera<0 ? 0 : camera>maximum ? maximum : camera;
+    if(camera<0) camera=0;
+    if(camera>maximum) camera=maximum;
+    return camera;
 }
 static uint32_t random_next(SurvivorGame *g) {
     uint32_t v=g->rng; v^=v<<13; v^=v>>17; v^=v<<5; g->rng=v; return v;
@@ -108,15 +112,15 @@ static void upgrade(SurvivorGame *g) {
 }
 void game_input(SurvivorGame *g,uint32_t held,uint32_t pressed) {
     (void)held;
-    if(g->state==GAME_READY) { if(pressed&16u) g->state=GAME_PLAY; else if(pressed&8u) g->state=GAME_EXIT; return; }
+    if(g->state==GAME_READY) { if(pressed&16u) g->state=GAME_PLAY; else if(pressed&4u) g->state=GAME_EXIT; return; }
     if(g->state==GAME_OVER || g->state==GAME_WON) {
         if(pressed&16u) { uint32_t seed=g->rng; game_reset(g,seed); g->state=GAME_PLAY; }
-        else if(pressed&8u) g->state=GAME_EXIT;
+        else if(pressed&4u) g->state=GAME_EXIT;
         return;
     }
     if(g->state==GAME_PAUSED) {
         if(pressed&16u) g->state=g->resume_state;
-        else if(pressed&8u) g->state=GAME_EXIT;
+        else if(pressed&4u) g->state=GAME_EXIT;
         return;
     }
     if(g->state==GAME_UPGRADE) {

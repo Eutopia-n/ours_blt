@@ -4,15 +4,23 @@
 #include "survivor_game.h"
 #include "game_assets.h"
 #define GAME_ASSET_BASE (ASSET_BASE+0x4000u)
-#define GAME_BACKGROUND (ASSET_BASE+0x20000u)
-#define GAME_MAX_DRAW_ENEMIES 64u
+#define GAME_BACKGROUND_COLOR 0x1085u
+#define GAME_MAX_DRAW_ENEMIES 128u
 #define GAME_MAX_DRAW_GEMS 20u
 #define GAME_MAX_DRAW_BOLTS GAME_MAX_BOLTS
-#define GAME_MAX_DRAW_LANDMARKS 4u
-#define GAME_FLOOR_TEXTURE (GAME_BACKGROUND+640u*480u*2u)
+#define GAME_VIEW_WIDTH (GAME_X_MAX-GAME_X_MIN)
+#define GAME_VIEW_HEIGHT (GAME_Y_MAX-GAME_Y_MIN)
+#define GAME_DIRTY_TILE 32u
+#define GAME_DIRTY_COLS ((GAME_VIEW_WIDTH+GAME_DIRTY_TILE-1u)/GAME_DIRTY_TILE)
+#define GAME_DIRTY_ROWS ((GAME_VIEW_HEIGHT+GAME_DIRTY_TILE-1u)/GAME_DIRTY_TILE)
+typedef struct { uint8_t first,last,top,bottom; } GameDirtyRect;
 static SurvivorGame survivor;
-static uint32_t game_background_ready;
 static uint32_t game_assets_ready;
+static uint8_t game_page_valid[2],game_page_playing[2],game_dirty_valid[2];
+/* One bit per 32x32 tile. Keeping separated runs avoids clearing the empty
+ * space between distant sprites in the same scanline. */
+static uint32_t game_page_dirty[2][GAME_DIRTY_ROWS];
+static uint32_t game_capture_page,game_capture_dirty;
 static uint32_t game_hud_pages,game_hud_number_valid[2],game_hud_bar_valid[2];
 /* Game and pressure pages share these 24 HUD number cache entries. The atlas
  * reuse in main.c now leaves enough on-chip RAM for this 96-byte CPU-only
@@ -21,7 +29,26 @@ static uint32_t game_hud_numbers[2][12];
 static FrameMax60 game_max60;
 static uint32_t game_hud_bar_value[2][2],game_hud_bar_max[2][2];
 static uint16_t game_hud_bar_color[2][2];
+static uint32_t game_draw_floor_cycles,game_draw_sprite_cycles,game_draw_other_cycles;
+static uint32_t game_enemy_draw_budget=32u;
+static uint32_t game_draw_enemy_count;
+static uint32_t game_enemy_bad_windows;
 static uint32_t game_sprite(uint32_t frame,int32_t x,int32_t y,uint32_t alpha);
+static void game_record_dirty_rect(uint32_t x,uint32_t y,uint32_t width,uint32_t height) {
+    if(!game_capture_dirty || !width || !height) return;
+    if(x<GAME_X_MIN || y<GAME_Y_MIN || x>=GAME_X_MAX || y>=GAME_Y_MAX) return;
+    uint32_t first_row=(y-GAME_Y_MIN)/GAME_DIRTY_TILE;
+    uint32_t last_row=(y+height-1u-GAME_Y_MIN)/GAME_DIRTY_TILE;
+    uint32_t first_col=(x-GAME_X_MIN)/GAME_DIRTY_TILE;
+    uint32_t last_col=(x+width-1u-GAME_X_MIN)/GAME_DIRTY_TILE;
+    if(last_col>=GAME_DIRTY_COLS) last_col=GAME_DIRTY_COLS-1u;
+    if(last_row>=GAME_DIRTY_ROWS) last_row=GAME_DIRTY_ROWS-1u;
+    uint32_t col_mask=((1u<<(last_col-first_col+1u))-1u)<<first_col;
+    for(uint32_t row=first_row;row<=last_row;++row) {
+        game_page_dirty[game_capture_page][row]|=col_mask;
+    }
+    game_dirty_valid[game_capture_page]=1;
+}
 static uint32_t game_bolt(const GameBolt *b,int32_t camera_x,int32_t camera_y) {
     int32_t sx=GAME_X_MIN+b->x/32-camera_x,sy=GAME_Y_MIN+b->y/32-camera_y;
     uint32_t size=b->pierce ? 7u : 5u;
@@ -38,6 +65,7 @@ static uint32_t game_bolt(const GameBolt *b,int32_t camera_x,int32_t camera_y) {
     // bullet; the single publish at the end of game_draw makes all 48 bullets
     // visible together while leaving the raster engine for larger sprites.
     cpu_fill(x,y,size,size,b->pierce ? 0xffe0 : 0x07ff);
+    game_record_dirty_rect(x,y,size,size);
     return 1;
 }
 
@@ -59,76 +87,93 @@ static void init_game_assets(void) {
     publish_pixels();
     game_assets_ready=1;
 }
-static void game_background(void) {
-    // Store a reusable, borderless sci-fi panel background in DDR once.  The
-    // reference board image is intentionally reduced to a few large panels
-    // and neutral gray service marks so the playfield remains readable under Alpha.
-    if(game_background_ready) return;
-    volatile uint16_t *p=(volatile uint16_t *)(uintptr_t)GAME_BACKGROUND;
-    for(uint32_t y=0;y<480;++y) for(uint32_t x=0;x<640;++x) {
-        uint32_t tx=x/80u,ty=y/80u,px=x%80u,py=y%80u;
-        uint32_t tone=(tx*5u+ty*3u+(tx^ty))&7u;
-        uint16_t c=tone<2u ? 0x1082 : tone<6u ? 0x18c3 : 0x2104;
-        // Thin seams give the panel layout without drawing a screen frame.
-        if(px==0u || py==0u) c=0x0841;
-        else if(px==1u || py==1u) c=0x2945;
-        // A few repeated service marks echo the supplied sci-fi reference.
-        if(((tx+2u*ty)%7u)==0u && py>=17u && py<20u && px>=12u && px<34u)
-            c=0x3186;
-        if(((2u*tx+ty)%9u)==0u && px>=54u && px<57u && py>=30u && py<54u)
-            c=0x3186;
-        // Small dark vents keep the pattern from becoming a uniform grid.
-        if(((tx+ty)%5u)==0u && px>=31u && px<39u && py>=48u && py<59u &&
-           ((py-48u)&1u)==0u) c=0x0000;
-        p[y*640+x]=c;
-    }
-    publish_pixels();
-
-    // Reusable 256x256 world tile. The camera copies wrapped pieces into the
-    // visible arena, so both floor seams and landmarks travel with the world.
-    volatile uint16_t *tile=(volatile uint16_t *)(uintptr_t)GAME_FLOOR_TEXTURE;
-    for(uint32_t y=0;y<256;++y) for(uint32_t x=0;x<256;++x) {
-        uint32_t tx=x/64u,ty=y/64u,px=x&63u,py=y&63u;
-        uint32_t tone=(tx*13u+ty*7u+(tx^ty))&7u;
-        uint16_t c=tone<2u ? 0x1082 : tone<6u ? 0x18c3 : 0x2104;
-        if(px==0u || py==0u) c=0x0841;
-        else if(px==1u || py==1u) c=0x2945;
-        if(((tx+2u*ty)%7u)==0u && py>=13u && py<16u && px>=9u && px<27u)
-            c=0x3186;
-        if(((2u*tx+ty)%9u)==0u && px>=43u && px<46u && py>=23u && py<44u)
-            c=0x3186;
-        if(((tx+ty)%5u)==0u && px>=25u && px<33u && py>=38u && py<50u &&
-           ((py-38u)&1u)==0u) c=0x0000;
-        tile[y*256u+x]=c;
-    }
-    publish_pixels();
-    game_background_ready=1;
+static void game_fill_background_rect(uint32_t x,uint32_t y,uint32_t width,uint32_t height) {
+    if(width && height) paint(x,y,width,height,GAME_BACKGROUND_COLOR,1);
 }
-static void game_draw_world_floor(int32_t camera_x,int32_t camera_y) {
-    uint32_t sx=(uint32_t)camera_x&255u,sy=(uint32_t)camera_y&255u;
-    // Repaint the whole gameplay viewport. This clears the previous frame's
-    // sprites while keeping the static outer HUD margins resident in each page.
-    uint32_t dst_y=GAME_Y_MIN,remaining_h=GAME_Y_MAX-GAME_Y_MIN;
-    while(remaining_h) {
-        uint32_t h=256u-sy; if(h>remaining_h) h=remaining_h;
-        uint32_t dst_x=GAME_X_MIN,remaining_w=GAME_X_MAX-GAME_X_MIN;
-        uint32_t src_x=sx;
-        while(remaining_w) {
-            uint32_t w=256u-src_x; if(w>remaining_w) w=remaining_w;
-            uint32_t source=GAME_FLOOR_TEXTURE+(sy*256u+src_x)*2u;
-            if(copy_image(source,512u,dst_x,dst_y,w,h)) fail("FAIL game floor");
-            dst_x+=w; remaining_w-=w; src_x=0;
+static void game_restore_dirty_tiles(uint32_t page) {
+    GameDirtyRect active[GAME_DIRTY_COLS],next[GAME_DIRTY_COLS];
+    uint32_t active_count=0;
+    for(uint32_t row=0;row<GAME_DIRTY_ROWS;++row) {
+        uint32_t bits=game_page_dirty[page][row],used=0,next_count=0;
+        while(bits) {
+            uint32_t first=0;
+            while(first<GAME_DIRTY_COLS && !(bits&(1u<<first))) ++first;
+            if(first==GAME_DIRTY_COLS) break;
+            uint32_t last=first;
+            while(last+1u<GAME_DIRTY_COLS && (bits&(1u<<(last+1u)))) ++last;
+            uint32_t run=((1u<<(last-first+1u))-1u)<<first;
+            uint32_t match=active_count;
+            for(uint32_t i=0;i<active_count;++i)
+                if(active[i].first==first && active[i].last==last) { match=i; break; }
+            if(match<active_count) {
+                next[next_count]=active[match];
+                next[next_count].bottom=(uint8_t)(row+1u);
+                used|=1u<<match;
+            } else {
+                next[next_count]=(GameDirtyRect){(uint8_t)first,(uint8_t)last,
+                                                  (uint8_t)row,(uint8_t)(row+1u)};
+            }
+            ++next_count;
+            bits&=~run;
         }
-        dst_y+=h; remaining_h-=h; sy=0;
+        for(uint32_t i=0;i<active_count;++i) if(!(used&(1u<<i))) {
+            uint32_t x=GAME_X_MIN+(uint32_t)active[i].first*GAME_DIRTY_TILE;
+            uint32_t right=GAME_X_MIN+((uint32_t)active[i].last+1u)*GAME_DIRTY_TILE;
+            uint32_t y=GAME_Y_MIN+(uint32_t)active[i].top*GAME_DIRTY_TILE;
+            uint32_t bottom=GAME_Y_MIN+(uint32_t)active[i].bottom*GAME_DIRTY_TILE;
+            if(right>GAME_X_MAX) right=GAME_X_MAX;
+            if(bottom>GAME_Y_MAX) bottom=GAME_Y_MAX;
+            game_fill_background_rect(x,y,right-x,bottom-y);
+        }
+        for(uint32_t i=0;i<next_count;++i) active[i]=next[i];
+        active_count=next_count;
     }
+    for(uint32_t i=0;i<active_count;++i) {
+        uint32_t x=GAME_X_MIN+(uint32_t)active[i].first*GAME_DIRTY_TILE;
+        uint32_t right=GAME_X_MIN+((uint32_t)active[i].last+1u)*GAME_DIRTY_TILE;
+        uint32_t y=GAME_Y_MIN+(uint32_t)active[i].top*GAME_DIRTY_TILE;
+        uint32_t bottom=GAME_Y_MIN+(uint32_t)active[i].bottom*GAME_DIRTY_TILE;
+        if(right>GAME_X_MAX) right=GAME_X_MAX;
+        if(bottom>GAME_Y_MAX) bottom=GAME_Y_MAX;
+        game_fill_background_rect(x,y,right-x,bottom-y);
+    }
+}
+static void game_draw_world_floor(uint32_t page,int32_t camera_x,int32_t camera_y,uint32_t playing) {
+    (void)camera_x; (void)camera_y;
+    uint32_t full=!game_page_valid[page] || (playing && !game_page_playing[page]);
+    uint32_t area=0;
+    if(!full && game_dirty_valid[page]) {
+        for(uint32_t row=0;row<GAME_DIRTY_ROWS;++row) {
+            uint32_t bits=game_page_dirty[page][row];
+            uint32_t y=GAME_Y_MIN+row*GAME_DIRTY_TILE;
+            uint32_t height=y+GAME_DIRTY_TILE>GAME_Y_MAX ? GAME_Y_MAX-y : GAME_DIRTY_TILE;
+            for(uint32_t col=0;col<GAME_DIRTY_COLS;++col) if(bits&(1u<<col)) {
+                uint32_t x=GAME_X_MIN+col*GAME_DIRTY_TILE;
+                uint32_t width=x+GAME_DIRTY_TILE>GAME_X_MAX ? GAME_X_MAX-x : GAME_DIRTY_TILE;
+                area+=width*height;
+            }
+        }
+        if(area*4u>=(GAME_VIEW_WIDTH*GAME_VIEW_HEIGHT*3u)) full=1;
+    }
+    if(full) {
+        game_fill_background_rect(GAME_X_MIN,GAME_Y_MIN,GAME_VIEW_WIDTH,GAME_VIEW_HEIGHT);
+    } else if(game_dirty_valid[page]) {
+        game_restore_dirty_tiles(page);
+    }
+    game_page_valid[page]=1; game_page_playing[page]=(uint8_t)(playing!=0);
+    game_dirty_valid[page]=0;
+    for(uint32_t row=0;row<GAME_DIRTY_ROWS;++row) game_page_dirty[page][row]=0;
+    game_capture_page=page; game_capture_dirty=playing;
 }
 static void game_prime_framebuffers(void) {
-    // Seed both ping-pong pages once. Later frames only refresh the HUD strips
-    // and scrolling playfield instead of copying all 640x480 pixels.
+    // Seed both pages with a solid navy-gray base before the game starts.
     for(uint32_t page=0;page<2;++page) {
-        if(copy_image(GAME_BACKGROUND,FRAME_STRIDE,0,0,640,480)) fail("FAIL game page init");
+        paint(0,0,640,480,GAME_BACKGROUND_COLOR,1);
         if(present_frame()) fail("FAIL game page present");
     }
+    game_page_valid[0]=game_page_valid[1]=0;
+    game_page_playing[0]=game_page_playing[1]=0;
+    game_dirty_valid[0]=game_dirty_valid[1]=0;
     game_hud_pages=0;
     for(uint32_t page=0;page<2;++page) {
         game_hud_number_valid[page]=0;
@@ -151,6 +196,7 @@ static uint32_t game_sprite(uint32_t frame,int32_t x,int32_t y,uint32_t alpha) {
     uint32_t source=GAME_ASSET_BASE+frame*2048u+(uint32_t)(y0-top)*64u+(uint32_t)(x0-left)*2u;
     if(blend_image(source,64,(uint32_t)x0,(uint32_t)y0,(uint32_t)(x1-x0),(uint32_t)(y1-y0),
                    (uint8_t)alpha,0,GFX_BLEND_ALPHA|GFX_BLEND_KEY)) fail("FAIL game sprite");
+    game_record_dirty_rect((uint32_t)x0,(uint32_t)y0,(uint32_t)(x1-x0),(uint32_t)(y1-y0));
     return 1;
 }
 static void game_bar(uint32_t x,uint32_t y,uint32_t width,uint32_t value,uint32_t maximum,uint16_t color) {
@@ -213,17 +259,17 @@ static void game_panel(const SurvivorGame *g) {
 				text_at(468,y+5,"/",0x9cf3); number_at(480,y+5,maximum,0xffff);
 			}
         }
-        text_at(96,362,"W/S选择  ENTER确认",0xffe0);
+        text_at(96,362,"W/S选择 ENTER确认 D暂停",0xffe0);
     } else if(g->state==GAME_READY) {
         text_at(96,160,"冰霜幸存者",0xffff);
-        text_at(96,194,"生存180秒",0x07ff);
+        text_at(96,194,"生存360秒",0x07ff);
         text_at(96,224,"W上    S下",0xffff);
         text_at(96,248,"A左    D右",0xffff);
         text_at(96,278,"技能自动释放",0x9cf3);
         text_at(96,302,"ENTER暂停",0x9cf3);
         text_at(96,326,"RISC-V负责移动 碰撞 自动攻击",0xffff);
         text_at(96,350,"FPGA负责透明 颜色键 DDR3绘制",0x07ff);
-        text_at(96,374,"ENTER开始  D返回",0xffe0);
+        text_at(96,374,"ENTER开始  A返回",0xffe0);
         text_at(96,398,"地图可扩展 摄像机居中",0x9cf3);
     } else {
         text_at(96,164,g->state==GAME_PAUSED ? "已暂停" : g->state==GAME_WON ? "你已生存" : "游戏结束",0xffff);
@@ -232,27 +278,23 @@ static void game_panel(const SurvivorGame *g) {
         text_at(96,240,"等级",0x07ff); number_at(180,240,g->level,0xffff);
         text_at(288,240,"MAX60",0x07ff); number_field_at(360,240,72,game_max60.maximum,0xffff);
         text_at(96,294,g->state==GAME_PAUSED ? "ENTER继续" : "ENTER再来一局",0xffe0);
-        text_at(96,326,"D返回菜单",0x9cf3);
+        text_at(96,326,"A返回菜单",0x9cf3);
     }
 }
 static uint32_t game_draw(const SurvivorGame *g,uint32_t measured_fps,uint32_t us,uint32_t ar,uint32_t aw) {
     __asm__ volatile (".word 0x500f" ::: "memory");
+    uint32_t draw_start=cycle_now();
+    game_draw_floor_cycles=game_draw_sprite_cycles=game_draw_other_cycles=0;
     uint32_t page=draw_page(),page_bit=1u<<page,drawn=0;
     int32_t camera_x=game_camera_x(g),camera_y=game_camera_y(g);
-    game_draw_world_floor(camera_x,camera_y);
-    // A few world runes make the expanded map visible without spending a
-    // raster command on every landmark in the 2048x1408 playfield.
-    uint32_t landmark_drawn=0;
-    for(int32_t y=352;y<GAME_WORLD_HEIGHT && landmark_drawn<GAME_MAX_DRAW_LANDMARKS;y+=352) for(int32_t x=512;x<GAME_WORLD_WIDTH && landmark_drawn<GAME_MAX_DRAW_LANDMARKS;x+=512) {
-        int32_t sx=GAME_X_MIN+x-camera_x,sy=GAME_Y_MIN+y-camera_y;
-        if(sx>=GAME_X_MIN+16 && sx<GAME_X_MAX-16 && sy>=GAME_Y_MIN+16 && sy<GAME_Y_MAX-16) {
-            drawn+=game_sprite(22,sx,sy,96); landmark_drawn++;
-        }
-    }
-    /* The draw budget grows to 64 only after the rolling measurement confirms
-     * near-60 FPS with render headroom. This raises the visible horde while
-     * backing off automatically if a dense scene threatens frame pacing. */
-    uint32_t enemy_draw_budget=measured_fps>=59u && us<12000u ? GAME_MAX_DRAW_ENEMIES : 32u;
+    uint32_t floor_start=cycle_now();
+    game_capture_dirty=0;
+    game_draw_world_floor(page,camera_x,camera_y,g->state==GAME_PLAY);
+    game_draw_floor_cycles=cycle_now()-floor_start;
+    /* The frame-window controller raises this from 32 toward 128 only while
+     * FPS and render time leave headroom. */
+    uint32_t enemy_draw_budget=game_enemy_draw_budget;
+    uint32_t sprite_start;
     // Small bullets use one write burst each instead of a 32x32 Alpha/Key
     // image read. Draw all 48 logic slots first so projectile count has priority
     // when the scene is crowded.
@@ -267,6 +309,7 @@ static uint32_t game_draw(const SurvivorGame *g,uint32_t measured_fps,uint32_t u
     // pixels to composite gems and enemies over them.
     if(bolt_drawn) publish_pixels();
     uint32_t gem_drawn=0;
+    sprite_start=cycle_now();
     for(uint32_t i=0;i<GAME_MAX_GEMS && gem_drawn<GAME_MAX_DRAW_GEMS;++i) {
         if(!g->gems[i].value) continue;
         int32_t sx=GAME_X_MIN+g->gems[i].x-camera_x;
@@ -275,6 +318,7 @@ static uint32_t game_draw(const SurvivorGame *g,uint32_t measured_fps,uint32_t u
         uint32_t visible=game_world_sprite(g,g->gems[i].kind ? 23 : 19,g->gems[i].x,g->gems[i].y,220);
         drawn+=visible; gem_drawn+=visible;
     }
+    game_draw_sprite_cycles+=cycle_now()-sprite_start;
     /* Select nearest visible enemies first. The old rotating slot limit could
      * spend all 24 image commands on off-screen objects, making an on-screen
      * enemy look as if its image had not loaded. */
@@ -295,17 +339,23 @@ static uint32_t game_draw(const SurvivorGame *g,uint32_t measured_fps,uint32_t u
             enemy_draw_list[n]=(uint16_t)i; enemy_draw_distance[n]=d; break;
         }
     }
+    sprite_start=cycle_now();
+    game_draw_enemy_count=0;
     for(uint32_t n=0;n<enemy_draw_budget && enemy_draw_list[n]<GAME_MAX_ENEMIES;++n) {
         uint32_t i=enemy_draw_list[n]; const GameEnemy *e=&g->enemies[i];
         int32_t bob=((g->ticks/12+i)&1u) ? 1 : 0;
-        drawn+=game_world_sprite(g,e->kind>=3 ? 24 : 16+e->kind,e->x/32,e->y/32+bob,
-                         e->flash>84 ? 160 : 255);
+        uint32_t visible=game_world_sprite(g,e->kind>=3 ? 24 : 16+e->kind,
+                         e->x/32,e->y/32+bob,e->flash>84 ? 160 : 255);
+        drawn+=visible; game_draw_enemy_count+=visible;
     }
+    game_draw_sprite_cycles+=cycle_now()-sprite_start;
+    sprite_start=cycle_now();
     for(uint32_t i=0;i<g->orbit_count;++i) {
         int32_t x,y; game_orbit_position(g,i,&x,&y); drawn+=game_world_sprite(g,21,x,y,160);
     }
     if(!g->invincible || (g->ticks&4u))
         drawn+=game_world_sprite(g,g->direction*4+g->walk_frame,g->x/256,g->y/256,g->invincible ? 160 : 255);
+    game_draw_sprite_cycles+=cycle_now()-sprite_start;
     // Keep the eight closest health bars legible without issuing a rectangle
     // fill for every off-screen or distant enemy in a crowded wave.
     uint16_t shown[8]; int32_t shown_distance[8];
@@ -334,6 +384,7 @@ static uint32_t game_draw(const SurvivorGame *g,uint32_t measured_fps,uint32_t u
             if(bx+(int32_t)width>GAME_X_MAX) width=(uint32_t)(GAME_X_MAX-bx);
             paint((uint32_t)bx,(uint32_t)by,bar_width,4,0x2128,0);
             paint((uint32_t)bx,(uint32_t)by,width,4,color,0);
+            game_record_dirty_rect((uint32_t)bx,(uint32_t)by,bar_width,4);
         }
     }
     if(!(game_hud_pages&page_bit)) {
@@ -364,22 +415,49 @@ static uint32_t game_draw(const SurvivorGame *g,uint32_t measured_fps,uint32_t u
     game_hud_number(page,10,504,460,84,aw,0xffff);
     if(g->state!=GAME_PLAY) game_panel(g);
     publish_pixels();
+    uint32_t draw_cycles=cycle_now()-draw_start;
+    uint32_t measured_parts=game_draw_floor_cycles+game_draw_sprite_cycles;
+    game_draw_other_cycles=draw_cycles>measured_parts ? draw_cycles-measured_parts : 0;
     return drawn;
 }
+static void game_update_enemy_budget(uint32_t measured_fps,uint32_t render_us) {
+    if(measured_fps<59u || render_us>=15500u) {
+        if(game_enemy_bad_windows<3u) ++game_enemy_bad_windows;
+        if(game_enemy_bad_windows<3u) return;
+        game_enemy_bad_windows=0;
+        if(game_enemy_draw_budget>=128u) game_enemy_draw_budget=96u;
+        else if(game_enemy_draw_budget>=96u) game_enemy_draw_budget=64u;
+        else if(game_enemy_draw_budget>=64u) game_enemy_draw_budget=48u;
+        else game_enemy_draw_budget=32u;
+    } else {
+        game_enemy_bad_windows=0;
+        if(game_enemy_draw_budget==32u && render_us<15000u) game_enemy_draw_budget=48u;
+        else if(game_enemy_draw_budget==48u && render_us<13000u) game_enemy_draw_budget=64u;
+        else if(game_enemy_draw_budget==64u && render_us<11000u) game_enemy_draw_budget=96u;
+        else if(game_enemy_draw_budget==96u && render_us<9500u) game_enemy_draw_budget=128u;
+    }
+}
 static void game_loop(void) {
-    game_background(); game_prime_framebuffers(); game_reset(&survivor,0x6d2b79f5u);
-    game_max60.maximum=0; frame_max60_clear_window(&game_max60);
+    game_prime_framebuffers(); game_reset(&survivor,0x6d2b79f5u);
+    game_max60.maximum=0; game_enemy_draw_budget=32u; game_enemy_bad_windows=0;
+    frame_max60_clear_window(&game_max60);
     uint32_t last=cycle_now(),accumulator=0,previous_held=mmio_read(GFX_BASE+GFX_BUTTON_HELD);
     uint32_t measured_fps=0,us=0,ar=0,aw=0,frames=0,render=0,reads=0,writes=0,window_start=last;
+    uint32_t logic_total=0,floor_total=0,sprite_total=0,other_total=0,enemy_draw_total=0;
+    uint32_t read_wait_total=0,write_wait_total=0,diagnostic_frames=0;
+    uint32_t read_wait_base=mmio_read(GFX_BASE+GFX_DDR_RWAIT);
+    uint32_t write_wait_base=mmio_read(GFX_BASE+GFX_DDR_WWAIT);
     uint32_t old_state=255,previous_video=mmio_read(GFX_BASE+GFX_FRAME_COUNT),drawn=0;
     while(survivor.state!=GAME_EXIT) {
         uint32_t start=cycle_now();
+        uint32_t logic_start=cycle_now();
         uint32_t held=mmio_read(GFX_BASE+GFX_BUTTON_HELD)&31u;
         uint32_t pressed=button_event()|(held&~previous_held); previous_held=held;
         uint32_t state_before=survivor.state;
         game_input(&survivor,held,pressed);
-        if(survivor.state==GAME_PLAY && (state_before==GAME_OVER || state_before==GAME_WON))
-            game_max60.maximum=0;
+        if(survivor.state==GAME_PLAY && (state_before==GAME_OVER || state_before==GAME_WON)) {
+            game_max60.maximum=0; game_enemy_draw_budget=32u; game_enemy_bad_windows=0;
+        }
         uint32_t now=cycle_now(),delta=now-last; last=now;
         uint32_t r0=mmio_read(GFX_BASE+GFX_BURST_READ),w0=mmio_read(GFX_BASE+GFX_BURST_WRITE);
         if(delta>25000000u) delta=25000000u; // Bound catch-up after a debugger stall.
@@ -392,11 +470,23 @@ static void game_loop(void) {
         if(survivor.state==GAME_EXIT) break;
         if(survivor.state!=old_state) {
             measured_fps=us=ar=aw=frames=render=reads=writes=0; window_start=start;
+            logic_total=floor_total=sprite_total=other_total=0;
+            enemy_draw_total=0;
+            game_enemy_bad_windows=0;
+            read_wait_total=write_wait_total=diagnostic_frames=0;
+            read_wait_base=mmio_read(GFX_BASE+GFX_DDR_RWAIT);
+            write_wait_base=mmio_read(GFX_BASE+GFX_DDR_WWAIT);
             frame_max60_clear_window(&game_max60);
         }
+        uint32_t logic_cycles=cycle_now()-logic_start;
         drawn=game_draw(&survivor,measured_fps,us,ar,aw);
         uint32_t frame_render=cycle_now()-start;
         render+=frame_render;
+        logic_total+=logic_cycles;
+        floor_total+=game_draw_floor_cycles;
+        sprite_total+=game_draw_sprite_cycles;
+        other_total+=game_draw_other_cycles;
+        enemy_draw_total+=game_draw_enemy_count;
         reads+=mmio_read(GFX_BASE+GFX_BURST_READ)-r0;
         writes+=mmio_read(GFX_BASE+GFX_BURST_WRITE)-w0;
         if(present_frame()) fail("FAIL game present");
@@ -411,13 +501,34 @@ static void game_loop(void) {
         if(++frames==30) {
             uint32_t end=cycle_now(),elapsed=end-window_start;
             measured_fps=elapsed ? (3000000000u+elapsed/2u)/elapsed : 0; us=render/3000u; ar=reads/30; aw=writes/30;
+            if(survivor.state==GAME_PLAY) game_update_enemy_budget(measured_fps,us);
+            uint32_t read_wait_now=mmio_read(GFX_BASE+GFX_DDR_RWAIT);
+            uint32_t write_wait_now=mmio_read(GFX_BASE+GFX_DDR_WWAIT);
+            read_wait_total+=read_wait_now-read_wait_base;
+            write_wait_total+=write_wait_now-write_wait_base;
+            read_wait_base=read_wait_now; write_wait_base=write_wait_now;
             window_start=end;
             uart_number("GAME FPS ",measured_fps); uart_number(" RENDER_US ",us);
             uart_number(" SPRITES ",drawn);
+            uart_number(" ENEMY_DRAWN ",enemy_draw_total/30u);
+            uart_number(" ENEMY_BUDGET ",game_enemy_draw_budget);
             uart_number(" MAX60 ",game_max60.maximum); uart_number(" ENEMIES ",survivor.enemy_count);
             uart_number(" DDR_AR ",reads); uart_number(" DDR_AW ",writes);
             uart_number(" LEVEL ",survivor.level); uart_number(" KILLS ",survivor.kills);
-            puts_uart("\r\n"); frames=render=reads=writes=0;
+            puts_uart("\r\n"); frames=render=reads=writes=enemy_draw_total=0;
+            if(++diagnostic_frames==10u) {
+                // Emit the longer phase breakdown every 300 frames so UART
+                // traffic has little effect on the live frame pacing.
+                uart_number("GAME_PHASE LOGIC_US ",logic_total/30000u);
+                uart_number(" FLOOR_US ",floor_total/30000u);
+                uart_number(" SPRITE_US ",sprite_total/30000u);
+                uart_number(" OTHER_US ",other_total/30000u);
+                uart_number(" GFX_RWAIT_US ",read_wait_total/30000u);
+                uart_number(" GFX_WWAIT_US ",write_wait_total/30000u);
+                puts_uart("\r\n");
+                logic_total=floor_total=sprite_total=other_total=0;
+                read_wait_total=write_wait_total=diagnostic_frames=0;
+            }
         }
         // Wall-clock FPS includes UART, HUD and frame-swap waiting; logic uses fixed ticks.
     }

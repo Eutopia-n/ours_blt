@@ -60,6 +60,8 @@ Color Key 在混合前比较完整 RGB565 值。命中时，关闭该半字对�
 | 0x58 | COLOR_KEY | 低 16 位 RGB565 透明色，复位 0；高位忽略 |
 | 0x5C | BURST_READ | 渲染 AR 握手累计数，复位清零；32 位循环计数 |
 | 0x60 | BURST_WRITE | 渲染 AW 握手累计数，复位清零；32 位循环计数 |
+| 0x70 | DDR_READ_WAIT_CYCLES | 图形引擎读地址/读数据阶段因 AXI 未就绪而等待的 100 MHz 周期累计数 |
+| 0x74 | DDR_WRITE_WAIT_CYCLES | 图形引擎写地址/写数据/写响应阶段因 AXI 未就绪而等待的 100 MHz 周期累计数 |
 
 `BLEND_CTRL`：0=不透明合成，1=仅 Alpha，2=仅 Color Key，3=两者同时开启。仅 OPERATION=2 使用这些控制；忙碌时禁止改写寄存器。
 

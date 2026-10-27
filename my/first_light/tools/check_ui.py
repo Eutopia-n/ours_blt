@@ -60,13 +60,14 @@ prelude = r'''
 #include "survivor_game.h"
 #define GAME_ASSET_BASE (ASSET_BASE+0x4000u)
 #define GAME_FRAME_COUNT 25u
-#define GAME_MAX_DRAW_ENEMIES 64u
+#define GAME_MAX_DRAW_ENEMIES 128u
 #define GAME_MAX_DRAW_GEMS 20u
 #define GAME_MAX_DRAW_BOLTS GAME_MAX_BOLTS
 #define GAME_MAX_DRAW_LANDMARKS 4u
 static uint16_t screen[640*480+2];
 static uintptr_t draw_buffer;
 static uint32_t page,menu_capture,submitted;
+static uint32_t host_cycles;
 static uint32_t menu_level,menu_group,menu_item[2];
 static uint32_t fps[2],render_us[2],samples[2],burst_ar[2],burst_aw[2];
 static uint32_t sprite_count=1,bench_size_index=2,bench60_pass;
@@ -76,11 +77,15 @@ static uint32_t game_hud_pages,game_hud_number_valid[2],game_hud_bar_valid[2];
 static uint32_t game_hud_numbers[2][12],game_hud_bar_value[2][2],game_hud_bar_max[2][2];
 static uint16_t game_hud_bar_color[2][2];
 static uint32_t game_assets_ready=1;
+static uint32_t game_capture_dirty;
+static uint32_t game_enemy_draw_budget=128u,game_draw_enemy_count;
+static uint32_t game_draw_floor_cycles,game_draw_sprite_cycles,game_draw_other_cycles;
 static FrameMax60 game_max60;
 typedef struct { uint32_t x,y,w,h; char label[96]; } Field;
 static Field fields[128];
 static unsigned field_count,checked;
 static uint32_t draw_page(void) { return page; }
+static uint32_t cycle_now(void) { return host_cycles+=100u; }
 static void cpu_fill(uint32_t x,uint32_t y,uint32_t w,uint32_t h,uint16_t c) {
     assert(x+w<=640 && y+h<=480);
     for(uint32_t j=y;j<y+h;++j) for(uint32_t i=x;i<x+w;++i) screen[1+j*640+i]=c;
@@ -99,13 +104,16 @@ static void note_field(uint32_t x,uint32_t y,uint32_t w,uint32_t h,const char *l
     f->x=x; f->y=y; f->w=w; f->h=h;
     snprintf(f->label,sizeof(f->label),"%s",label);
 }
-static void note_text(uint32_t x,uint32_t y,const char *s,uint32_t width) {
+static void note_text(uint32_t x,uint32_t y,const char *s,uint32_t width,uint32_t requested_width) {
     const char *at=s; uint32_t used=0;
     while(*at) {
         uint32_t cp=font_cn_utf8_next(&at),cell=font_cn_find(cp) ? 14u : 12u;
-        if(used+cell>width) break;
         used+=cell;
     }
+    if(requested_width<640u && used>requested_width) {
+        fprintf(stderr,"TEXT CLIP: %s (%u px field, %u px required)\n",s,requested_width,used); exit(4);
+    }
+    if(used>width) used=width;
     note_field(x,y,used,14,s);
 }
 static void reset_ui(void) {
@@ -156,7 +164,12 @@ static int host_present(void) {
     page^=1u; return 0;
 }
 #define present_frame host_present
-static void game_draw_world_floor(int32_t x,int32_t y) { (void)x;(void)y; cpu_fill(8,80,624,360,0x18c3); }
+static void game_draw_world_floor(uint32_t page,int32_t x,int32_t y,uint32_t playing) {
+    (void)page;(void)x;(void)y;(void)playing; cpu_fill(8,80,624,360,0x18c3);
+}
+static void game_record_dirty_rect(uint32_t x,uint32_t y,uint32_t width,uint32_t height) {
+    (void)x;(void)y;(void)width;(void)height;
+}
 static void scene(uint32_t f,uint32_t hw,uint32_t d,uint32_t v) { (void)f;(void)hw;(void)d;(void)v; cpu_fill(0,152,640,256,0x0843); }
 '''
 # Keep the actual renderer declarations, while excluding their MMIO asm bodies.
@@ -169,7 +182,8 @@ for name in ('font_column','text_at_width','text_at','decimal','number_at','deci
              'number_field_at','alpha_value','hud','menu_screen'):
     body = function(main, name)
     if name == 'text_at_width':
-        body = body.replace('uint32_t right=x+width;', 'uint32_t right=x+width; note_text(x,y,s,width);')
+        body = body.replace('if(width>640u-x)', 'uint32_t requested_width=width;\n    if(width>640u-x)')
+        body = body.replace('uint32_t right=x+width;', 'uint32_t right=x+width; note_text(x,y,s,width,requested_width);')
     parts.append(body)
 parts.append('static uint32_t game_sprite(uint32_t frame,int32_t x,int32_t y,uint32_t alpha);')
 for name in ('game_world_sprite','game_bolt','game_sprite','game_bar','game_hud_number','game_panel','game_draw'):
@@ -221,9 +235,9 @@ int main(void) {
         g.bolts[i]=(GameBolt){g.x/8,g.y/8,0,0,10,1,0};
     for(unsigned i=0;i<GAME_MAX_GEMS;++i)
         g.gems[i]=(GameGem){g.x/256,g.y/256,1,0,0};
-    reset_ui(); drawn=game_draw(&g,60,10000,0,0);
+    game_enemy_draw_budget=128u; reset_ui(); drawn=game_draw(&g,60,10000,0,0);
     assert(drawn==submitted+48u); unsigned dense=drawn;
-    reset_ui(); drawn=game_draw(&g,30,20000,0,0); assert(dense==drawn+32u);
+    game_enemy_draw_budget=32u; reset_ui(); drawn=game_draw(&g,30,20000,0,0); assert(dense==drawn+96u);
     for(unsigned i=0;i<GAME_MAX_ENEMIES;++i) g.enemies[i].x=g.enemies[i].y=0;
     for(unsigned i=0;i<GAME_MAX_BOLTS;++i) g.bolts[i].x=g.bolts[i].y=0;
     for(unsigned i=0;i<GAME_MAX_GEMS;++i) g.gems[i].x=g.gems[i].y=0;
@@ -239,7 +253,7 @@ int main(void) {
         assert(screen[1+y*640+x]==0x10a6);
     field_count=0; game_hud_number(1,0,20,20,120,1,0xffff);
     assert((game_hud_number_valid[0]&1u) && (game_hud_number_valid[1]&1u));
-    printf("UI CHECK PASSED: %u previews; collision/edge/overflow guards; actual Sprite clipping and 32/64 budgets\n",checked);
+    printf("UI CHECK PASSED: %u previews; collision/edge/overflow guards; actual Sprite clipping and 32/128 budgets\n",checked);
     return 0;
 }
 ''')
@@ -249,8 +263,13 @@ source = build / 'ui_host_check.c'
 source.write_text('\n'.join(parts), encoding='utf-8')
 env = dict(os.environ)
 env['PATH'] = str(args.cc.parent) + os.pathsep + str(args.cc.parent.parent.parent/'usr/bin') + os.pathsep + env['PATH']
-command = [str(args.cc), '-std=c99', '-O2', '-Wall', '-Wextra', '-Werror', '-finput-charset=UTF-8',
-           '-fexec-charset=UTF-8', '-Isoftware', str(source), 'software/survivor_game.c', '-o', str(build/'ui_host_check.exe')]
+if args.cc.name.lower() in ('cl', 'cl.exe'):
+    command = [str(args.cc), '/nologo', '/TC', '/std:c11', '/O2', '/W0', '/utf-8',
+               '/Isoftware', str(source), 'software/survivor_game.c',
+               '/Fe:'+str(build/'ui_host_check.exe')]
+else:
+    command = [str(args.cc), '-std=c99', '-O2', '-Wall', '-Wextra', '-Werror', '-finput-charset=UTF-8',
+               '-fexec-charset=UTF-8', '-Isoftware', str(source), 'software/survivor_game.c', '-o', str(build/'ui_host_check.exe')]
 subprocess.run(command, cwd=ROOT, env=env, check=True)
 result = subprocess.run([str(build/'ui_host_check.exe')], cwd=ROOT, env=env, text=True, encoding='utf-8', capture_output=True)
 (ROOT/'reports/ui_check.log').write_text(result.stdout+result.stderr, encoding='utf-8')

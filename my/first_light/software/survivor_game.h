@@ -8,7 +8,7 @@
 #define GAME_MAX_ORBITS 4u
 #define GAME_MAX_SPRITES (1u+GAME_MAX_ENEMIES+GAME_MAX_BOLTS+GAME_MAX_GEMS+GAME_MAX_ORBITS)
 #define GAME_TICKS_PER_SECOND 60u
-#define GAME_DURATION_TICKS (180u*GAME_TICKS_PER_SECOND)
+#define GAME_DURATION_TICKS (360u*GAME_TICKS_PER_SECOND)
 #define GAME_INITIAL_XP_TARGET 20u
 #define GAME_INVINCIBLE_TICKS 18u
 #define GAME_X_MIN 8
@@ -27,8 +27,8 @@ enum { UPGRADE_POWER, UPGRADE_RATE, UPGRADE_ORBIT, UPGRADE_SPEED, UPGRADE_MAGNET
 /* flash is a short hit flash followed by a longer health-bar display window. */
 typedef struct { int32_t x,y; uint8_t hp,max_hp,kind,flash; } GameEnemy;
 typedef struct { int32_t x,y,vx,vy; uint16_t life; uint8_t damage,pierce; } GameBolt;
-/* kind 0 is XP; kind 1 is a healing rune. */
-typedef struct { int32_t x,y; uint16_t value; uint8_t kind,pad; } GameGem;
+/* kind 0 is XP; kind 1 is a healing rune. World coordinates fit signed 16-bit. */
+typedef struct { int16_t x,y; uint16_t value; uint8_t kind,pad; } GameGem;
 typedef struct {
     GameEnemy enemies[GAME_MAX_ENEMIES];
     GameBolt bolts[GAME_MAX_BOLTS];

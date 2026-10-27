@@ -10,6 +10,7 @@ module render_regs #(
     input wire memory_ready, busy, done, error,
     input wire [31:0] cycles,
     input wire [31:0] burst_reads, burst_writes,
+    input wire [31:0] ddr_read_wait_cycles, ddr_write_wait_cycles,
     input wire [31:0] video_frame_count,
     input wire [KEY_COUNT-1:0] button_held,
     input wire button_enter_pending,
@@ -31,7 +32,7 @@ module render_regs #(
         paddr == 32 || paddr == 36 || paddr == 40 || paddr == 44 ||
         paddr == 48 || paddr == 52 || paddr == 56 || paddr == 60 ||
         paddr == 64 || paddr == 68 || paddr == 72 || paddr == 76 ||
-        paddr == 80 || paddr == 84 || paddr == 88 || paddr == 92 || paddr == 96 || paddr == 100 || paddr == 104 || paddr == 108;
+        paddr == 80 || paddr == 84 || paddr == 88 || paddr == 92 || paddr == 96 || paddr == 100 || paddr == 104 || paddr == 108 || paddr == 112 || paddr == 116;
         // 0x5c/0x60 are read-only hardware AXI burst counters.
     wire writable = paddr == 8 || paddr == 12 || paddr == 16 || paddr == 20 ||
         paddr == 24 || paddr == 28 || paddr == 32 || paddr == 48 || paddr == 52 ||
@@ -76,6 +77,8 @@ module render_regs #(
         100: prdata = button_held; // Read-only live game movement and action input.
         104: prdata = {31'd0,button_enter_pending}; // Fifth key event, retained until GPIO acknowledgement.
         108: prdata = video_frame_count; // Display refresh epochs, not rendered FPS.
+        112: prdata = ddr_read_wait_cycles;
+        116: prdata = ddr_write_wait_cycles;
         default: prdata = 0;
         endcase
     end

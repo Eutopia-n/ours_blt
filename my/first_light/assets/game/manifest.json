@@ -10,13 +10,13 @@
   "spark": 22,
   "healing_heart": 23,
   "ice_warden": 24,
-  "healing_heart_source": "user_hearts.png (pink icon, crop 96,64 to 112,80)",
+  "healing_heart_source": "healing_heart.png (user-supplied red heart, edge-connected gray canvas removed to Color Key)",
   "width": 32,
   "height": 32,
   "stride": 64,
   "format": "RGB565 little endian",
   "key": 0,
   "ddr_base": "0x01204000",
-  "compressed_bytes": 19114,
+  "compressed_bytes": 20006,
   "kenney_source_sha256": "d24e60a41e4ac7a745c0304dfde121143688557f40215f23221c29cfe683825f"
 }

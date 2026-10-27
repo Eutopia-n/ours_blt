@@ -47,6 +47,12 @@ int main(void) {
     frame_max60_clear_window(&metrics); assert(metrics.maximum==38 && !metrics.frames);
     for(unsigned n=0;n<30;++n) frame_max60_sample(&metrics,1000,1,60);
     assert(metrics.maximum==60); // Clean samples recover, preserving the record across pauses.
+    game_reset(&g,12345); game_input(&g,0,8); assert(g.state==GAME_READY);
+    game_input(&g,0,4); assert(g.state==GAME_EXIT); // A returns from the ready page.
+    game_reset(&g,12345); g.state=GAME_UPGRADE;
+    game_input(&g,0,4); assert(g.state==GAME_UPGRADE); // A no longer exits an upgrade page.
+    game_input(&g,0,8); assert(g.state==GAME_PAUSED && g.resume_state==GAME_UPGRADE);
+    game_input(&g,0,16); assert(g.state==GAME_UPGRADE);
     start(); isolate();
     for(unsigned i=0;i<GAME_MAX_BOLTS;++i)
         g.bolts[i]=(GameBolt){TEST_PLAYER_X*32,TEST_PLAYER_Y*32,0,0,10,1,0};
@@ -80,7 +86,8 @@ int main(void) {
     game_input(&g,0,16); assert(g.state==GAME_PAUSED);
     game_input(&g,0,16); assert(g.state==GAME_PLAY);
     game_input(&g,0,16); assert(g.state==GAME_PAUSED);
-    game_input(&g,0,8); assert(g.state==GAME_EXIT);
+    game_input(&g,0,8); assert(g.state==GAME_PAUSED);
+    game_input(&g,0,4); assert(g.state==GAME_EXIT);
     start(); isolate(); g.enemies[0]=(GameEnemy){TEST_PLAYER_X*32,TEST_PLAYER_Y*32,20,20,0,0};
     game_tick(&g,0); assert(g.hp==92 && g.invincible==GAME_INVINCIBLE_TICKS);
     game_tick(&g,0); assert(g.hp==92 && g.invincible==GAME_INVINCIBLE_TICKS-1);
