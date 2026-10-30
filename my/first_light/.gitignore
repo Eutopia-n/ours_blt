@@ -1,3 +1,15 @@
 # Isolated ModelSim libraries; source and validation artifacts remain available.
 sim/work_game/
 sim/work_ui/
+sim/work_ocr128/
+sim/work_ocr_boot/
+
+# Independent CPU120 clock-domain regressions.
+sim/work_cpu120/
+sim/work_cpu120_game/
+sim/cpu120_probe/
+
+# Enemy separation regression probes.
+sim/enemy_separation_probe/
+sim/work_separation_baseline/
+sim/work_separation_current/

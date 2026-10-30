@@ -1,12 +1,13 @@
 #ifndef DEMO_CONTROLS_H
 #define DEMO_CONTROLS_H
 #include <stdint.h>
+#include "soc.h"
 
-#define DEMO_ALPHA_REPEAT_DELAY 30000000u
-#define DEMO_ALPHA_REPEAT_PERIOD 12000000u
+#define DEMO_ALPHA_REPEAT_DELAY (SYSTEM_CLINT_HZ*3u/10u)
+#define DEMO_ALPHA_REPEAT_PERIOD (SYSTEM_CLINT_HZ*12u/100u)
 #define DEMO_ALPHA_STEP 1u
-#define DEMO_BENCH_REPEAT_DELAY 30000000u
-#define DEMO_BENCH_REPEAT_PERIOD 6000000u
+#define DEMO_BENCH_REPEAT_DELAY (SYSTEM_CLINT_HZ*3u/10u)
+#define DEMO_BENCH_REPEAT_PERIOD (SYSTEM_CLINT_HZ*6u/100u)
 
 static uint32_t demo_bench_update(uint32_t value,uint32_t pressed,uint32_t held,
                                   uint32_t now,uint32_t *next_repeat,

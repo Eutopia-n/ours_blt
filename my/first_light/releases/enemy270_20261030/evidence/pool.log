@@ -1,0 +1,1 @@
+ENEMY270 POOL TESTS PASSED: 270 enemies + 256 bolts, enemy269 spawn/refill/target/collision, 270 occupied cells, bolt255 allocation/expiry, burst saturation, world boundary, pause, empty, canaries; GameBolt=20 SurvivorGame=9764

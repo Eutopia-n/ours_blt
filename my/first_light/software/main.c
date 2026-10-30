@@ -6,7 +6,7 @@ static void init_game_assets(void);
 
 static uint32_t cycle_now(void) {
     // This Sapphire configuration traps on mcycle CSR reads. The vendor CLINT
-    // exposes mtime at +0xBFF8 and ticks at SYSTEM_CLINT_HZ (100 MHz).
+    // exposes mtime at +0xBFF8 and ticks at SYSTEM_CLINT_HZ (150 MHz).
     // Unsigned subtraction remains valid across a low-word rollover.
     return mmio_read(SYSTEM_CLINT_CTRL + 0xbff8u);
 }
@@ -46,20 +46,20 @@ static const uint32_t bench_sources[BENCH_VARIANTS]={
     BENCH_ASSET_BASE+0x0800u
 };
 static uint32_t bench_size_index=2u;
-enum { DEMO_FILL, DEMO_COPY, DEMO_BUFFER, DEMO_VIDEO,
+enum { DEMO_FILL, DEMO_COPY, DEMO_BUFFER,
        DEMO_KEY, DEMO_ALPHA, DEMO_BENCH };
-static const char *const demo_names[8]={
-    "矩形填充","图像复制","双缓冲","视频模式",
+static const char *const demo_names[6]={
+    "矩形填充","图像复制","双缓冲",
     "颜色键","透明混合","SPRITE 压力"
 };
-static const char *const demo_details[8]={
+static const char *const demo_details[6]={
     "RGB565 硬件填充","DDR 图像复制到显存",
-    "垂直消隐交换页面","颜色条与实际尺寸",
+    "垂直消隐交换页面",
     "黑色像素变为透明","W加一 D减一",
     "FPGA ALPHA + COLOR KEY / 60 FPS"
 };
-static const char *const action_labels[8]={
-    "W改变颜色","W改变位置","W改变速度","W改变图案",
+static const char *const action_labels[6]={
+    "W改变颜色","W改变位置","W改变速度",
     "W开关颜色键","W加一 D减一","W加一 S减一 长按连发"
 };
 static uint32_t menu_level, menu_group, menu_item[2];
@@ -74,7 +74,7 @@ static int wait_display_page(uint32_t page) {
         // underflow flag. Do not abort that deliberate display shutdown.
         if ((status & GFX_UNDERFLOW) && (mmio_read(GFX_BASE+GFX_DISPLAY)&1u)) return -3;
         if (!(status & GFX_SWAP_PENDING) && ((status >> 6) & 1u) == page) return 0;
-        if ((uint32_t)(cycle_now()-start) > 200000000u) return -4;
+        if ((uint32_t)(cycle_now()-start) > (2u*SYSTEM_CLINT_HZ)) return -4;
     }
 }
 static void select_draw_page(void) {
@@ -87,7 +87,7 @@ static int wait_render(void) {
         uint32_t status = mmio_read(GFX_BASE+GFX_STATUS);
         if (status & GFX_ERROR) return -3;
         if ((status & (GFX_BUSY|GFX_DONE)) == GFX_DONE) return 0;
-        if ((uint32_t)(cycle_now()-start) > 100000000u) return -4;
+        if ((uint32_t)(cycle_now()-start) > SYSTEM_CLINT_HZ) return -4;
     }
 }
 int fill_rect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint16_t color) {
@@ -398,14 +398,6 @@ static void scene(uint32_t frame,uint32_t hw,uint32_t demo,uint32_t variant) {
         paint(40+bounce(frame*(variant ? 24 : 8),520),184,24,160,0xffff,hw);
         paint(48,272,544,4,0x07ff,hw);
         break;
-    case DEMO_VIDEO:
-        for(uint32_t n=0;n<8;++n)
-            paint(32+n*72,160,72,240,colors[n],hw);
-        if(variant) {
-            for(uint32_t n=0;n<9;++n) paint(32+n*71,160,2,240,0xffff,hw);
-            for(uint32_t n=0;n<5;++n) paint(32,160+n*59,576,2,0xffff,hw);
-        }
-        break;
     case DEMO_KEY:
     case DEMO_ALPHA:
         // Isolate Key and Alpha. Alpha uses flags=1: Color Key stays disabled.
@@ -467,7 +459,6 @@ static void hud(uint32_t hw,uint32_t demo,uint32_t automatic,uint32_t frame,uint
         text_at(32,128,"双缓冲演示",0xffff);
         text_at(200,128,"帧",0xffff); number_at(272,128,frame,0xffff);
         text_at(48,372,"只在垂直消隐时交换",0xffff); break;
-    case DEMO_VIDEO: text_at(32,128,"HDMI 颜色与对齐测试",0xffff); break;
     case DEMO_KEY:
         text_at(40,144,"颜色键关",0xffff);
         text_at(344,144,variant ? "颜色键开" : "颜色键关",0xffff); break;
@@ -492,7 +483,7 @@ static uint32_t menu_screen(void) {
                     "TI60 二维实验室",0xffff);
         text_at(40,54,menu_level ? "选择功能" : "选择测试",0x07ff);
         draw_player(0,566,34,1);
-        uint32_t count=menu_level ? (menu_group ? 3u : 4u) : 3u;
+        uint32_t count=menu_level ? 3u : 3u;
         uint32_t choice=menu_level ? menu_item[menu_group] : menu_group;
         if (!menu_level) {
             for(uint32_t n=0;n<3;++n) {
@@ -500,14 +491,14 @@ static uint32_t menu_screen(void) {
                 if(fill_rect(32,y,576,68,n==choice ? 0x22ae : 0x10c7)) fail("FAIL menu card");
                 if(n==choice && fill_rect(32,y,4,68,0x07ff)) fail("FAIL menu selection");
                 text_at(52,y+12,n==2 ? "冰霜幸存者" : n ? "高阶演示" : "基础演示",0xffff);
-            text_at(52,y+40,n==2 ? "自动施法 生存360秒" : n==1 ? "3项功能" : "4项功能",0x07ff);
+            text_at(52,y+40,n==2 ? "自动施法 生存360秒" : "3项功能",0x07ff);
             }
             text_at(40,356,"W上一项    S下一项",0xffff);
             text_at(40,384,"ENTER打开",0xffe0);
-            text_at(40,432,"7项演示 + 幸存者游戏",0x9cf3);
+            text_at(40,432,"6项演示 + 幸存者游戏",0x9cf3);
         } else {
             for(uint32_t n=0;n<count;++n) {
-                uint32_t y=90+n*68, demo=menu_group ? 4u+n : n;
+                uint32_t y=90+n*68, demo=menu_group ? 3u+n : n;
                 if(fill_rect(32,y,576,58,n==choice ? 0x22ae : 0x10c7)) fail("FAIL menu card");
                 if(n==choice && fill_rect(32,y,4,58,0x07ff)) fail("FAIL menu selection");
                 text_at(52,y+8,demo_names[demo],0xffff);
@@ -525,7 +516,7 @@ static uint32_t menu_screen(void) {
         if(keys==4 && menu_level) { menu_level=0; continue; }
         if(keys==16) {
             if(!menu_level && menu_group==2) return 8;
-            if(menu_level) return menu_group*4+menu_item[menu_group];
+            if(menu_level) return menu_group*3+menu_item[menu_group];
             menu_level=1;
         }
         if(keys==1 || keys==2) {
@@ -689,8 +680,8 @@ int main(void) {
             }
             uint32_t sample_target=demo==DEMO_BENCH ? 30u : 4u;
             if(++count==sample_target) {
-                fps[hw]=(count*100000000u+elapsed/2u)/elapsed;
-                render_us[hw]=render/(count*100u); samples[hw]=1;
+                fps[hw]=frame_measured_fps(count,elapsed);
+                render_us[hw]=render/(count*(SYSTEM_CLINT_HZ/1000000u)); samples[hw]=1;
                 burst_ar[hw]=read_bursts/count; burst_aw[hw]=write_bursts/count;
                 if(demo==DEMO_BENCH) {
                     // Every sampled frame must meet its render budget and
@@ -705,7 +696,7 @@ int main(void) {
                     uart_number(" SIZE ",bench_sizes[bench_size_index]);
                     uart_number(" MAX60 ",sprite_best_60[bench_size_index]);
                     puts_uart(bench60_pass ? " PASS" : " FAIL");
-                    uart_number(" MAX_US ",render_peak/100u);
+                    uart_number(" MAX_US ",render_peak/(SYSTEM_CLINT_HZ/1000000u));
                     uart_number(" MISSED ",missed_refreshes);
                 }
                 uart_number(" DDR_AR ",read_bursts); uart_number(" DDR_AW ",write_bursts);

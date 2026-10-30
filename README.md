@@ -1,32 +1,49 @@
-# Ti60F225 DemoBoard V4 团队项目
+# Ti60 冰霜幸存者（270 分支）
 
-本仓库用于汇总易灵思 Ti60F225 开发板示例工程和团队开发代码。保留原目录结构，不修改已有 HDL、引脚配置和时序约束。
+当前工程：[my/first_light](my/first_light)。Efinity工程入口：[first_light.xml](my/first_light/first_light.xml)。
 
-## 目录说明
+- 怪物逻辑/绘制上限270，我方子弹256；150MHz CPU与绘图，128KiB程序RAM。
+- 针对640×480铺满16:9屏幕，玩家与怪物纵向移动补偿4/3；改回4:3保比例显示前请将GAME_MOTION_Y_NUM/DEN改为1/1并重新编译。
+- 史莱姆同类、蝙蝠同类相互避让，跨组穿行；B/D/E保持相互避让。仅保留中心祭坛，视频演示页已删除。
+- 存活怪物与子弹合计达到512时出怪间隔×2，回落到448及以下恢复。
 
-- `01_*` 至 `17_*`：现有开发板示例，编号并不连续。
-- `my/first_light/`：当前自建 Ti60F225 RISC-V + FPGA 渲染与游戏工程。
-- `子卡原理图/`、根目录 PDF：硬件参考资料。
-- `驱动安装及说明/`：随开发板提供的驱动和说明。
-- `docs/GIT_TEAM_GUIDE.md`：首次提交、远程连接和团队协作步骤。
+## 直接下载
 
-当前游戏 Demo 的入口、功能和验证边界见 [`my/first_light/README.md`](my/first_light/README.md)；写入 SPI Flash 的步骤见 [`my/first_light/FLASH_PROGRAMMING.md`](my/first_light/FLASH_PROGRAMMING.md)。
+[first_light.bit](my/first_light/releases/enemy270_20261030/first_light.bit) · [first_light.hex](my/first_light/releases/enemy270_20261030/first_light.hex) · [验证与校验](my/first_light/releases/enemy270_20261030)
 
-## 版本管理范围
+当前版本通过软件回归、CPU启动仿真和Efinity编译/时序检查，尚未上板确认本版FPS。没有自动烧录板卡。
 
-纳入源码、工程 XML、接口配置 `*.peri.xml`、时序约束 `*.sdc`、IP 文件、嵌入式软件、仿真脚本和硬件参考资料。保留 `.hex`、`.mem`、`.mif` 及源码目录内的 `.bin`，因为它们可能是 ROM/RAM 初始化或固件输入。
+## 构建
 
-忽略 Efinity 的 `outflow/`、`work_syn/`、`work_pnr/`、`work_pt/`、`work_dbg/`，ModelSim 的 `work/` 和波形输出，以及 Eclipse `.metadata/`、日志、备份、根目录 `tmp/` 和 `软件安装包/`。忽略规则只影响 Git，不会删除本地文件。
+依赖Efinity 2026.1、Efinity RISC-V IDE 2026.1、Python与Pillow。先切换到my/first_light：
 
-以下独立资料未纳入 Git，克隆仓库时不会得到它们：
+```powershell
+cd my/first_light
+python tools/build.py firmware --efinity C:/Efinity/efinity-riscv-ide-2026.1
+& C:/Efinity/2026.1/bin/efx_run.bat first_light.xml --flow compile
+```
 
-- `软件安装包/jre-8u381-windows-x64.exe`：本地安装包。
-- `10_Ti60f225_sc431hai2hdmi_demo/Ti60f225_sc431hai2hdmi_v3.zip`：约 241 MB 的独立工程压缩包。它与已展开的 `Ti60f225_sc431hai2hdmi_v1/` 名称不同，不能假定内容相同；需要 V3 的成员应向资料持有人获取原包。后续可以单独解压审查后纳入源码管理。
+根据本机安装位置调整路径。生成配置在outflow/；上述命令只生成文件，不烧录。JTAG/SPI Flash操作另见[FLASH_PROGRAMMING.md](my/first_light/FLASH_PROGRAMMING.md)。已内置vendor/和ROM初始化文件，正常构建不依赖被清理的官方例程，也不需要运行tools/prepare.py。
 
-## 工程使用
+## 验证
 
-在 Efinity 中打开所需示例对应的工程 XML，按工程要求准备 IP 和开发环境后重新编译。不同示例可能使用不同工具版本，请查看相应工程 XML 中的 `sw_version` 和随板说明。
+```powershell
+python tools/check_bullet_grid.py
+python tools/check_altar_pass_policy.py
+python tools/check_move169.py
+python tools/check_ui.py --cc D:/Xilinx/Vivado/2018.3/msys64/mingw64/bin/gcc.exe
+python tools/check_soc_ram_boot.py --modelsim D:/modelsim/win64
+```
 
-Git 初始化仅建立版本管理基线，不代表所有示例已经通过编译或上板验证。提交功能修改时，请记录 Efinity 版本、工程路径、仿真/编译结果和上板现象。
+宿主C编译器/ModelSim路径按本机调整；前三个脚本默认沿用工程内已记录的本机工具链位置。本版依据与限制见[验证记录](my/first_light/reports/enemy270_validation.md)。旧sim/tb_soc.sv是较早菜单/按键测试，不作为当前版验收依据。
 
-初始版本保持原文件编码和换行符；不要直接对整库执行编码转换或格式化，以免中文注释损坏或产生大量无关差异。
+## 目录与清理
+
+- my/first_light/：当前源码、素材、vendor依赖、验证脚本及单一最新release。
+- docs/board/：保留的三份板卡手册/装配图/原理图。
+- docs/GIT_TEAM_GUIDE.md：原团队协作指南。
+- [docs/UPLOAD_270.md](docs/UPLOAD_270.md)：本次导入与清理范围。
+
+官方编号例程、安装包/旧子卡资料、my/fpga旧工程、旧release和构建缓存已从本分支当前文件树清理。其他分支与历史提交未改写；因此这次清理不会自动压缩既有Git历史。
+
+素材及第三方许可见[THIRD_PARTY.md](my/first_light/THIRD_PARTY.md)和vendor/、third_party/内原始许可证。未将整个工程统一改成MIT或CC0许可。

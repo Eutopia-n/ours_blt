@@ -1,0 +1,5 @@
+FAST SAME-KIND kind=0 corner=0 close_pairs=266 initial=36315
+FAST SAME-KIND kind=0 corner=1 close_pairs=196 initial=36315
+FAST SAME-KIND kind=2 corner=0 close_pairs=478 initial=36315
+FAST SAME-KIND kind=2 corner=1 close_pairs=150 initial=36315
+ALTAR PASS POLICY TESTS PASSED: 25 ordered body pairs, A-A/C-C separation amid 268 incompatible bodies, B/D/E separation, boundary/contact/bolt/orbit, dense chase, 511/512 entry, 449/448 recovery, exact 2x spawn interval, saturation, pause/reset/independent states

@@ -1,0 +1,16 @@
+PLAYER speed_q8=512 dash=0 60ticks x_q8=30720 y_q8=40960 camera_x=120 camera_y=160
+PLAYER speed_q8=512 dash=1 60ticks x_q8=36352 y_q8=48469 camera_x=142 camera_y=189
+PLAYER speed_q8=576 dash=0 60ticks x_q8=34560 y_q8=46080 camera_x=135 camera_y=180
+PLAYER speed_q8=576 dash=1 60ticks x_q8=40896 y_q8=54528 camera_x=159 camera_y=213
+PLAYER speed_q8=640 dash=0 60ticks x_q8=38400 y_q8=51200 camera_x=150 camera_y=200
+PLAYER speed_q8=640 dash=1 60ticks x_q8=45440 y_q8=60587 camera_x=177 camera_y=236
+PLAYER speed_q8=704 dash=0 60ticks x_q8=42240 y_q8=56320 camera_x=165 camera_y=220
+PLAYER speed_q8=704 dash=1 60ticks x_q8=49984 y_q8=66645 camera_x=195 camera_y=260
+PLAYER speed_q8=768 dash=0 60ticks x_q8=46080 y_q8=61440 camera_x=180 camera_y=240
+PLAYER speed_q8=768 dash=1 60ticks x_q8=54528 y_q8=72704 camera_x=213 camera_y=284
+ENEMY kind=0 60ticks x_q5=-1680 y_q5=-2240
+ENEMY kind=1 60ticks x_q5=-1200 y_q5=-1600
+ENEMY kind=2 60ticks x_q5=-2640 y_q5=-3520
+ENEMY kind=3 60ticks x_q5=-900 y_q5=-1200
+ENEMY kind=4 60ticks x_q5=-600 y_q5=-800
+MOVE169 TESTS PASSED: player/5 enemy physical axis equality, base/upgraded/dash/diagonal/opposite keys, weighted pursuit heading, exact three-tick fractions, camera/boundary/pause, original projectile direction

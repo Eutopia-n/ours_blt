@@ -70,6 +70,15 @@ def read_rgba_png(path):
             previous = row
     return width, height, rows
 
+def frame_bounds(frame):
+    """Half-open Color-Key bounds in the original 32x32 frame; no resampling."""
+    if len(frame)!=1024: raise ValueError('Expected one 32x32 RGB565 frame')
+    points=[(i%32,i//32) for i,p in enumerate(frame) if p!=0]
+    if not points: return (0,0,0,0)
+    return (min(x for x,y in points),min(y for x,y in points),
+            max(x for x,y in points)+1,max(y for x,y in points)+1)
+
+
 def main():
     # Reuse the checked-in source frames, then append only the new sprites.
     # This keeps normal regeneration independent of external Python packages.
@@ -174,6 +183,15 @@ def main():
     header += f'#define GAME_COMPRESSED_BYTES {2*(len(palette)+len(tokens)+len(offsets))}u\n'
     header += array('game_palette',palette)+'\n'+array('game_rle',tokens)+'\n'+array('game_offsets',offsets)+'\n#endif\n'
     (ROOT/'software/game_assets.h').write_text(header,encoding='utf-8')
+    bounds=[frame_bounds(frame) for frame in frames]
+    bounds_header='#ifndef GAME_FRAME_BOUNDS_H\n#define GAME_FRAME_BOUNDS_H\n#include <stdint.h>\n'
+    bounds_header+='/* Generated Color-Key bounds: left, top, right, bottom (exclusive). */\n'
+    bounds_header+=f'#define GAME_FRAME_BOUNDS_COUNT {len(bounds)}u\n'
+    bounds_header+=f'static const uint8_t game_frame_bounds[{len(bounds)}][4] = {{\n'
+    bounds_header+=''.join('    {'+', '.join(map(str,box))+'},\n' for box in bounds)
+    bounds_header+='};\n#endif\n'
+    (ROOT/'software/game_frame_bounds.h').write_text(bounds_header,encoding='utf-8')
+
     (OUT/'game.rgb565').write_bytes(b''.join(struct.pack('<H',p) for p in decoded))
     (ROOT/'sim/game_expected.hex').write_text(''.join(f'{p:04x}\n' for p in decoded),encoding='ascii')
     width,height=32*8,32*4

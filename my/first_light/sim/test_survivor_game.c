@@ -56,7 +56,7 @@ int main(void) {
     start(); isolate();
     for(unsigned i=0;i<GAME_MAX_BOLTS;++i)
         g.bolts[i]=(GameBolt){TEST_PLAYER_X*32,TEST_PLAYER_Y*32,0,0,10,1,0};
-    game_tick(&g,0); assert(g.bolt_count==GAME_MAX_BOLTS); // Full 48-projectile pool remains active.
+    game_tick(&g,0); assert(g.bolt_count==GAME_MAX_BOLTS); // Full 256-projectile pool remains active.
     uint32_t alpha=128,next=0; int32_t direction=0;
     alpha=demo_alpha_update(alpha,1,1,100,&next,&direction); assert(alpha==129);
     assert(demo_alpha_update(alpha,0,1,next-1,&next,&direction)==129);
@@ -198,7 +198,7 @@ int main(void) {
         if(g.state==GAME_OVER || g.state==GAME_WON) { deaths++; game_input(&g,0,16); game_input(&copy,0,16); }
         game_tick(&g,keys); game_tick(&copy,keys); assert(memcmp(&g,&copy,sizeof(g))==0);
         if(g.enemy_count>max_enemies) max_enemies=g.enemy_count;
-        assert(g.enemy_count<=256 && g.bolt_count<=48 && g.gem_count<=96);
+        assert(g.enemy_count<=GAME_MAX_ENEMIES && g.bolt_count<=GAME_MAX_BOLTS && g.gem_count<=GAME_MAX_GEMS);
     assert(g.hp<=g.max_hp && g.x>0 && g.y>0 && g.x/256<GAME_WORLD_WIDTH && g.y/256<GAME_WORLD_HEIGHT);
     }
 	printf("GAME LOGIC TESTS PASSED: pressure +/-1 and hold/release/chord/saturation/timer wrap; MAX60 complete windows/render deadline/missed refresh/recovery/pause; Alpha +/-1; world/camera bounds, movement, diagonal, pause/return, nearest attack, collision/invulnerability, HP/max HP, healing/cap/lethal collision, elite spawn/drop, XP, all 6 capped upgrades and max effects, death/restart, 180s victory, full pools, 30000 deterministic ticks; upgrades=%u end_states=%u peak_enemies=%u\n",levels,deaths,max_enemies);

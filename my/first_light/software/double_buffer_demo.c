@@ -2,7 +2,7 @@
 
 static uint32_t cycle_now(void) {
     // This Sapphire configuration traps on mcycle CSR reads. The vendor CLINT
-    // exposes mtime at +0xBFF8 and ticks at SYSTEM_CLINT_HZ (100 MHz).
+    // exposes mtime at +0xBFF8 and ticks at SYSTEM_CLINT_HZ (150 MHz).
     // Unsigned subtraction remains valid across a low-word rollover.
     return mmio_read(SYSTEM_CLINT_CTRL + 0xbff8u);
 }
@@ -31,7 +31,7 @@ static int wait_display_page(uint32_t page) {
         uint32_t status = mmio_read(GFX_BASE+GFX_STATUS);
         if (status & (GFX_ERROR|GFX_UNDERFLOW|GFX_READ_ERR)) return -3;
         if (!(status & GFX_SWAP_PENDING) && ((status >> 6) & 1u) == page) return 0;
-        if ((uint32_t)(cycle_now()-start) > 200000000u) return -4;
+        if ((uint32_t)(cycle_now()-start) > (2u*SYSTEM_CLINT_HZ)) return -4;
     }
 }
 static void select_draw_page(void) {
@@ -54,7 +54,7 @@ int fill_rect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint16_t 
         uint32_t status = mmio_read(GFX_BASE+GFX_STATUS);
         if (status & GFX_ERROR) return -3;
         if ((status & (GFX_BUSY|GFX_DONE)) == GFX_DONE) return 0;
-        if ((uint32_t)(cycle_now()-start) > 100000000u) return -4;
+        if ((uint32_t)(cycle_now()-start) > SYSTEM_CLINT_HZ) return -4;
     }
 }
 int copy_rect(uint32_t src_x, uint32_t src_y, uint32_t dst_x, uint32_t dst_y,
@@ -77,7 +77,7 @@ int copy_rect(uint32_t src_x, uint32_t src_y, uint32_t dst_x, uint32_t dst_y,
         uint32_t status = mmio_read(GFX_BASE+GFX_STATUS);
         if (status & GFX_ERROR) return -3;
         if ((status & (GFX_BUSY|GFX_DONE)) == GFX_DONE) return 0;
-        if ((uint32_t)(cycle_now()-start) > 100000000u) return -4;
+        if ((uint32_t)(cycle_now()-start) > SYSTEM_CLINT_HZ) return -4;
     }
 }
 int present_frame(void) {

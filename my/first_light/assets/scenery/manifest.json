@@ -1,0 +1,23 @@
+{
+  "selected": [
+    "E1"
+  ],
+  "palette_colors": 38,
+  "ddr_bytes": 8192,
+  "compressed_bytes": 4196,
+  "frames": [
+    [
+      0,
+      0,
+      2054,
+      64,
+      2,
+      2,
+      62,
+      61
+    ]
+  ],
+  "sha256": "6b8e9ed1700adef39977c892200f705b0e2ac6c32f237d289910deaa02dbec44",
+  "format": "RGB565 little-endian, Color Key 0",
+  "ddr_base": "0x01220000"
+}

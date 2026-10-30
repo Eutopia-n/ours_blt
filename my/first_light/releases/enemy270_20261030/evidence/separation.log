@@ -1,0 +1,5 @@
+PAIR hard=0 body=0
+CLUSTER64 hard=2 body=129 count=64
+CLUSTER270 hard=220 body=1880 count=270
+CORNER270 hard=1017 body=6159
+ENEMY SEPARATION TESTS PASSED: empty/sparse, coincident pair, adjacent cells, dense270, corners, bounded displacement, pause and independent games

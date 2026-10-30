@@ -1,8 +1,0 @@
-Running: efx_run_map.py first_light --family Titanium --device Ti60F225 --project_xml S:\Ti60F225_DemoBoard_v4\my\first_light\first_light.xml --output_dir outflow --work_dir work_syn --opt root=competition_top --opt veri_options=verilog_mode=verilog_2k,vhdl_mode=vhdl_2008 work-dir=work_syn write_efx_verilog=on I=vendor
-   map :	PASS 
-Running: efx_run_pt_unified.py first_light Titanium Ti60F225 --output_dir outflow --timing_model I3 --project_xml first_light.xml
-   interface :	PASS 
-Running: efx_run_pnr.py first_light --prj S:\Ti60F225_DemoBoard_v4\my\first_light\first_light.xml --family Titanium --device Ti60F225 --timing_model I3 --output_dir outflow --work_dir work_pnr --opt sdc_file=first_light.sdc
-   pnr :	PASS 
-Running: efx_run_pgm.py first_light --family Titanium --device Ti60F225 --output_dir outflow --work_dir work_pnr --opt mode=active width=1 enable_roms=smart spi_low_power_mode=on io_weak_pullup=on oscillator_clock_divider=DIV8 bitstream_compression=on enable_external_master_clock=off active_capture_clk_edge=negedge jtag_usercode=0xFFFFFFFF release_tri_then_reset=on four_byte_addressing=off
-   pgm :	PASS 

@@ -1,0 +1,27 @@
+{
+  "branch": "270",
+  "baseline_commit": "c25588424720c708897b9b0eaffc77103bdcc176",
+  "variant": "enemy270_20261030",
+  "cpu_mhz": 150,
+  "ocr_bytes": 131072,
+  "max_enemies": 270,
+  "max_friendly_bolts": 256,
+  "vertical_motion_ratio": [
+    4,
+    3
+  ],
+  "spawn_slow_enter": 512,
+  "spawn_slow_exit": 448,
+  "firmware": {
+    "text": 62416,
+    "data": 12,
+    "bss": 16888
+  },
+  "rebuild_matches_original": true,
+  "board_verified": false,
+  "sha256": {
+    "first_light.bit": "cd1cca0eef50a56476f4391a46b74355b54efc75193b3e03ecdd52004212d582",
+    "first_light.hex": "a691f810ab48af782a0411a5562d6c93549b35500f8f0c1b965b0c0829ae21e3",
+    "first_light.bin": "da1bab9b3f9534b83863fdf32f930d7dee88d6f2ef875a68c02c5988b8306bff"
+  }
+}

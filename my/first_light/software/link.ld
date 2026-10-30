@@ -1,6 +1,6 @@
 OUTPUT_ARCH(riscv)
 ENTRY(_start)
-MEMORY { ocr (rwx) : ORIGIN = 0xf9000000, LENGTH = 64K }
+MEMORY { ocr (rwx) : ORIGIN = 0xf9000000, LENGTH = 128K }
 SECTIONS {
     .init : { KEEP(*(.init)) } > ocr
     .text : { *(.text .text.*) *(.rodata .rodata.*) } > ocr
