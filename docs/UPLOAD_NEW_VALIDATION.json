@@ -1,0 +1,31 @@
+{
+  "base_commit": "c25588424720c708897b9b0eaffc77103bdcc176",
+  "variant": "demo_buffer_slow_20261101",
+  "source_hashes_match": true,
+  "firmware_binary_matches": true,
+  "release_bit_hex_original": true,
+  "official_demo_roots_removed": 13,
+  "xml_dependencies_present": 27,
+  "host_basic_effects": "PASS",
+  "demo_controls": "PASS",
+  "ui_29_previews": "PASS",
+  "tearing_rtl": "PASS",
+  "cpu150_memory100_boot": "PASS",
+  "efinity_full_compile": "PASS",
+  "cpu150_config_timing": "PASS",
+  "board_verified": false,
+  "clean_build_bit_sha256": "6513b996b9984fca8d926ca063fb67be90559e8de7c3d174e7220afc4d21d580",
+  "published_bit_sha256": "0a41c478d00383bc5c995faacb9fd2f766ba4aa9aa5120c82aa8ff221478ff5f",
+  "published_hex_sha256": "005d7b222152faabea2903cf1127edec54a0529e20a2652f48c81feef9bda278",
+  "evidence_sha256": {
+    "basic_demo_host.log": "77e263a80a81f0bc22cea52fa782b96b53d9a8665223a49ee4258b288206fd64",
+    "cpu150_boot_run.log": "791a133294a53af0ec67ece6dbff3de748cda2f084982ba8f3e844ca126ef3f2",
+    "firmware.log": "d5c823515741acb47a88d96774f57b5852e2739676da09247f8f979adf6ce2d8",
+    "firmware_size.log": "9f16758379b79f08ef298066eeeb9300b9ae23ff5b3f3bf6b9c3df286a41ec23",
+    "first_light.place.rpt": "691d919cd3b07f9a10455929d7b662e1a5f220cdd90b69851faf2eaa268ecb1d",
+    "first_light.pt_timing.rpt": "1804b867e9726d54c6893bf58d0911cab18d6e6ef4684d0ef0d2da17a554a9b2",
+    "first_light.timing.rpt": "5f93a26a295cf7ea7f7a4c0c63a5df7216aa02c18620b00cf1d9fde4707f57bb",
+    "tearing_demo_run.log": "d7afc7785a0ed4d8d5f7515f84e88743d9f6366aef30f4571ef98880118d185a",
+    "upload_new_compile.log": "5ed9ec5f645a6e96230255848842f025ef8002c49c02abfa73843e4b33a55ead"
+  }
+}

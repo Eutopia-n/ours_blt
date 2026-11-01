@@ -51,6 +51,7 @@
 /* Dedicated DDR resource pool; disjoint from both framebuffer pages.
  * The configured 28-bit DDR controller covers 256 MiB; avoid high aliases. */
 #define ASSET_BASE  0x01200000u
+/* Wall-only cache and the enlarged altar fit in the original 1MiB pool. */
 #define ASSET_BYTES 0x00100000u
 #define SPRITE_STRIDE 64u
 #define PLAYER_ASSET_BASE (ASSET_BASE + 2048u)

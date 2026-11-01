@@ -432,6 +432,17 @@ module tb_render;
                                   (parity>>1)&1,270,test_width,4);
             end
         checked_asset(ASSET_BASE,1280,0,0,640,480);
+        // Packed wall bands: wide top/bottom pitch, narrow vertical pitch,
+        // odd X, final clipped side rows and the exact end of the wall cache.
+        checked_asset(32'h01240000,4096,8,80,624,32);
+        $display("WALL COPY north: cycles=%0d, CPU150 equivalent_us=%0d",dut.fill.cycles,dut.fill.cycles/150);
+        checked_asset(32'h01240002,4096,9,80,623,32);
+        checked_asset(32'h01280000,64,8,112,32,328);
+        $display("WALL COPY west: cycles=%0d, CPU150 equivalent_us=%0d",dut.fill.cycles,dut.fill.cycles/150);
+        checked_asset(32'h01260000+1424*2,4096,8,408,624,32);
+        checked_asset(32'h01280000+1016*64,64,8,80,32,328);
+        checked_asset(32'h012a9ffe,2,639,479,1,1);
+        rejected_copy(32'h01400000,4096,BASE,32,1);
         checked_asset(ASSET_BASE+ASSET_BYTES-2,2,639,479,1,1);
         checked_asset(ASSET_BASE+ASSET_BYTES-33*2*3,66,1,310,33,3);
         checked_asset(ASSET_BASE,65534,7,310,2,16);
@@ -483,6 +494,8 @@ module tb_render;
         end
         checked_blend(ASSET_BASE,1280,0,40,640,2,73,3);
         checked_blend(ASSET_BASE+ASSET_BYTES-2,2,639,479,1,1,192,3);
+        // Enlarged altar uses a 128x128 RGB565 key image with 256B pitch.
+        checked_blend(32'h01220000,256,200,200,128,128,255,2);
         // A keyed source must cause a zero-strobe write beat, even when
         // alpha is disabled. Reading back unchanged data alone is insufficient.
         old_writes=key_skips;

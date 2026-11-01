@@ -51,7 +51,8 @@ parameter                       AXI_DATA_WIDTH     = `AXI_DATA_WIDTH
    output tmds_data0_TX_RST, tmds_data1_TX_RST, tmds_data2_TX_RST, tmds_clk_TX_RST,
    // Clock and reset ports
    input                              axi_clk,      
-   input                              core_clk,     // CORE CLK @ 100MHz
+   input                              core_clk,     // DDR fabric @ 100MHz
+   input                              cpu_clk,      // CPU + renderer @ 150MHz
    input                              sdram_clk,    // SDRAM CK @ 400MHz
    input                              rx_cal_clk,   // SDRAM CK @ 400MHz
    input                              tx_cal_clk,   // SDRAM CK @ 400MHz
@@ -160,12 +161,13 @@ parameter FREQ = 100;			// default is 100 MHz.  Redefine as needed.
   wire soc_reset, master_reset;
   wire [4:0] button_pending, button_held;
   wire [3:0] button_ack;
-  button_input #(.ENABLE_REPEAT(0),.KEY_COUNT(5)) buttons (
-      .clk(user_clk),.reset(soc_reset),.key_n(key_i),
+  button_input #(.ENABLE_REPEAT(0),.KEY_COUNT(5),
+      .DEBOUNCE_CYCLES(3000000),.REPEAT_CYCLES(18000000)) buttons (
+      .clk(cpu_clk),.reset(soc_reset),.key_n(key_i),
       .ack_toggle(button_ack[0]),.pending(button_pending),.held(button_held)
   );
   reg [1:0] calibration_sync;
-  always @(posedge user_clk or negedge sys_rst)
+  always @(posedge cpu_clk or negedge sys_rst)
     if (!sys_rst) calibration_sync <= 0;
     else calibration_sync <= {calibration_sync[0],cal_done};
   wire [31:0] cpu_ddr_awaddr, cpu_ddr_araddr;
@@ -403,8 +405,10 @@ ddr3_top                 u_ddr3_top
 
 
 //***************************************************************************
+// 120 MHz system/APB/renderer; 100 MHz DDR fabric. The unmodified
+// vendor BmbCcFifo and Axi4CC preserve VALID/READY backpressure.
 soc u_sapphire_soc(
-    .io_systemClk (user_clk),
+    .io_systemClk (cpu_clk),
     .io_ddrA_w_payload_strb (s_axi_wstrb),
     .io_ddrA_w_payload_data (s_axi_wdata),
     .axiA_awready (1'b0),
@@ -526,7 +530,7 @@ soc u_sapphire_soc(
     .system_i2c_0_io_sda_write (),
     .system_gpio_0_io_writeEnable (),
     .io_ddrMasters_0_reset (master_reset),
-    .io_ddrMasters_0_clk (user_clk),
+    .io_ddrMasters_0_clk (cpu_clk),
     .io_ddrMasters_0_r_payload_last (gfx_rlast),
     .io_ddrMasters_0_r_payload_resp (gfx_rresp),
     .io_ddrMasters_0_r_payload_id (),
@@ -573,7 +577,7 @@ soc u_sapphire_soc(
 
 
 render_subsystem graphics (
-    .clk(user_clk),.reset(renderer_reset),.pixel_clk(hdmi_tx_slow_clk),
+    .clk(cpu_clk),.reset(renderer_reset),.pixel_clk(hdmi_tx_slow_clk),
     .memory_ready(calibration_sync[1]),
     .button_held(button_held),
     .button_enter_pending(button_pending[4]),

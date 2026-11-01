@@ -3,10 +3,17 @@
 #include <stdint.h>
 
 #define GAME_MAX_ENEMIES 256
-#define GAME_MAX_BOLTS 48
+#define GAME_MAX_BOLTS 256
+#define GAME_SPAWN_SLOW_ENTER 512u
+#define GAME_SPAWN_SLOW_EXIT 448u
+#define GAME_SPAWN_SLOW_FACTOR 2u
 #define GAME_MAX_GEMS 96
 #define GAME_MAX_ORBITS 4u
 #define GAME_MAX_SPRITES (1u+GAME_MAX_ENEMIES+GAME_MAX_BOLTS+GAME_MAX_GEMS+GAME_MAX_ORBITS)
+// 640x480 (4:3) stretched to a full 16:9 monitor: vertical motion x4/3.
+// Set both to 1 for an aspect-preserving 4:3 display.
+#define GAME_MOTION_Y_NUM 4u
+#define GAME_MOTION_Y_DEN 3u
 #define GAME_TICKS_PER_SECOND 60u
 #define GAME_DURATION_TICKS (360u*GAME_TICKS_PER_SECOND)
 #define GAME_INITIAL_XP_TARGET 20u
@@ -40,6 +47,9 @@ typedef struct {
     uint16_t enemy_count,bolt_count,gem_count,peak_enemies,peak_sprites;
     uint8_t state,resume_state,direction,walk_frame,orbit_count,choice,options[3],moving;
     uint8_t upgrade_level[6],bolt_pierce,orbit_damage,regeneration,magnet_all,dash,rapid_burst;
+    uint8_t spawn_slow; // Spawn-rate hysteresis, independent of drawing.
+    // Cached Q5 separation steering, recomputed in four interleaved groups.
+    int8_t enemy_steer[GAME_MAX_ENEMIES][2];
 } SurvivorGame;
 
 void game_reset(SurvivorGame *g,uint32_t seed);

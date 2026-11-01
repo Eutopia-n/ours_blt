@@ -1,0 +1,106 @@
+{
+  "selected": [
+    "W1"
+  ],
+  "tile_size": 32,
+  "tile_count": 8,
+  "tile_ddr_bytes": 16384,
+  "compressed_rom_bytes": 10904,
+  "world_size": [
+    2048,
+    1408
+  ],
+  "world_rgb565_bytes": 0,
+  "wall_ddr_bytes": 434176,
+  "wall_ddr_base": "0x01240000",
+  "wall_ddr_end_exclusive": "0x012aa000",
+  "road_width": 0,
+  "ring_radii": [],
+  "source_sha256": {
+    "W1": "fa50cc09cbfa9db5dba9a7b51f821ef7e13eafda2430168fccfcc7f0f7007143"
+  },
+  "crops": [
+    {
+      "name": "north",
+      "source": "W1",
+      "crop": [
+        147,
+        270,
+        286,
+        388
+      ]
+    },
+    {
+      "name": "south",
+      "source": "W1",
+      "crop": [
+        147,
+        862,
+        286,
+        981
+      ]
+    },
+    {
+      "name": "west",
+      "source": "W1",
+      "crop": [
+        32,
+        389,
+        144,
+        519
+      ]
+    },
+    {
+      "name": "east",
+      "source": "W1",
+      "crop": [
+        1102,
+        389,
+        1222,
+        519
+      ]
+    },
+    {
+      "name": "nw",
+      "source": "W1",
+      "crop": [
+        32,
+        260,
+        145,
+        389
+      ]
+    },
+    {
+      "name": "ne",
+      "source": "W1",
+      "crop": [
+        1102,
+        260,
+        1222,
+        389
+      ]
+    },
+    {
+      "name": "sw",
+      "source": "W1",
+      "crop": [
+        32,
+        862,
+        145,
+        982
+      ]
+    },
+    {
+      "name": "se",
+      "source": "W1",
+      "crop": [
+        1102,
+        862,
+        1222,
+        982
+      ]
+    }
+  ],
+  "sha256": "0ae01ad1d627a82cf0afbfd85abbda908567b02c1cc8da4bcee3529fb6b07840",
+  "palette_colors": 38
+}

@@ -1,0 +1,15 @@
+Model Technology ModelSim SE-64 vlog 2020.4 Compiler 2020.10 Oct 13 2020
+Start time: 19:30:55 on Nov 01,2026
+vlog -sv -work sim/work_tearing_demo rtl/sync_fifo.v rtl/fill_engine.v rtl/render_regs.v rtl/framebuffer_video.v rtl/video_mode_measure.v rtl/render_subsystem.v C:\Users\18123\Desktop\qiansai\output\upload_270_20261030\my\first_light\software\build\tearing_demo\tb_tearing_demo.sv 
+-- Compiling module sync_fifo
+-- Compiling module fill_engine
+-- Compiling module render_regs
+-- Compiling module framebuffer_video
+-- Compiling module video_mode_measure
+-- Compiling module render_subsystem
+-- Compiling module tb_tearing_demo
+
+Top level modules:
+	tb_tearing_demo
+End time: 19:30:55 on Nov 01,2026, Elapsed time: 0:00:00
+Errors: 0, Warnings: 0

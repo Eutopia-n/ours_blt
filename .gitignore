@@ -1,48 +1,42 @@
-# Efinity generated implementation results (keep RTL, IP and constraints).
+# Generated Efinity/firmware/ModelSim data. Required ROM inputs stay tracked.
 outflow/
 work_syn/
 work_pnr/
 work_pt/
 work_dbg/
-
-# ModelSim/Questa compiled libraries and simulation output.
-work/
-_temp/
-_tempmsg/
+**/software/build/
+**/sim/work*/
+**/sim/*_probe/
 *.wlf
 wlft*
 *.vcd
 transcript
 vsim_stacktrace.vstf
-
-# Eclipse workspace state; keep .project, .cproject and .settings.
+*.ppm
 .metadata/
-
-# Local logs, backups and editor/OS caches.
+__pycache__/
+*.pyc
+*.obj
+*.o
+*.elf
+*.exe
+*.dll
 *.log
 *.log.*
 *.bak
 *.tmp
 *.swp
 *~
-__pycache__/
-*.pyc
-*.obj
 Thumbs.db
 .DS_Store
-
-# Local reference exports and installers; these files remain on disk.
-/tmp/
-/软件安装包/
-
-# Large separately distributed source archive; NOT part of a Git clone.
-/10_Ti60f225_sc431hai2hdmi_demo/Ti60f225_sc431hai2hdmi_v3.zip
-
-# Do not globally ignore .bin/.hex/.mem/.mif: they may initialize ROM/RAM.
-# Do not ignore IP directories: supplied/generated IP can be build inputs.
-
-# Local game-engine compiler outputs and bulky generated validation captures.
-/my/first_light/software/build/
-/my/first_light/*.obj
-/my/first_light/reports/*.ppm
-/my/first_light/releases/
+.vscode/
+.idea/
+# Keep one current, verified release, including its evidence logs.
+/my/first_light/releases/*
+!/my/first_light/releases/demo_buffer_slow_20261101/
+!/my/first_light/releases/demo_buffer_slow_20261101/**
+!/my/first_light/releases/demo_buffer_slow_20261101/evidence/*.log
+/my/first_light/reports/scenery_*.png
+/my/first_light/reports/dungeon_world.rgb565
+/my/first_light/reports/dungeon_world.png
+/my/first_light/reports/sim_frame.png

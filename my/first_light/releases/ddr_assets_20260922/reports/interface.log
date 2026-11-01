@@ -1,4 +1,0 @@
-Running: efx_run_pt_unified.py first_light Titanium Ti60F225 --output_dir outflow --timing_model I3 --project_xml first_light.xml
-   ERROR encountered running Interface Designer
-
-   interface :	FAIL 

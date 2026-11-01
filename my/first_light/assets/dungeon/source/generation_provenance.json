@@ -1,0 +1,111 @@
+{
+  "floor_generation": {
+    "tool_mode": "built-in image_gen",
+    "intent": "precise-object-edit",
+    "selected_wall": "W1",
+    "source_floor": "C:/Users/18123/Desktop/qiansai/output/dungeon_wall_floor_20261031/F1.png",
+    "status": "preview; not integrated into game",
+    "assets": [
+      {
+        "id": "F1A",
+        "filename": "F1A.png",
+        "source_path": "C:\\Users\\18123\\.codex\\generated_images\\01a18a59-7af1-73c0-9361-e0e1366dbf55\\exec-f4c4ae32-e164-40ff-9084-83dc9ad69a99.png",
+        "prompt": "Use case: precise-object-edit. Image 1 is the approved edit target F1, not merely a style reference. Make a restrained minor edit to this exact dark blue-gray top-down pixel-art floor. Preserve the exact overall image framing, square dimensions, rectangular staggered slab layout, stone sizes, mortar-line positions, existing cracks, dark palette, low contrast, and coarse square-pixel rendering. Keep at least 95 percent of the existing floor visually unchanged. Preserve the outermost 5 percent edge band as in the target, so the edit adds no new seam at the borders. Add only sparse, small decorative marks baked directly into the floor texture; no separate props, no characters, loot, gems, torches, altar, wall, text, labels, logos, watermark, lighting gradients, bloom, vignette, blur, perspective, camera changes, or borders. Keep the whole image opaque and edge-to-edge. The ground must remain dark and unobtrusive behind bright game actors. Variant A: subtle natural frost wear. Add four or five tiny scattered groups of flat chipped-stone specks and thin dusty frost residue caught in a few existing joints or slab corners. Use desaturated gray-blue close to the current edge highlights, with just a handful of very small lighter icy pixels. Decorations occupy no more than about 2-3 percent of the picture. Most slab centers stay completely clear. Chips are tiny flat surface details, not large loose rocks or collectible-looking objects. No glowing patterns, no grass, no snow blanket. This should feel like the same approved floor with a touch more lived-in frost detail, not a new floor design.",
+        "size": [
+          1254,
+          1254
+        ],
+        "mode": "RGB",
+        "sha256": "626f0379c78fe43ea1053c8bd1bb638ebc3a3a2246de71ed24189738060116f1"
+      },
+      {
+        "id": "F1B",
+        "filename": "F1B.png",
+        "source_path": "C:\\Users\\18123\\.codex\\generated_images\\01a18a59-7af1-73c0-9361-e0e1366dbf55\\exec-b186c1d6-bc7f-489d-9c5b-94dbe2890d1b.png",
+        "prompt": "Use case: precise-object-edit. Image 1 is the approved edit target F1, not merely a style reference. Make a restrained minor edit to this exact dark blue-gray top-down pixel-art floor. Preserve the exact overall image framing, square dimensions, rectangular staggered slab layout, stone sizes, mortar-line positions, existing cracks, dark palette, low contrast, and coarse square-pixel rendering. Keep at least 95 percent of the existing floor visually unchanged. Preserve the outermost 5 percent edge band as in the target, so the edit adds no new seam at the borders. Add only sparse, small decorative marks baked directly into the floor texture; no separate props, no characters, loot, gems, torches, altar, wall, text, labels, logos, watermark, lighting gradients, bloom, vignette, blur, perspective, camera changes, or borders. Keep the whole image opaque and edge-to-edge. The ground must remain dark and unobtrusive behind bright game actors. Variant B: subtle ancient frost carving. Add only two or three small faded blue-cyan rune fragments etched shallowly into a few widely separated slab corners, plus a few tiny worn notch marks near existing joints. These must be understated surface carvings rather than bright magical items: muted, matte, low luminance, no emission, no halo, no beam, no circular sigil and no bright loot-like diamond shapes. Total added coverage under about 2-3 percent. Most stones remain plain. Keep the decorations irregularly placed and small, no central focal symbol or repeated symbol on every slab. This should still read as the exact same approved rectangular floor, with restrained remnants of ancient frost markings.",
+        "size": [
+          1254,
+          1254
+        ],
+        "mode": "RGB",
+        "sha256": "0824a4e6b4dd473ceec2b948135711d0dcb7a136d40e52007c3ed683919154aa"
+      }
+    ]
+  },
+  "wall_generation": {
+    "tool_mode": "built-in image_gen",
+    "intent": "new image generation",
+    "status": "preview only; not integrated into the FPGA project",
+    "assets": [
+      {
+        "id": "W1",
+        "filename": "W1.png",
+        "source_path": "C:\\Users\\18123\\.codex\\generated_images\\01a18a59-7af1-73c0-9361-e0e1366dbf55\\exec-5718523c-87a4-4fe7-bf44-262f7c1ca37d.png",
+        "transparent_background": true,
+        "prompt": "Use case: stylized-concept. Create an original preview asset for a small top-down pixel-art frost dungeon survival game. Cohesive with a dark blue-gray circular stone altar with small icy cyan accents. Pixel-art raster, strict overhead orthographic camera, chunky clean square pixels, hard edges, nearest-neighbor appearance, restrained compact palette. No characters, creatures, projectiles, loot, altar, UI, logos, captions, watermark, bloom, soft gradients, realistic painting, perspective, isometric geometry, or tiny high-frequency noise. Asset type: modular dungeon boundary wall design, variant W1. Draw a continuous rectangular perimeter made from orderly cold slate brick walls, with four connected corners and straight sections that look reusable/tileable. The perimeter is a 3:2 rectangular room boundary centered on a square canvas. Show only the solid stone wall band; the large empty room interior AND the exterior must be genuinely transparent. Not a decorative picture frame: this must read as a walk-blocking dungeon map wall, viewed directly from above. The wall has a broad flat top surface with staggered blue-gray masonry blocks, dark recessed joints, a one-pixel cool highlight along the inner lip, a few small frost patches; very subtle dark inner foot edge, no cast shadow extending far into the room. Simple construction suitable for 16-pixel-thick wall strips and 32-pixel repeat units. Keep thickness consistent, clear corners, uninterrupted closed boundary, no doors. Suggested palette charcoal navy, desaturated slate blue, steel blue, a tiny pale icy rim. Compose around 112 by 80 logical pixels on a 128 by 128 logical pixel transparent canvas, enlarged crisply to about 1024 square. Preserve a large transparent center. No text.",
+        "size": [
+          1254,
+          1254
+        ],
+        "mode": "RGBA",
+        "sha256": "fa50cc09cbfa9db5dba9a7b51f821ef7e13eafda2430168fccfcc7f0f7007143",
+        "alpha_extrema": [
+          0,
+          255
+        ]
+      },
+      {
+        "id": "W2",
+        "filename": "W2.png",
+        "source_path": "C:\\Users\\18123\\.codex\\generated_images\\01a18a59-7af1-73c0-9361-e0e1366dbf55\\exec-6e9cd319-96e6-454f-b5ef-2fce2fd87fd8.png",
+        "transparent_background": true,
+        "prompt": "Use case: stylized-concept. Create an original preview asset for a small top-down pixel-art frost dungeon survival game. Cohesive with a dark blue-gray circular stone altar with small icy cyan accents. Pixel-art raster, strict overhead orthographic camera, chunky clean square pixels, hard edges, nearest-neighbor appearance, restrained compact palette. No characters, creatures, projectiles, loot, altar, UI, logos, captions, watermark, bloom, soft gradients, realistic painting, perspective, isometric geometry, or tiny high-frequency noise. Asset type: modular dungeon boundary wall design, variant W2, an alternative to neat slate bricks. Draw a continuous rectangular perimeter from chunky weathered glacial stone blocks, larger irregular cut stones, a few angular chips, dark cracks and sparse pale blue frost lodged in seams. The perimeter is a 3:2 rectangular room boundary centered on a square canvas. Only the solid wall band is present; the room interior AND exterior are truly transparent. This is an actual top-down dungeon map collision wall, not an ornamental UI frame. Broad readable blue-gray flat stone tops, darker inner side/foot edge, crisp restrained icy cyan corners and occasional ice-crust patches. More rugged and ancient than a regular brick wall, but not cluttered, no broken openings or gaps, no towers, doors, pillars or torches, and no large protruding crystals. Four L corners connect to repeated straight wall strips. Constant approximately 16-logical-pixel wall thickness, 32-pixel reusable repeats. Compose around 112 by 80 logical pixels on a 128 by 128 logical pixel transparent canvas, enlarged crisply to about 1024 square. Large empty transparent center. No text.",
+        "size": [
+          1254,
+          1254
+        ],
+        "mode": "RGBA",
+        "sha256": "13e0b809f92b2b078234806dd7803f042c6b333fb8e3114c27bdf7719c6523d8",
+        "alpha_extrema": [
+          0,
+          255
+        ]
+      },
+      {
+        "id": "F1",
+        "filename": "F1.png",
+        "source_path": "C:\\Users\\18123\\.codex\\generated_images\\01a18a59-7af1-73c0-9361-e0e1366dbf55\\exec-7d5fddd6-5e1a-4ea1-ad17-3d76181fcf09.png",
+        "transparent_background": false,
+        "prompt": "Use case: stylized-concept. Create an original preview asset for a small top-down pixel-art frost dungeon survival game. Cohesive with a dark blue-gray circular stone altar with small icy cyan accents. Pixel-art raster, strict overhead orthographic camera, chunky clean square pixels, hard edges, nearest-neighbor appearance, restrained compact palette. No characters, creatures, projectiles, loot, altar, UI, logos, captions, watermark, bloom, soft gradients, realistic painting, perspective, isometric geometry, or tiny high-frequency noise. Asset type: seamlessly tileable dungeon ground texture, variant F1. A full square of dark cold slate flagstone flooring: orderly broad rectangular stone slabs laid in a slightly staggered pattern, thin nearly black grout, a handful of tiny hairline cracks and minimally brighter beveled edges. Quiet low-contrast background so small bright enemies and bullets remain legible. No big light spots, frost symbols or objects. Use only about 6 to 10 muted dark colors, mainly #111c2b, #172536, #203044, with very sparse #2b3c4c edges. Opaque texture fills edge to edge with no border, margin or transparency. Opposite edges must visually tile seamlessly. Think a 64 by 64 logical-pixel repeat containing a few broad 16-32-pixel stone slabs, crisply nearest-neighbor enlarged to a square 1024-pixel presentation. Flat overhead diffuse light, no directional shadow or vignette. Sparse texture, large readable stone shapes. No text.",
+        "size": [
+          1254,
+          1254
+        ],
+        "mode": "RGB",
+        "sha256": "396d23e82cb5b628239e227a1b5735c6fc8436265a839f508b25b75b09678124",
+        "alpha_extrema": [
+          255,
+          255
+        ]
+      },
+      {
+        "id": "F2",
+        "filename": "F2.png",
+        "source_path": "C:\\Users\\18123\\.codex\\generated_images\\01a18a59-7af1-73c0-9361-e0e1366dbf55\\exec-a194e7e6-4ff3-4e0e-82cd-bb21705b7970.png",
+        "transparent_background": false,
+        "prompt": "Use case: stylized-concept. Create an original preview asset for a small top-down pixel-art frost dungeon survival game. Cohesive with a dark blue-gray circular stone altar with small icy cyan accents. Pixel-art raster, strict overhead orthographic camera, chunky clean square pixels, hard edges, nearest-neighbor appearance, restrained compact palette. No characters, creatures, projectiles, loot, altar, UI, logos, captions, watermark, bloom, soft gradients, realistic painting, perspective, isometric geometry, or tiny high-frequency noise. Asset type: seamlessly tileable dungeon ground texture, variant F2, an alternative to orderly rectangular flagstones. A full square of weathered frost dungeon paving: irregular interlocking angular blue-gray stone slabs, broader polygonal shapes with narrow dark joints, a few thin cold-blue fracture lines and extremely sparse dull frost along recessed seams. Ancient rougher construction but still quiet and low-contrast, mostly dark charcoal-blue and desaturated blue-gray, highlights confined below medium brightness. Compact 6-10-color palette, similarly dark to #111f2b and #1b2d3b with sparse #2b4352 edge pixels. No bright cyan glowing veins, runes, snow cover, scattered stones, grass, borders, props or focal centerpiece. Opaque texture covers the square edge to edge and opposite edges tile seamlessly. 64 by 64 logical-pixel repeat, clean blocky square-pixel art, enlarged crisply to a 1024-square preview. Direct overhead, even diffuse light, no vignette, no perspective. No text.",
+        "size": [
+          1254,
+          1254
+        ],
+        "mode": "RGB",
+        "sha256": "b52c53a1f269b57a0346ccae79e742e9896d74e67b506c2cc0c108eec01d7917",
+        "alpha_extrema": [
+          255,
+          255
+        ]
+      }
+    ]
+  },
+  "integration": "deterministic crop/nearest-neighbour/RGB565/RLE; selected W1/F1A only"
+}

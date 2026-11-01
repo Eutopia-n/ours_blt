@@ -1,4 +1,0 @@
-routeTraceFile ./copy.troutingtraces
-
-restoreNetFromTraceFile send_en_r_lock
-restoreNetFromTraceFile w_pos_send_lock

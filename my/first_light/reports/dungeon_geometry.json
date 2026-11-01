@@ -1,0 +1,19 @@
+{
+  "dimensions": [
+    2048,
+    1408
+  ],
+  "pixels_verified": 2883584,
+  "wall_width": 32,
+  "ring_radii": [],
+  "altar_size": 128,
+  "center": [
+    1024,
+    704
+  ],
+  "pixels": {
+    "background": 2666496,
+    "roads": 0,
+    "walls": 217088
+  }
+}
