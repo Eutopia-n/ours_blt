@@ -1,0 +1,2 @@
+BASIC HOST PASSED: pixel/guard and manual controls; CPU default/no auto-switch over 70 frames; DST hidden; equal page backgrounds; 70-frame default single-buffer/front writes; explicit S toggles, pause, A/B labels removed; authoritative back-page exit and identical two-page menu
+EFFECTS HOST PASSED: 1040 full-image cases, all 256 transparencies, two keys/backgrounds/pages and key on/off; source guards, 8-pixel hardware-readback checks and deliberate corruption; 14 previews and hardware-only controls

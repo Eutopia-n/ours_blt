@@ -1,0 +1,118 @@
+--- a/software/basic_demo.h
++++ b/software/basic_demo.h
+@@ -101,7 +101,7 @@
+         basic_field(5,420,106,120,basic_missed,1,0);
+         basic_field(6,112,130,60,basic_video_hz,basic_video_hz!=0u,0);
+         basic_field(7,420,130,120,basic_config.paused,1,5);
+-        basic_field(8,420,154,60,16u<<basic_config.speed,1,0);
++        basic_field(8,420,154,60,8u<<basic_config.speed,1,0);
+     } else {
+         for(uint32_t n=0;n<2u;++n) {
+             BasicSample *s=&basic_samples[n];uint32_t x=n*320u;
+@@ -192,7 +192,7 @@
+     }
+ }
+ static void basic_buffer_scene(uint32_t frame) {
+-    uint32_t page=draw_page(),x=24u+basic_bounce(frame*(16u<<basic_config.speed),360u);
++    uint32_t page=draw_page(),x=24u+basic_bounce(frame*(8u<<basic_config.speed),360u);
+     if(!basic_scene_valid[page]) {
+         paint(16,BASIC_VIEW_Y,608,BASIC_VIEW_H,0x084b,1);
+         if(basic_config.grid)for(uint32_t y=200;y<400;y+=40u)paint(16,y,608,2,0x7bef,1);
+@@ -222,7 +222,7 @@
+     // Entry always starts in single-buffer/tearing mode. Only S changes mode.
+     volatile uint32_t *words=(volatile uint32_t *)&basic_config;
+     for(uint32_t n=0;n<sizeof(basic_config)/sizeof(*words);++n)words[n]=0;
+-    basic_config.speed=basic_config.grid=1u;
++    basic_config.grid=1u; // speed remains 0: always enter at the lowest step (8 px).
+     basic_swaps=basic_missed=basic_swap_us=basic_video_hz=basic_completed_frame=0;
+     basic_buffer_target(1);basic_prime(DEMO_BUFFER);
+     uint32_t anchor=cycle_now(),hz_start=anchor;
+--- a/tools/check_basic_demo.py
++++ b/tools/check_basic_demo.py
+@@ -228,7 +228,7 @@
+         script[62]=1;script[65]=8;script[68]=16;script[71]=2;script[74]=2;script[77]=2;script[84]=4;
+         basic_demo_loop(demo);assert(script_pos==85);
+         if(demo!=2)assert(report_count>=2 && basic_config.mode==1 && basic_config.load==1);
+-        else assert(basic_config.paused && !basic_config.grid && basic_config.speed==2 && basic_config.mode==1);
++        else assert(basic_config.paused && !basic_config.grid && basic_config.speed==1 && basic_config.mode==1);
+     }
+     // The erased field must accept UINT32_MAX as real data after an invalid sample.
+     clear_host();draw_buffer=FRAMEBUFFER;basic_field(0,16,16,120,UINT32_MAX,0,0);basic_field(0,16,16,120,UINT32_MAX,1,0);
+@@ -250,7 +250,7 @@
+         const uint32_t phases[]={0,1,2,11,12,23,24,70,71,72};
+         for(uint32_t n=0;n<10u;++n)for(uint32_t p=0;p<2u;++p){
+             draw_buffer=FRAMEBUFFER+p*FRAMEBUFFER_BYTES;basic_buffer_scene(phases[n]);
+-            uint32_t phase=(phases[n]*(16u<<speed))%720u,left=24u+(phase>360u?720u-phase:phase);
++            uint32_t phase=(phases[n]*(8u<<speed))%720u,left=24u+(phase>360u?720u-phase:phase);
+             for(uint32_t y=0;y<480u;++y)for(uint32_t x=0;x<640u;++x){
+                 uint16_t ref=0x5a5a;
+                 if(x>=16u && x<624u && y>=176u && y<400u){
+@@ -268,10 +268,10 @@
+     bar_front_writes=bar_back_writes=same_page_requests=page_changes=0;
+     basic_demo_loop(DEMO_BUFFER);
+     uint32_t expected_moves=0,last_x=0;
+-    for(uint32_t n=1;n<=70u;++n){uint32_t phase=(n*32u)%720u,x=phase>360u?720u-phase:phase;
++    for(uint32_t n=1;n<=70u;++n){uint32_t phase=(n*8u)%720u,x=phase>360u?720u-phase:phase;
+         if(x!=last_x)++expected_moves;
+         last_x=x;}
+-    assert(!basic_config.mode && !basic_swaps && bar_front_writes==expected_moves*6u && bar_back_writes==6u);
++    assert(!basic_config.mode && basic_config.speed==0u && !basic_swaps && bar_front_writes==expected_moves*6u && bar_back_writes==6u);
+     assert(same_page_requests==70u && page_changes==2u);
+     // Each explicit S toggles exactly once; ordinary frames never toggle mode.
+     for(uint32_t toggles=1; toggles<=4u; ++toggles){
+--- a/tools/check_tearing_demo.py
++++ b/tools/check_tearing_demo.py
+@@ -14,7 +14,7 @@
+ source=(ROOT/'software/basic_demo_data.h').read_text(encoding='utf-8')
+ assert '#define BASIC_BUFFER_PHASE_CYCLES (8u*(SYSTEM_CLINT_HZ/1000u))' in source
+ app=(ROOT/'software/basic_demo.h').read_text(encoding='utf-8')
+-assert 'basic_bounce(frame*(16u<<basic_config.speed),360u)' in app
++assert 'basic_bounce(frame*(8u<<basic_config.speed),360u)' in app
+ assert 'x+96u*n,184,24,208' in app
+ original=(ROOT/'sim/tb_render.sv').read_text()
+ prefix=original[:original.index('    reg [31:0] status;\n    integer old_writes')]
+@@ -121,7 +121,7 @@
+             check_page_writes=1;prime_pair();
+             for(integer frame=1;frame<=2;frame=frame+1)begin
+                 bit active,target;integer speed,previous,next;
+-                speed=stage<2 ? 32:stage==2 ? 64:16;
++                speed=stage<2 ? 8:stage==2 ? 32:16;
+                 active=dut.display_page_sync[1];target=stage[0] ? !active:active;
+                 draw_base=target?BASE+PAGE_BYTES:BASE;write_reg(56,target);
+                 previous=bar_x(frame-1,speed);next=bar_x(frame,speed);
+@@ -153,7 +153,7 @@
+         read_reg(4,status);if(status&48)$fatal(1,"Final display error %h",status);
+         if(torn_frames!=4 || whole_frames!=5 || menu_frames!=3 || front_bursts==0)
+             $fatal(1,"Coverage tears=%0d whole=%0d menus=%0d front=%0d",torn_frames,whole_frames,menu_frames,front_bursts);
+-        $display("TEARING RTL PASSED: 4 real torn frames, 4 complete double-buffer frames plus pause, explicit 0/1/0/1 paths, speeds 16/32/64, 3 stable exit-menu frames; no underflow, page-boundary/AXI/FIFO checks passed");
++        $display("TEARING RTL PASSED: 4 real torn frames, 4 complete double-buffer frames plus pause, explicit 0/1/0/1 paths, speeds 8/16/32, 3 stable exit-menu frames; no underflow, page-boundary/AXI/FIFO checks passed");
+         $finish;
+     end
+     initial begin #400000000;$fatal(1,"Tearing demo timeout");end
+--- a/BASIC_DEMO.md
++++ b/BASIC_DEMO.md
+@@ -38,7 +38,7 @@
+ - 进入默认“单缓冲 撕裂”；S 在单缓冲撕裂与双缓冲防撕裂之间手动切换，没有定时切换。顶部 A/B 页卡片与显示/绘制标记已删除。
+ - 单缓冲直接更新实际正在显示的前台显存；双缓冲只写后台显存，完整绘制后使用原驱动在垂直消隐末端交换页面。
+ - 两种模式均在原帧边界确认后约 8ms 更新同一组三根竖条，位于有效扫描中段。此相位安排使扫描与前台写入的冲突便于观察，不是预先画一张上下错位图；双缓冲的显示页不参与本次写入。
+-- W 循环切换每帧 16、32、64 像素步长，默认 32。D 开关参考横线。
++- W 循环切换每帧 8、16、32 像素步长，每次进入默认低速 8。D 开关参考横线。
+ - Enter 暂停/继续运动；暂停后竖条不再更新，撕裂现象也随之停止。双缓冲换页或单缓冲同页节拍继续，不切换模式。
+ - A 返回。退出与模式/参考线切换时先从硬件状态恢复后台页，完整界面重画只发生在后台；返回后两页绘制相同菜单，再等待操作。
+ - 场景采用稳定底色，仅擦除并重画旧竖条区域，避免用整屏明暗闪烁代替撕裂。原双缓冲驱动、扫描时序、图形 RTL 和其他演示保持不变。
+@@ -96,4 +96,4 @@
+ 
+ 验收还包括固件严格编译、真实 Sapphire CPU150/memory100 启动、Efinity 全流程及源文件哈希检查。启动检查不替代完整基础页的实板按键和性能验收。最终状态、资源、时序与下载文件以归档 VALIDATION/manifest 为准。
+ 
+-新增 `tools/check_tearing_demo.py` 使用现有生产 RTL 和随机反压 AXI 模型，按对应驱动事务采集实际 HDMI 像素：4 帧真实撕裂、4 帧双缓冲完整图像、1 帧暂停和 3 帧稳定菜单；验证 16/32/64 步长、重复 0→1→0→1 模式路径以及无欠载。`reports/tearing_stage*.png` 是实际 RTL 扫描采样，`basic_buffer_tearing/protected.png` 是 C 主机布局预览。该 RTL 测试不运行完整 CPU 界面；真实 CPU 启动测试也不替代上板模式切换与录制验收。
++新增 `tools/check_tearing_demo.py` 使用现有生产 RTL 和随机反压 AXI 模型，按对应驱动事务采集实际 HDMI 像素：4 帧真实撕裂、4 帧双缓冲完整图像、1 帧暂停和 3 帧稳定菜单；验证 8/16/32 步长、重复 0→1→0→1 模式路径以及无欠载。`reports/tearing_stage*.png` 是实际 RTL 扫描采样，`basic_buffer_tearing/protected.png` 是 C 主机布局预览。该 RTL 测试不运行完整 CPU 界面；真实 CPU 启动测试也不替代上板模式切换与录制验收。
+--- a/MENU_DEMO.md
++++ b/MENU_DEMO.md
+@@ -1,6 +1,6 @@
+ # 当前菜单（2026-11-01）
+ 
+-填充、复制进入时默认 CPU，S 手动切换；详情页隐藏 DST。双缓冲页已移除 A/B 状态块，进入默认单缓冲撕裂，S 手动切换双缓冲防撕裂，不自动切换。
++填充、复制进入时默认 CPU，S 手动切换；详情页隐藏 DST。双缓冲页已移除 A/B 状态块，进入默认单缓冲撕裂，S 手动切换双缓冲防撕裂，不自动切换。速度三档为每帧 8/16/32 像素，每次进入默认低速 8。
+ 基础页的操作和指标以 [基础演示说明](BASIC_DEMO.md) 为准。
+ 颜色键、Alpha 两页改为 FPGA 硬件效果验证，删除 CPU/FPGA 对比，见 [高阶两页说明](EFFECTS_DEMO.md)。游戏保持原样，压测的数量五步与 MAX60 判定不变。
+ Alpha 初始透明度 255/255；Sprite 压测初始 32×32，D 按 32→24→16→4→32 循环降档；数量五步和 MAX60 判定保持。
