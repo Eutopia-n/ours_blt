@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>魔法书 · 后续页面预览</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#11121e;color:#ead9b0;font:15px "Microsoft YaHei",sans-serif;display:grid;place-items:center;min-height:100vh}main{padding:22px;width:min(100%,1000px)}h1{font-size:24px;margin:0 0 12px}p{color:#acb5c9;line-height:1.7}.stage{position:relative;aspect-ratio:4/3;width:100%;border:1px solid #3d4267;background:#111222}.stage img,.stage canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}.stage canvas{pointer-events:none}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}button,select{background:#292c51;border:1px solid #887252;color:#ecd9b0;font:inherit;padding:9px 13px;border-radius:4px;cursor:pointer}button:hover{background:#3d4267}small{display:block;color:#a0aabd;margin-top:14px;line-height:1.7}.hot,.tab{position:absolute;background:transparent!important;border:0;padding:0;border-radius:0;display:none}.hot:hover,.tab:hover{outline:2px solid #d9ba79}.hot:focus-visible,.tab:focus-visible{outline:2px solid white}
+</style>
+<main><h1>魔法书 · 后续页面预览</h1><p>封面和菜单使用魔法书，演示与游戏均为全屏。W / S 选择，Enter 进入，A 返回；功能按键见画面底部。</p>
+<div class="stage"><img id="screen" alt="界面预览"><canvas id="dynamic" width="640" height="480"></canvas><canvas id="leaf" width="640" height="480" style="display:none"></canvas>
+<button class="hot" data-row="0" aria-label="第一项"></button><button class="hot" data-row="1" aria-label="第二项"></button><button class="hot" data-row="2" aria-label="第三项"></button>
+<button class="tab" data-state="basic" aria-label="基础演示章节"></button><button class="tab" data-state="advanced" aria-label="高阶演示章节"></button><button class="tab" data-state="game_ready" aria-label="游戏章节"></button></div>
+<div class="actions"><button data-key="w">W</button><button data-key="s">S</button><button data-key="d">D</button><button data-key="enter">Enter</button><button data-key="a">A 返回</button><select id="jump" aria-label="直接查看页面">__OPTIONS__</select></div>
+<small>电脑端画面与参数预览，未接入 FPGA。性能栏“--”表示未测量；游戏是静态状态展示。缓冲窗口用于展示布局，撕裂与性能需要在板卡上观察。</small></main>
+<script>
+const pages=__PAGES__,opening=__OPENING__,latin=__LATIN__,chinese=__CHINESE__,palette=__PALETTE__,gemSource=__GEM__;
+const screen=document.querySelector('#screen'),dynamic=document.querySelector('#dynamic'),leaf=document.querySelector('#leaf');
+const menuStates=['home','basic','advanced'],choices={home:0,basic:0,advanced:0};
+let state='cover',selected=0,busy=false,resume='game_play';
+const config={fill:{load:0,color:0,mode:1},copy:{load:0,image:0,mode:1},buffer:{mode:0,paused:false,speed:0,grid:true},key:{enabled:1,key:0,background:0},alpha:{value:255,background:0},pressure:{count:1,size:32}};
+const cache=new Map(),delay=ms=>new Promise(resolve=>setTimeout(resolve,ms)),ease=v=>{const t=Math.max(0,Math.min(1,v));return t*t*t*(t*(t*6-15)+10)};
+function family(s){return ['fill','copy','buffer','key','alpha','pressure'].find(x=>s===x||s.startsWith(x+'_'))||null}
+function isFullscreen(s){return !!family(s)||s.startsWith('game_')}
+function screenKey(){
+ if(menuStates.includes(state))return state+'_'+selected;
+ if(state==='game_upgrade')return selected?'game_upgrade_'+selected:state;
+ const f=family(state),c=config[f];
+ if(f==='copy'&&state!=='copy_detail')return c.image?'copy_2':'copy';
+ if(f==='buffer')return 'buffer'+(c.mode?'_double':'')+(c.paused?'_paused':'');
+ if(f==='key')return c.key?'key_magenta':c.enabled?'key':'key_off';
+ if(f==='alpha')return c.value===128?'alpha_128':c.value===0?'alpha_0':'alpha';
+ if(f==='pressure')return c.count===1?'pressure_1':'pressure';
+ return state;
+}
+async function loadRaster(src){
+ if(!cache.has(src)){const image=new Image();image.src=src;const entry={image:null,promise:null};entry.promise=image.decode().then(()=>{entry.image=image;return image});cache.set(src,entry)}
+ return cache.get(src).promise;
+}
+function css565(v){return `rgb(${(v>>11)*255/31|0},${((v>>5)&63)*255/63|0},${(v&31)*255/31|0})`}
+function fill(ctx,x,y,w,h,tone){ctx.fillStyle=css565(typeof tone==='string'?palette[tone]:tone);ctx.fillRect(x,y,w,h)}
+const punctuation={' ':[0,0,0,0,0],'-':[8,8,8,8,8],'+':[8,8,62,8,8],'/':[32,16,8,4,2],'_':[64,64,64,64,64],':':[0,20,0,0,0],'.':[0,64,0,0,0]};
+function bitmap(ctx,x,y,label,tone='gold_light',small=false,large=false){
+ ctx.fillStyle=css565(palette[tone]);
+ for(const original of label){const ch=original.toUpperCase(),cp=ch.codePointAt(0);
+  if(cp>127){const rows=chinese[cp],k=large?2:1;if(!rows)throw Error('Missing glyph '+ch);for(let r=0;r<14;r++)for(let col=0;col<14;col++)if(rows[r]&(1<<col))ctx.fillRect(x+col*k,y+r*k,k,k);x+=14*k}
+  else{const n=/[0-9]/.test(ch)?cp-48:/[A-Z]/.test(ch)?cp-65+10:-1,cols=n<0?punctuation[ch]:latin[n],k=large?3:small?1:2,oy=large?4:0;for(let col=0;col<5;col++)for(let r=0;r<7;r++)if(cols[col]&(1<<r))ctx.fillRect(x+col*k,y+oy+r*k,k,k);x+=6*k}
+ }
+}
+function seed32(n){let v=Math.imul(n+1,0x9e3779b9);v^=v<<13;v^=v>>>17;v^=v<<5;return v>>>0}
+function bounce(v,limit){v%=limit*2;return v>limit?limit*2-v:v}
+function drawEffects(ctx,f,c){
+ const transparent=f==='alpha'?c.value:0,key=f==='key'&&c.key?0xf81f:0;
+ fill(ctx,24,56,292,24,'ink');fill(ctx,328,56,290,24,'ink');
+ if(f==='alpha'){bitmap(ctx,24,60,'透明度 '+transparent+'/255','page_highlight');bitmap(ctx,328,60,'前景权重 '+(255-transparent)+'/255','ice')}
+ else{bitmap(ctx,24,60,'透明色 '+(key?'品红色 F81F':'黑色 0000'),'page_highlight');bitmap(ctx,328,60,c.enabled?'颜色键开':'颜色键关','ice')}
+ for(let panel=0;panel<2;panel++){
+  const data=ctx.createImageData(240,192);
+  for(let y=0;y<192;y++)for(let x=0;x<240;x++){
+   const cell=((x>>4)^(y>>4))&1,bg=c.background?(cell?0x7bef:0x2945):(cell?0x0514:0xfca0);let v=bg;
+   if(x>=56&&x<184&&y>=32&&y<160){const xx=x-56,yy=y-32,fg=Math.abs(xx-63)+Math.abs(yy-63)>60?key:yy<43?0x07ff:yy<86?0xf800:0xffe0;
+    if(!panel||f==='key'&&!c.enabled)v=fg;
+    else if(f==='key')v=fg===key?bg:fg;
+    else{const a=255-transparent,r=((((fg>>11)&31)*a+((bg>>11)&31)*transparent+127)/255)|0,g=((((fg>>5)&63)*a+((bg>>5)&63)*transparent+127)/255)|0,b=(((fg&31)*a+(bg&31)*transparent+127)/255)|0;v=(r<<11)|(g<<5)|b}
+   }
+   const at=(y*240+x)*4;data.data[at]=(v>>11)*255/31|0;data.data[at+1]=((v>>5)&63)*255/63|0;data.data[at+2]=(v&31)*255/31|0;data.data[at+3]=255;
+  }
+  ctx.putImageData(data,panel?352:48,192);
+ }
+}
+function drawDynamic(){
+ const ctx=dynamic.getContext('2d');ctx.imageSmoothingEnabled=false;ctx.clearRect(0,0,640,480);
+ const f=family(state);if(!f)return;const c=config[f];
+ if(f==='key'||f==='alpha'){drawEffects(ctx,f,c);return}
+ if(f==='fill'||f==='copy'){
+  fill(ctx,550,10,75,30,'leather_dark');fill(ctx,554,13,42,19,'leather');bitmap(ctx,562,19,c.mode?'FPGA':'CPU','gold_light',true);
+  if(f==='fill'){
+   const detail=state==='fill_detail',count=[8,32,64,128][c.load];fill(ctx,detail?352:16,176,detail?256:608,detail?192:224,0x084b);
+   for(let n=0;n<count;n++){const seed=seed32(n);let x=16+2*bounce(seed&65535,288),y=176+bounce(seed>>>16,200);if(detail){x=352+(x-16)%224;y=176+(y-176)%168}fill(ctx,x,y,32,24,[0x07ff,0xffe0,0xf81f,0x07e0,0xf800,0x001f][(n+c.color)%6])}
+   if(detail){fill(ctx,240,328,60,16,'ink');bitmap(ctx,240,328,String(count))}else{fill(ctx,16,402,270,14,'ink');bitmap(ctx,16,402,'LOAD '+count+' / 32 X 24','stone',true)}
+  }else{
+   fill(ctx,352,390,270,16,'ink');bitmap(ctx,352,390,'LOAD '+[1,2,4,8][c.load]+' / 256 X 192','stone',true);
+   if(state==='copy_detail'&&c.image){const src=pages.copy_2,loaded=cache.get(src)?.image;if(loaded)ctx.drawImage(loaded,352,176,256,192,352,176,256,192);else loadRaster(src).then(()=>{if(state==='copy_detail'&&config.copy.image)drawDynamic()})}
+  }
+ }else if(f==='buffer'){
+  fill(ctx,16,176,608,224,0x084b);if(c.grid)for(let y=200;y<400;y+=40)fill(ctx,16,y,608,2,0x7bef);
+  for(const x of [120,216,312])fill(ctx,x,184,24,208,0xffff);
+  fill(ctx,496,136,100,16,'ink');bitmap(ctx,496,136,String(8<<c.speed));
+ }else if(f==='pressure'){
+  fill(ctx,0,152,640,256,0x0843);fill(ctx,16,86,170,32,'ink');bitmap(ctx,16,88,String(c.count),'gold_light',false,true);
+  fill(ctx,16,124,300,18,'ink');bitmap(ctx,16,126,'SIZE '+c.size+' X '+c.size,'stone');
+  const loaded=cache.get(gemSource)?.image;if(loaded)for(let n=0;n<c.count;n++){const v=seed32(n),x=8+bounce(v&65535,632-c.size),y=160+bounce(v>>>16,240-c.size);ctx.drawImage(loaded,x,y,c.size,c.size)}else loadRaster(gemSource).then(()=>{if(family(state)==='pressure')drawDynamic()});
+ }
+}
+function render(){
+ screen.src=pages[screenKey()];drawDynamic();
+ const selectable=menuStates.includes(state)||state==='game_upgrade',single=['game_ready','game_over','game_won','game_paused'].includes(state);
+ document.querySelectorAll('.hot').forEach(b=>{const n=Number(b.dataset.row),show=selectable||single&&n===0;b.style.display=show&&!busy?'block':'none';b.style.left=(state==='game_paused'?100:342)/640*100+'%';b.style.top=(single?(state==='game_paused'?178:330):126+n*88)/480*100+'%';b.style.width=(state==='game_paused'?440:254)/640*100+'%';b.style.height=(state==='game_paused'?174:74)/480*100+'%'});
+ document.querySelectorAll('.tab').forEach((b,n)=>{b.style.display=state!=='cover'&&!isFullscreen(state)&&!busy?'block':'none';b.style.left=615/640*100+'%';b.style.top=(112+n*52)/480*100+'%';b.style.width=24/640*100+'%';b.style.height=36/480*100+'%'});
+}
+async function openBook(){
+ busy=true;render();try{const images=await Promise.all(opening.map(loadRaster));for(const im of images){screen.src=im.src;await delay(20)}state='home';selected=choices.home}finally{busy=false;render()}
+}
+function curl(ctx,old,target,t,backward){
+ const progress=ease(t),theta=Math.PI*progress,sign=backward?-1:1,hinge=backward?314+12*progress:326-12*progress;
+ ctx.drawImage(target,0,0);
+ const oldX=backward?326:22;ctx.drawImage(old,oldX,38,292,410,oldX,38,292,410);
+ let x=0,z=0;
+ const strips=[];
+ for(let n=0;n<146;n++){
+  const u=(n+.5)/146,normal=theta+.30*Math.sin(theta)*Math.sin(Math.PI*u),nx=x+2*Math.cos(normal),nz=z+2*Math.sin(normal);
+  strips.push({n,x,nx,z,nz,normal});x=nx;z=nz;
+ }
+ for(const strip of strips.sort((a,b)=>a.z-b.z)){
+  const {n,x,nx,z,nz,normal}=strip,faceBack=Math.cos(normal)<0;
+  const p=1/(1-z/5200),q=1/(1-nz/5200),a=hinge+sign*x*p,b=hinge+sign*nx*q,left=Math.round(Math.min(a,b)),w=Math.round(Math.max(a,b))-left;
+  if(w<=0)continue;const h=Math.round(410*(p+q)/2),y=Math.round(243-h/2-(z+nz)*.0125);
+  const src=faceBack?target:old,sourceRight=faceBack?backward:!backward,sx=sourceRight?326+n*2:312-n*2;
+  ctx.drawImage(src,sx,38,2,410,left,y,w,h);ctx.fillStyle=`rgba(10,9,20,${.16*(1-Math.abs(Math.cos(normal)))})`;ctx.fillRect(left,y,w,h);
+ }
+}
+function composed(image){const canvas=document.createElement('canvas');canvas.width=640;canvas.height=480;const ctx=canvas.getContext('2d');ctx.drawImage(image,0,0);ctx.drawImage(dynamic,0,0);return canvas}
+async function turn(next,backward=false){
+ if(busy)return;busy=true;const oldState=state,oldSource=screen.src;render();
+ try{
+  const old=composed(await loadRaster(oldSource));state=next;selected=menuStates.includes(next)?choices[next]:0;render();const target=composed(await loadRaster(screen.src));
+  const ctx=leaf.getContext('2d');ctx.imageSmoothingEnabled=false;leaf.style.display='block';
+  const fullscreen=isFullscreen(oldState)||isFullscreen(next),steps=fullscreen?14:32;
+  for(let n=0;n<=steps;n++){const t=n/steps;ctx.clearRect(0,0,640,480);
+   if(fullscreen){ctx.drawImage(t<.5?old:target,0,0);ctx.fillStyle=`rgba(10,9,20,${t<.5?ease(t*2):1-ease(t*2-1)})`;ctx.fillRect(0,0,640,480)}
+   else curl(ctx,old,target,t,backward);await delay(20);
+  }
+ }finally{leaf.style.display='none';busy=false;render()}
+}
+async function act(k){
+ if(busy)return;
+ if(state==='cover'){if(k==='enter')await openBook();return}
+ if(menuStates.includes(state)){
+  if(k==='w'||k==='s'){selected=(selected+(k==='w'?2:1))%3;choices[state]=selected;render()}
+  else if(k==='enter')await turn(state==='home'?['basic','advanced','game_ready'][selected]:state==='basic'?['fill','copy','buffer'][selected]:['key','alpha','pressure'][selected]);
+  else if(k==='a'){if(state==='home'){state='cover';render()}else await turn('home',true)}return;
+ }
+ const f=family(state);
+ if(f){const c=config[f];
+  if(k==='a'){await turn(['fill','copy','buffer'].includes(f)?'basic':'advanced',true);return}
+  if(f==='fill'||f==='copy'){
+   if(k==='enter')state=state.endsWith('_detail')?f:f+'_detail';
+   else if(k==='w')c.load=(c.load+1)%4;
+   else if(k==='d'){if(f==='fill')c.color=(c.color+1)%6;else c.image^=1}
+   else if(k==='s')c.mode^=1;
+  }else if(f==='buffer'){if(k==='w')c.speed=(c.speed+1)%3;else if(k==='s')c.mode^=1;else if(k==='d')c.grid=!c.grid;else if(k==='enter')c.paused=!c.paused}
+  else if(f==='alpha'){if(k==='w')c.value=Math.min(255,c.value+5);else if(k==='d')c.value=Math.max(0,c.value-5);else if(k==='s')c.background^=1;else if(k==='enter')c.value=c.value===0?128:c.value===128?255:0}
+  else if(f==='key'){if(k==='w')c.enabled^=1;else if(k==='d')c.key^=1;else if(k==='s')c.background^=1}
+  else if(f==='pressure'){if(k==='w')c.count=Math.min(0xffffffff,c.count+5);else if(k==='s')c.count=Math.max(1,c.count-5);else if(k==='d')c.size=({32:24,24:16,16:4,4:32})[c.size]}
+  render();return;
+ }
+ if(state==='game_upgrade'){
+  if(k==='w'||k==='s'){selected=(selected+(k==='w'?2:1))%3;render()}
+  else if(k==='enter'){state='game_play';render()}
+  else if(k==='d'){resume='game_upgrade';state='game_paused';render()}return;
+ }
+ if(k==='a'&&state!=='game_play'){await turn('home',true);return}
+ if(k==='enter'){if(state==='game_play'){resume='game_play';state='game_paused'}else if(state==='game_paused')state=resume;else state='game_play';render()}
+}
+function jumpTo(value){
+ if(busy)return;const f=family(value);
+ if(f==='copy')config.copy.image=value==='copy_2'?1:0;
+ if(f==='buffer'){config.buffer.mode=value.includes('double')?1:0;config.buffer.paused=value.includes('paused')}
+ if(f==='alpha')config.alpha.value=value==='alpha_0'?0:value==='alpha_128'?128:255;
+ if(f==='key'){config.key.enabled=value==='key_off'?0:1;config.key.key=value==='key_magenta'?1:0}
+ if(f==='pressure')config.pressure.count=value==='pressure_1'?1:31;
+ if(value.startsWith('game_upgrade')){state='game_upgrade';selected=Number(value.slice(-1))||0}else{state=value;selected=menuStates.includes(value)?choices[value]:0}
+ render();
+}
+document.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>act(b.dataset.key));
+document.querySelectorAll('.hot').forEach(b=>b.onclick=()=>{if(busy)return;const n=Number(b.dataset.row);if(menuStates.includes(state)){selected=n;choices[state]=n}else if(state==='game_upgrade')selected=n;act('enter')});
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>turn(b.dataset.state,b.dataset.state==='basic'));
+document.querySelector('#jump').onchange=e=>jumpTo(e.target.value);
+document.addEventListener('keydown',e=>{if(['SELECT','INPUT','TEXTAREA'].includes(e.target.tagName))return;const k=e.key.toLowerCase();if(['w','s','d','a','enter'].includes(k)){e.preventDefault();act(k)}});
+render();
+</script></html>

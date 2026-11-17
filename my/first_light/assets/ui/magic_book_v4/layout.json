@@ -1,0 +1,91 @@
+{
+  "canvas": [
+    640,
+    480
+  ],
+  "book_bounds": [
+    14,
+    18,
+    622,
+    462
+  ],
+  "cover_layer": {
+    "origin": [
+      170,
+      32
+    ],
+    "size": [
+      310,
+      416
+    ],
+    "color_key": 0
+  },
+  "open_book_layer": {
+    "origin": [
+      0,
+      0
+    ],
+    "size": [
+      640,
+      480
+    ],
+    "color_key": 0
+  },
+  "left_page_safe": [
+    42,
+    48,
+    256,
+    354
+  ],
+  "right_page_safe": [
+    342,
+    48,
+    256,
+    354
+  ],
+  "gutter_reserved": [
+    300,
+    42,
+    40,
+    366
+  ],
+  "navigation": [
+    "cover",
+    "home",
+    "basic / advanced",
+    "demo or game"
+  ],
+  "controls": {
+    "cover": "Enter opens the book",
+    "menu": "W/S select; Enter opens; A returns",
+    "home_back": "A closes the book in this prototype; firmware behavior is not yet changed"
+  },
+  "game_view_proposal": [
+    46,
+    128,
+    548,
+    266
+  ],
+  "game_view_current": [
+    8,
+    80,
+    624,
+    360
+  ],
+  "game_layout_note": "New viewport and HUD layout require camera/clipping and pixel tests; no production change in this deliverable.",
+  "cross_spread_views": [
+    "buffer",
+    "pressure",
+    "game"
+  ],
+  "cross_spread_note": "Book remains visible around the drawing window; no gutter shadow is painted over effect/game pixels.",
+  "opening": {
+    "frames": 121,
+    "step_ms": 20,
+    "motion_ms": 2400,
+    "frame_directory": "animation_smooth",
+    "legacy_frame_directory": "animation",
+    "render_strategy": "Reference animation only. Separate cover, body, curved leaf and clasp. Do not keep all full-screen frames in DDR."
+  },
+  "fonts": "Existing font_cn.h and font5x7.h; large titles and hero previews use nearest integer scaling."
+}

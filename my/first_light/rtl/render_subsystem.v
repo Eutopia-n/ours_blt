@@ -136,19 +136,73 @@ module render_subsystem #(
         .operation(operation),.src(src),.draw_page(draw_page),.swap_page(swap_page),.swap_toggle(swap_toggle),
         .blend_ctrl(blend_ctrl),.blend_alpha(blend_alpha),.color_key(color_key)
     );
+    wire ui_selected=operation==3;
+    wire legacy_busy,ui_busy;
+    wire legacy_done,ui_done;
+    wire legacy_error,ui_error;
+    wire [31:0] legacy_cycles,ui_cycles;
+    wire [31:0] legacy_burst_reads,ui_burst_reads;
+    wire [31:0] legacy_burst_writes,ui_burst_writes;
+    wire [31:0] legacy_ddr_read_wait_cycles,ui_ddr_read_wait_cycles;
+    wire [31:0] legacy_ddr_write_wait_cycles,ui_ddr_write_wait_cycles;
+    wire [31:0] legacy_awaddr,ui_awaddr;
+    wire [7:0] legacy_awlen,ui_awlen;
+    wire legacy_awvalid,ui_awvalid;
+    wire [31:0] legacy_wdata,ui_wdata;
+    wire [3:0] legacy_wstrb,ui_wstrb;
+    wire legacy_wlast,ui_wlast;
+    wire legacy_wvalid,ui_wvalid;
+    wire legacy_bready,ui_bready;
+    wire [31:0] legacy_fill_araddr,ui_fill_araddr;
+    wire [7:0] legacy_fill_arlen,ui_fill_arlen;
+    wire legacy_fill_arvalid,ui_fill_arvalid;
+    wire legacy_fill_rready,ui_fill_rready;
+    assign busy=ui_selected ? ui_busy:legacy_busy;
+    assign done=ui_selected ? ui_done:legacy_done;
+    assign error=ui_selected ? ui_error:legacy_error;
+    assign cycles=ui_selected ? ui_cycles:legacy_cycles;
+    assign burst_reads=legacy_burst_reads+ui_burst_reads;
+    assign burst_writes=legacy_burst_writes+ui_burst_writes;
+    assign ddr_read_wait_cycles=legacy_ddr_read_wait_cycles+ui_ddr_read_wait_cycles;
+    assign ddr_write_wait_cycles=legacy_ddr_write_wait_cycles+ui_ddr_write_wait_cycles;
+    assign awaddr=ui_selected ? ui_awaddr:legacy_awaddr;
+    assign awlen=ui_selected ? ui_awlen:legacy_awlen;
+    assign awvalid=ui_selected ? ui_awvalid:legacy_awvalid;
+    assign wdata=ui_selected ? ui_wdata:legacy_wdata;
+    assign wstrb=ui_selected ? ui_wstrb:legacy_wstrb;
+    assign wlast=ui_selected ? ui_wlast:legacy_wlast;
+    assign wvalid=ui_selected ? ui_wvalid:legacy_wvalid;
+    assign bready=ui_selected ? ui_bready:legacy_bready;
+    assign fill_araddr=ui_selected ? ui_fill_araddr:legacy_fill_araddr;
+    assign fill_arlen=ui_selected ? ui_fill_arlen:legacy_fill_arlen;
+    assign fill_arvalid=ui_selected ? ui_fill_arvalid:legacy_fill_arvalid;
+    assign fill_rready=ui_selected ? ui_fill_rready:legacy_fill_rready;
     fill_engine fill (
-        .clk(clk),.reset(reset),.start(start),.memory_ready(memory_ready),
+        .clk(clk),.reset(reset),.start(start && !ui_selected),.memory_ready(memory_ready),
         .operation(operation),.src(src),.frame_base(draw_frame_base),
         .dst(dst),.stride(stride),.src_stride(src_stride),.width(width),.height(height),.color(color),
         .blend_ctrl(blend_ctrl),.blend_alpha(blend_alpha),.color_key(color_key),
-        .busy(busy),.done(done),.error(error),.cycles(cycles),
-        .burst_reads(burst_reads),.burst_writes(burst_writes),
-        .ddr_read_wait_cycles(ddr_read_wait_cycles),.ddr_write_wait_cycles(ddr_write_wait_cycles),
-        .awaddr(awaddr),.awlen(awlen),.awvalid(awvalid),.awready(awready),
-        .wdata(wdata),.wstrb(wstrb),.wlast(wlast),.wvalid(wvalid),.wready(wready),
-        .bresp(bresp),.bvalid(bvalid),.bready(bready),
-        .araddr(fill_araddr),.arlen(fill_arlen),.arvalid(fill_arvalid),.arready(fill_arready),
-        .rdata(fill_rdata),.rresp(fill_rresp),.rlast(fill_rlast),.rvalid(fill_rvalid),.rready(fill_rready)
+        .busy(legacy_busy),.done(legacy_done),.error(legacy_error),.cycles(legacy_cycles),
+        .burst_reads(legacy_burst_reads),.burst_writes(legacy_burst_writes),
+        .ddr_read_wait_cycles(legacy_ddr_read_wait_cycles),.ddr_write_wait_cycles(legacy_ddr_write_wait_cycles),
+        .awaddr(legacy_awaddr),.awlen(legacy_awlen),.awvalid(legacy_awvalid),.awready(awready && !ui_selected),
+        .wdata(legacy_wdata),.wstrb(legacy_wstrb),.wlast(legacy_wlast),.wvalid(legacy_wvalid),.wready(wready && !ui_selected),
+        .bresp(bresp),.bvalid(bvalid && !ui_selected),.bready(legacy_bready),
+        .araddr(legacy_fill_araddr),.arlen(legacy_fill_arlen),.arvalid(legacy_fill_arvalid),.arready(fill_arready && !ui_selected),
+        .rdata(fill_rdata),.rresp(fill_rresp),.rlast(fill_rlast),.rvalid(fill_rvalid && !ui_selected),.rready(legacy_fill_rready)
+    );
+    ui_compositor ui (
+        .clk(clk),.reset(reset),.start(start && ui_selected),.memory_ready(memory_ready),
+        .frame_base(draw_frame_base),.dst(dst),.src(src),.background(src_stride),.stride(stride),
+        .width(width),.height(height),.command_count(color),.background_color(color_key),
+        .busy(ui_busy),.done(ui_done),.error(ui_error),.cycles(ui_cycles),
+        .burst_reads(ui_burst_reads),.burst_writes(ui_burst_writes),
+        .read_wait(ui_ddr_read_wait_cycles),.write_wait(ui_ddr_write_wait_cycles),
+        .awaddr(ui_awaddr),.awlen(ui_awlen),.awvalid(ui_awvalid),.awready(awready && ui_selected),
+        .wdata(ui_wdata),.wstrb(ui_wstrb),.wlast(ui_wlast),.wvalid(ui_wvalid),.wready(wready && ui_selected),
+        .bresp(bresp),.bvalid(bvalid && ui_selected),.bready(ui_bready),
+        .araddr(ui_fill_araddr),.arlen(ui_fill_arlen),.arvalid(ui_fill_arvalid),.arready(fill_arready && ui_selected),
+        .rdata(fill_rdata),.rresp(fill_rresp),.rlast(fill_rlast),.rvalid(fill_rvalid && ui_selected),.rready(ui_fill_rready)
     );
     framebuffer_video video (
         .clk(clk),.reset(reset),.pixel_clk(pixel_clk),.display_enable(display_enable && memory_ready),

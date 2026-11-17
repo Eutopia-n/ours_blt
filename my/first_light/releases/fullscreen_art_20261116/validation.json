@@ -1,0 +1,220 @@
+{
+  "status": "PASS",
+  "book_menu_integrated": true,
+  "fullscreen_demo_skin_integrated": true,
+  "fullscreen_game_HUD_skin_integrated": false,
+  "game_art_integrated": true,
+  "game_background": "solid 0x1085",
+  "FPGA_capabilities_used": [
+    "fill",
+    "RGB565 copy",
+    "alpha/color-key blend",
+    "vblank double-buffer swap"
+  ],
+  "FPGA_scaler_added": false,
+  "RTL_changed_this_update": false,
+  "firmware": {
+    "text": 102272,
+    "data": 16,
+    "bss": 16968,
+    "total": 119256,
+    "stack_reserve": 4096,
+    "spare_after_stack": 7720
+  },
+  "book": {
+    "runtime_integrated": true,
+    "expanded_ddr_bytes": 480678,
+    "compressed_bytes": 17849,
+    "snapshot_bytes": 153600,
+    "cache_bytes": 614400,
+    "total_ddr_bytes": 944640,
+    "snapshot_base": "0x01241000",
+    "cache_base": "0x01266A00",
+    "shared_with_demo_images": true,
+    "resource_pool_bytes": 1048576,
+    "rle_bytes": 50686,
+    "ddr_base": "0x01216000",
+    "layers": [
+      {
+        "name": "front",
+        "offset": 0,
+        "w": 139,
+        "h": 198,
+        "bytes": 55044,
+        "sha256": "d4c7aaf4a934542c0764a01edd7a9d5da0023e5a7f2f7da634ae48277db10942"
+      },
+      {
+        "name": "clasp",
+        "offset": 55044,
+        "w": 27,
+        "h": 20,
+        "bytes": 1080,
+        "sha256": "f6e2f6cd005827ad05e84dbbd8cecf9242ad782d2134240462cd1e27a5388304"
+      },
+      {
+        "name": "ornament",
+        "offset": 56124,
+        "w": 95,
+        "h": 91,
+        "bytes": 17290,
+        "sha256": "eb8ffc0cb3ef13d15849d79a4ef298d8854e567d3a8be2e94ffbd2883f208adc"
+      },
+      {
+        "name": "icon_basic",
+        "offset": 73414,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "5aa53754655cf78080bcb048f355d82cfc5b8ab31268949002ad059cbc0320f1"
+      },
+      {
+        "name": "icon_advanced",
+        "offset": 75462,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "599cbd5b49ce762903b7dd02e20f8521d99be5bcb883dd8778ebe081ee375230"
+      },
+      {
+        "name": "icon_game",
+        "offset": 77510,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "e4d9f682696ad4c317174f545f2a58cc1b026b5ab42f264d63fd34fd60ecce6f"
+      },
+      {
+        "name": "icon_fill",
+        "offset": 79558,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "4f01d6cf89278278a37a89d0e39734a4e3266ab898c8d64acf88c6512fea8377"
+      },
+      {
+        "name": "icon_copy",
+        "offset": 81606,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "a189a5545e099fddce8b617e726f3fe19ab9ab5f702459c209eade323b64587d"
+      },
+      {
+        "name": "icon_buffer",
+        "offset": 83654,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "10e6452f2999a2cb4f2da6cd07bb52ee3ed2f4f40e375c965359d51b5bf25a1e"
+      },
+      {
+        "name": "icon_key",
+        "offset": 85702,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "7d24d94bb492aa227c206576f9ea837276ca2fed01f3cf1fd0b11435a75c7d24"
+      },
+      {
+        "name": "icon_alpha",
+        "offset": 87750,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "2ce646ee07705fc244d637fb5c7aeec26727b04eb91692904726c9373cb83537"
+      },
+      {
+        "name": "icon_pressure",
+        "offset": 89798,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "be124b3709cceb7282c714825a528ad51d34038c3a71947fa5bb4ce235741234"
+      },
+      {
+        "name": "cursor",
+        "offset": 91846,
+        "w": 16,
+        "h": 24,
+        "bytes": 768,
+        "sha256": "4f206f4579684aec5d1c5aa1c394ae53117f6c2bd3320de09e9408a54fa4e13c"
+      },
+      {
+        "name": "cover",
+        "offset": 92614,
+        "w": 155,
+        "h": 208,
+        "bytes": 64480,
+        "sha256": "70c48b94c03db0a3e621593b57d0f27179675e9ea701316e7184d011378c2c68"
+      },
+      {
+        "name": "desk_runs",
+        "offset": 157094,
+        "w": 2048,
+        "h": 4,
+        "bytes": 16384,
+        "sha256": "4fe7b59af6de3b665b67788cc2f99892ab827efae3a467342b3bb4e3bc8e5bfe"
+      },
+      {
+        "name": "desk",
+        "offset": 173478,
+        "w": 320,
+        "h": 240,
+        "bytes": 153600,
+        "sha256": "9e414de62b2ec99c06e816787daa76aff948969f79275cae15dd836f73fa8ef3"
+      },
+      {
+        "name": "spread",
+        "offset": 327078,
+        "w": 320,
+        "h": 240,
+        "bytes": 153600,
+        "sha256": "cc497ed34ec58beea79df1b7f837ee6679d1e51b09521a745f991e41438e4356"
+      }
+    ],
+    "ornament_origin": [
+      72,
+      158
+    ],
+    "animation": "One cached target page, sparse desk runs and scanline projection; vblank pacing; demo images reload after shared cache use",
+    "board_tested": false
+  },
+  "native_book_states": 9,
+  "native_opening_poses": 121,
+  "mesh_reference_cases": 96,
+  "cached_menu_recovery": {
+    "poses": 33,
+    "CPU_fill_pixels": 0
+  },
+  "shared_demo_images_byte_exact_reload": "PASS (actual main reset + actual image upload functions)",
+  "basic_effects_regression": "PASS (1040 effect images, all 256 alpha settings; basic manual modes and guards)",
+  "pressure_transition_RTL": "PASS (3 menu + 3 pressure full frames; no blank/mixed pixels, front writes, underflows or read errors; 16844 AXI contentions)",
+  "stack_analysis": {
+    "renderer": 2784,
+    "opening_chain": 3072,
+    "binary_matches": true
+  },
+  "full_FPGA_build": {
+    "status": "PASS",
+    "stages": [
+      "map",
+      "interface",
+      "pnr",
+      "pgm"
+    ],
+    "cpu_mhz": 150,
+    "setup_min_ns": 0.076,
+    "hold_min_ns": 0.024,
+    "release": "releases/fullscreen_art_20261116",
+    "bit_sha256": "afc044871464ad175cfef1be42718150197db491d4f295bdcfae8b8424a3c7d4",
+    "hex_sha256": "ed8313efd2428b6c695dd1b61e0be64abde40a9e4d154fb00627854e4c144298"
+  },
+  "ram_init_files_match": true,
+  "resource_pool_bytes": 1048576,
+  "no_fullscreen_animation_sequence": true,
+  "benchmark_workloads_unchanged": true,
+  "board_tested": false,
+  "board_animation_FPS_measured": false,
+  "full_Sapphire_CPU_run": false,
+  "preview_numbers": "Host layout fixtures, not board measurements; GIF timing is illustrative"
+}

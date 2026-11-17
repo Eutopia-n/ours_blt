@@ -20,7 +20,11 @@ view = (ROOT / 'software/game_view.h').read_text(encoding='utf-8')
 font = (ROOT / 'software/font_cn.h').read_text(encoding='utf-8')
 available = {int(cp, 16) for cp in re.findall(r'\{0x([0-9a-fA-F]+),\{', font)}
 missing = set()
-for source in (main, view, (ROOT / 'software/survivor_game.c').read_text(encoding='utf-8')):
+for source in (main, view, (ROOT / 'software/reference_game_ui.h').read_text(encoding='utf-8'), (ROOT / 'software/book_menu.h').read_text(encoding='utf-8'),
+               (ROOT / 'software/basic_demo.h').read_text(encoding='utf-8'),
+               (ROOT / 'software/effects_demo.h').read_text(encoding='utf-8'),
+               (ROOT / 'software/demo_skin.h').read_text(encoding='utf-8'),
+               (ROOT / 'software/survivor_game.c').read_text(encoding='utf-8')):
     for literal in re.findall(r'"((?:[^"\\]|\\.)*)"', source):
         missing.update(c for c in literal if ord(c) > 127 and ord(c) not in available)
 if missing:
@@ -59,8 +63,9 @@ prelude = r'''
 #include "frame_metrics.h"
 #include "survivor_game.h"
 #include "game_frame_bounds.h"
+#include "game_art_ids.h"
 #define GAME_ASSET_BASE (ASSET_BASE+0x4000u)
-#define GAME_FRAME_COUNT 25u
+#define GAME_FRAME_COUNT GAME_FRAME_BOUNDS_COUNT
 #define GAME_MAX_DRAW_ENEMIES GAME_MAX_ENEMIES
 #define GAME_MAX_DRAW_GEMS 20u
 #define GAME_MAX_DRAW_BOLTS GAME_MAX_BOLTS
@@ -68,15 +73,15 @@ prelude = r'''
 static uint16_t screen[640*480+2];
 static uintptr_t draw_buffer;
 static uint32_t page,menu_capture,submitted;
-static uint32_t host_cycles;
+static uint32_t host_cycles,display_disables,pressure_presents;
+static uint32_t book_closed;
 static uint32_t menu_level,menu_group,menu_item[2],menu_repaint_pages;
 static uint32_t fps[2],render_us[2],samples[2],burst_ar[2],burst_aw[2];
 static uint32_t sprite_count=1,bench_size_index=3,bench60_pass;
 static const uint8_t bench_sizes[]={4,16,24,32};
 static uint32_t sprite_best_60[4];
 static uint32_t game_hud_pages,game_hud_number_valid[2],game_hud_bar_valid[2];
-static uint32_t game_hud_numbers[2][12],game_hud_bar_value[2][2],game_hud_bar_max[2][2];
-static uint16_t game_hud_bar_color[2][2];
+static uint32_t game_hud_numbers[2][12],game_page_valid[2];
 static uint32_t game_assets_ready=1;
 static uint32_t game_capture_dirty;
 static uint32_t game_draw_enemy_count;
@@ -147,7 +152,9 @@ static uint32_t host_read(uint32_t address) {
     if(address==GFX_BASE+GFX_VIDEO_STATUS) return GFX_VIDEO_VALID;
     return 0;
 }
-static void host_write(uint32_t address,uint32_t value) { (void)address; (void)value; }
+static void host_write(uint32_t address,uint32_t value) {
+    if(address==GFX_BASE+GFX_DISPLAY && !value)++display_disables;
+}
 static int host_blend(uint32_t source,uint32_t stride,uint32_t x,uint32_t y,
                       uint32_t w,uint32_t h,uint8_t a,uint16_t key,uint32_t flags) {
     (void)source;(void)stride;(void)a;(void)key;(void)flags;
@@ -165,9 +172,9 @@ static uint32_t button_event(void) {
     if(key_count) { assert(key_pos<key_count); return key_script[key_pos++]; }
     return 16;
 }
-static void draw_player(uint32_t f,uint32_t x,uint32_t y,uint32_t hw) { (void)f;(void)x;(void)y;(void)hw; }
 static int host_present(void) {
-    if(menu_capture) save_ui(!menu_level ? "home" : menu_group ? "advanced" : "basic");
+    // This routing mock must not overwrite real book-renderer captures.
+    ++pressure_presents;
     page^=1u; return 0;
 }
 #define present_frame host_present
@@ -178,6 +185,13 @@ static void game_record_dirty_rect(uint32_t x,uint32_t y,uint32_t width,uint32_t
     (void)x;(void)y;(void)width;(void)height;
 }
 static void scene(uint32_t f,uint32_t hw,uint32_t d,uint32_t v) { (void)f;(void)hw;(void)d;(void)v; cpu_fill(0,152,640,256,0x0843); }
+/* Book pixels/upload/animation are checked by check_book_menu.py. This harness
+ * retains the real menu input loop while focusing on demo/game HUD fields. */
+static void book_init_assets(void) {}
+static void book_cover(void) { host_fill(0,0,640,480,0x0843); }
+static void book_menu_frame(void) { host_fill(0,0,640,480,0x0843); }
+static void book_animate(uint32_t closing) { (void)closing; }
+static void book_turn(void) {}
 '''
 # Keep the actual renderer declarations, while excluding their MMIO asm bodies.
 for name in ('GAME_MAX_DRAW_ENEMIES','GAME_MAX_DRAW_GEMS','GAME_MAX_DRAW_BOLTS'):
@@ -196,8 +210,17 @@ for name in ('font_column','text_at_width','text_at','decimal','number_at','deci
         body = body.replace('if(width>640u-x)', 'uint32_t requested_width=width;\n    if(width>640u-x)')
         body = body.replace('uint32_t right=x+width;', 'uint32_t right=x+width; note_text(x,y,s,width,requested_width);')
     parts.append(body)
+parts.append('#include "reference_ui_assets.h"\n#define BOOK_GOLD 0xac2au\n#define BOOK_EDGE 0xc52fu')
+# The dedicated book/basic harnesses check the real icon pixels on mapped DDR.
+parts.append('static void book_stamp(uint32_t id,uint32_t x,uint32_t y,uint32_t s,uint16_t skip) {(void)id;(void)x;(void)y;(void)s;(void)skip;}')
+parts.append(function((ROOT/'software/book_menu.h').read_text(encoding='utf-8'),'book_text_width'))
+parts.append(function((ROOT/'software/book_menu.h').read_text(encoding='utf-8'),'book_text'))
+parts.append('#include "demo_skin.h"')
 parts.append('static uint32_t game_sprite(uint32_t frame,int32_t x,int32_t y,uint32_t alpha);')
-for name in ('game_world_sprite','game_bolt','game_sprite','game_bar','game_hud_number','game_panel','game_gem_visible','game_select_gems','game_draw_gems','game_draw'):
+# Exact new fullscreen game pages are exercised by check_reference_ui.py.
+# This older harness retains clipping, dense-workload and legacy metric checks.
+parts.append('static uint32_t game_ui_key[2]={255,255};static void game_ui_page(const SurvivorGame *g){(void)g;}static void game_ui_hud(const SurvivorGame *g,uint32_t f,uint32_t p,uint32_t b){(void)g;(void)f;(void)p;(void)b;}static void game_ui_pause(void){}')
+for name in ('game_world_sprite','game_bolt','game_sprite','game_hud_number','game_enemy_frame','game_gem_frame','game_gem_visible','game_select_gems','game_draw_gems','game_draw'):
     body = function(view, name)
     if name == 'game_hud_number':
         body = body.replace('// Draw an opaque', 'note_field(x,y,width,14,"numeric HUD");\n    // Draw an opaque')
@@ -207,6 +230,8 @@ for name in ('bench_hud','bench_prime_framebuffers'):
 parts.append(r'''
 int main(void) {
     draw_buffer=(uintptr_t)&screen[1];
+    // Compare panels are exercised by check_basic_demo.py/check_demo_reference.py.
+    (void)demo_metrics;
     // Exercise the actual bullet renderer: original edge colors, white core,
     // symmetric brightness falloff, and viewport-edge/off-screen guards.
     for(unsigned piercing=0;piercing<2;++piercing) {
@@ -279,7 +304,9 @@ int main(void) {
     }
     reset_ui(); sprite_count=UINT32_MAX; bench60_pass=1;
     for(unsigned i=0;i<4;++i) sprite_best_60[i]=UINT32_MAX;
+    display_disables=pressure_presents=0;
     bench_prime_framebuffers(); save_ui("pressure");
+    assert(display_disables==0u && pressure_presents==2u);
     SurvivorGame g; game_reset(&g,12345); g.state=GAME_PLAY;
     g.kills=UINT32_MAX; g.level=999; game_max60.maximum=999;
     reset_ui(); unsigned drawn=game_draw(&g,60,UINT32_MAX,UINT32_MAX,UINT32_MAX);
@@ -337,7 +364,7 @@ int main(void) {
         assert(screen[1+y*640+x]==0x10a6);
     field_count=0; game_hud_number(1,0,20,20,120,1,0xffff);
     assert((game_hud_number_valid[0]&1u) && (game_hud_number_valid[1]&1u));
-    printf("UI CHECK PASSED: %u previews; all6 menu routes, wraparound and game entry; collision/edge/overflow guards; actual Sprite clipping, 256 enemies + 256 bolts, high-slot/off-screen/empty guards\n",checked);
+    printf("UI CHECK PASSED: %u legacy metric/clip fixtures (new game UI checked by check_reference_ui.py); all6 menu routes (book pixels checked separately), wraparound and game entry; pressure entry never disables display; collision/edge/overflow guards; actual Sprite clipping, 256 enemies + 256 bolts, high-slot/off-screen/empty guards\n",checked);
     return 0;
 }
 ''')

@@ -1,0 +1,52 @@
+{
+  "status": "PASS",
+  "runtime_frames": 36,
+  "runtime_texture_bytes": 73728,
+  "added_texture_bytes": 22528,
+  "background_texture_bytes": 0,
+  "background_bytes_not_loaded": 483328,
+  "reserve_frames": 9,
+  "reserve_loaded": false,
+  "player_frames_byte_identical": true,
+  "healing_heart_redesigned": true,
+  "RLE_roundtrip": true,
+  "binary_alpha": true,
+  "firmware_before_art": {
+    "text": 69984,
+    "data": 12,
+    "bss": 16940,
+    "total": 86936
+  },
+  "firmware_after_art": {
+    "text": 75848,
+    "data": 12,
+    "bss": 16940,
+    "total": 92800
+  },
+  "firmware_added_bytes": 5864,
+  "stack_reserve_bytes": 4096,
+  "on_chip_spare_after_stack": 34176,
+  "sprite_crop_cases": 108368,
+  "background_restore_frames": 360,
+  "ui_host_previews": 29,
+  "game_logic_parity_ticks": 30000,
+  "board_tested": false,
+  "full_FPGA_build_done": true,
+  "new_book_UI_integrated": false,
+  "ram_init_files_match": true,
+  "full_FPGA_build": {
+    "status": "PASS",
+    "stages": [
+      "map",
+      "interface",
+      "pnr",
+      "pgm"
+    ],
+    "cpu_mhz": 150,
+    "setup_min_ns": 0.076,
+    "hold_min_ns": 0.024,
+    "release": "releases/frost_art_20261116",
+    "bit_sha256": "8b8d28a26310a8cb19287611a705e544fbed33d01f4296cf1b7981e700d8f661",
+    "hex_sha256": "88a62505977515cec9eac20c751125f2def24c9b997f54e38585662e3a443108"
+  }
+}

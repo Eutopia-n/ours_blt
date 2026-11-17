@@ -11,8 +11,8 @@ parser=argparse.ArgumentParser()
 parser.add_argument('--cc',type=Path,default=Path('C:/mingw64/bin/gcc.exe'))
 args=parser.parse_args()
 main=(ROOT/'software/main.c').read_text(encoding='utf-8')
-def function(name):
-    m=re.search(r'^(?:static\s+)?(?:uint32_t|uint16_t|uint8_t|void|int|char\s*\*)\s*'+name+r'\([^;{]*\)\s*\{',main,re.M)
+def function(name,main=main):
+    m=re.search(r'^(?:static\s+)?[a-zA-Z_][^;{\n]*\b'+name+r'\([^;{]*\)\s*\{',main,re.M)
     assert m,name
     depth=0
     for t in re.finditer(r'"(?:\\.|[^"\\])*"|/\*.*?\*/|//[^\n]*|[{}]',main[m.end()-1:],re.S):
@@ -28,18 +28,24 @@ prelude=r'''
 #include <stdlib.h>
 #include <string.h>
 #include "render.h"
+// Relocate the host model before inline helpers expand address macros.
+#undef ASSET_BASE
+#undef FRAMEBUFFER
+#define ASSET_BASE 0x10000000u
+#define FRAMEBUFFER 0x11000000u
 #include "frame_metrics.h"
 #include "basic_demo_data.h"
 #include "font5x7.h"
 #include "font_cn.h"
 #include "demo_controls.h"
-#define DUNGEON_WALL_BASE (ASSET_BASE+0x40000u)
-#define DUNGEON_WALL_BYTES 434176u
+#define GAME_ASSET_BASE (ASSET_BASE+0x4000u)
+#include "game_frame_bounds.h"
+#define GAME_FRAME_COUNT GAME_FRAME_BOUNDS_COUNT
 #define BENCH_VARIANTS 4u
 enum {DEMO_FILL,DEMO_COPY,DEMO_BUFFER,DEMO_KEY,DEMO_ALPHA,DEMO_BENCH};
+static const char *const demo_details[] __attribute__((unused))={"","","","","","FPGA ALPHA + COLOR KEY / 60 FPS"};
 static const char *const demo_names[]={"矩形填充","图像复制","双缓冲","颜色键","透明混合","SPRITE 压力"};
-static const char *const demo_details[]={"RGB565 硬件填充","DDR 图像复制到显存","垂直消隐交换页面","黑色像素变为透明","W加5 D减5","FPGA ALPHA + COLOR KEY / 60 FPS"};
-static uint32_t menu_repaint_pages,menu_level,menu_group,menu_item[2];
+static uint32_t menu_repaint_pages,menu_level,menu_group,menu_item[2],book_closed;
 static uint32_t draw_buffer=FRAMEBUFFER,clock_value,video_epoch,presented_page;
 static uint32_t regs[64],ar_count,aw_count,rwait_count,wwait_count,hw_calls,drains;
 static uint32_t script[160],script_n,script_pos,report_count;
@@ -146,11 +152,23 @@ static void paint(uint32_t x,uint32_t y,uint32_t w,uint32_t h,uint16_t c,uint32_
     if(!x && !y && w==640 && h==480)field_count[draw_page()]=0;
     if(hw){if(fill_rect(x,y,w,h,c))fail("host fill failed");}else cpu_fill(x,y,w,h,c);
 }
+// Actual book drawing/DDR/transition checks live in check_book_menu.py.
+static void book_init_assets(void){}
+static void book_menu_frame(void){paint(0,0,640,480,0x0843,1);}
+static void book_cover(void){book_menu_frame();}
+static void book_animate(uint32_t closing){(void)closing;}
+static void book_turn(void){}
 ''')
 for name in ('font_column','text_at_width','text_at','decimal','number_at','decimal_field','number_field_at','alpha_value','blend_rgb565','bench_next_size','menu_screen'):
     body=function(name)
     if name=='text_at_width':body=body.replace('uint32_t right=x+width;','uint32_t right=x+width;note_text(x,y,s,width);')
     parts.append(body)
+book=(ROOT/'software/book_menu.h').read_text(encoding='utf-8')
+parts.append('#include "reference_ui_assets.h"')
+parts.append('#define BOOK_GOLD 0xac2au\n#define BOOK_EDGE 0xc52fu')
+for name in ('book_pixels','book_stamp','book_text_width','book_text'):
+    parts.append(function(name,book))
+parts.append('#include "demo_skin.h"')
 parts.append('#include "basic_demo.h"')
 parts.append('#include "effects_demo.h"')
 parts.append(r'''
@@ -207,6 +225,11 @@ int main(void){
         uint64_t ref=values[j] ? (uint64_t)values[i]*100u/values[j]:0;
         assert(basic_ratio100(values[i],values[j])==(ref>999999u?999999u:ref));
     }
+    for(uint32_t id=BOOK_ICON_BASIC;id<=BOOK_ICON_PRESSURE;++id){
+        static const char *const names[]={"basic","advanced","game","fill","copy","buffer","key","alpha","pressure"};
+        char path[200];snprintf(path,sizeof(path),"assets/ui/magic_book_v5/runtime/reference/icon_%s.rgb565",names[id-BOOK_ICON_BASIC]);
+        FILE *art=fopen(path,"rb");assert(art);assert(fread((void*)(uintptr_t)(ASSET_BASE+book_resources[id].base),1,2048,art)==2048);fclose(art);
+    }
     // Layout previews use explicit synthetic samples; they are not benchmarks.
     for(uint32_t demo=0;demo<3;++demo)for(uint32_t view=0;view<(demo==2?1u:2u);++view)
     for(uint32_t image=0;image<(demo==1?2u:1u);++image)for(uint32_t hw=0;hw<(demo==2?1u:2u);++hw){
@@ -221,6 +244,17 @@ int main(void){
         if(demo!=DEMO_BUFFER && view)for(uint32_t i=0;i<field_count[presented_page];++i)
             assert(strcmp(fields[presented_page][i].label,"DST"));
         char name[80];snprintf(name,sizeof(name),"demo%u_view%u_image%u_path%u",demo,view,image,hw);save_ui(name);
+    }
+    // Reference-layout fixtures use the real page code with no valid samples.
+    for(uint32_t demo=0;demo<3u;++demo)for(uint32_t view=0;view<2u;++view)for(uint32_t variant=0;variant<2u;++variant){
+        clear_host();draw_buffer=FRAMEBUFFER;
+        basic_config=(BasicConfig){0,demo==1u ? variant:0,0,demo<2u ? view:0,demo==2u ? view:0,0,demo==2u ? variant:0,1};
+        basic_reset_sample(&basic_samples[0]);basic_reset_sample(&basic_samples[1]);
+        basic_swaps=basic_missed=basic_swap_us=basic_video_hz=0;
+        basic_prime(demo);basic_hud(demo,1);
+        if(demo==DEMO_FILL)paint(view ? 352u:16u,176,view ? 256u:608u,view ? 192u:224u,0x0843,1);
+        if(demo!=DEMO_BUFFER){BasicSample r;(void)basic_batch(demo,1,0,&r);}
+        host_present();char name[100];snprintf(name,sizeof(name),"reference_%u_%u_%u",demo,view,variant);save_ui(name);
     }
     // Real event loop: no automatic switching; manual mode/reset/exit paths.
     for(uint32_t demo=0;demo<3;++demo){
@@ -349,7 +383,8 @@ int main(void){
     for(uint32_t bg=0;bg<2;++bg)for(uint32_t v=0;v<(demo==DEMO_ALPHA ? 3u:4u);++v){
         clear_host();draw_buffer=FRAMEBUFFER;
         ec=(EffectsConfig){demo==DEMO_ALPHA ? (v==0 ? 0u:v==1 ? 128u:255u):128u,demo==DEMO_KEY ? v/2u:0u,v&1u,bg};
-        paint(0,0,640,480,0x10a6,1);effects_draw_scene(demo,&ec);effects_labels(demo,&ec,effects_verify(demo,&ec));host_present();
+        demo_skin(demo,"FPGA");demo_window(48,192,240,192);demo_window(352,192,240,192);
+        effects_draw_scene(demo,&ec);effects_labels(demo,&ec,effects_verify(demo,&ec));host_present();
         char name[80];snprintf(name,sizeof(name),"effects_demo%u_bg%u_variant%u",demo,bg,v);save_ui(name);
     }
     for(uint32_t demo=DEMO_KEY;demo<=DEMO_ALPHA;++demo){
@@ -379,7 +414,7 @@ r=subprocess.run([str(out/'check.exe')],cwd=ROOT,env=env,capture_output=True,tex
 print(r.stdout+r.stderr,flush=True)
 if r.returncode:raise SystemExit(r.returncode)
 def chunk(kind,data):return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
-for path in list((ROOT/'reports').glob('basic_demo*.ppm'))+list((ROOT/'reports').glob('basic_effects*.ppm'))+list((ROOT/'reports').glob('basic_buffer*.ppm')):
+for path in list((ROOT/'reports').glob('basic_demo*.ppm'))+list((ROOT/'reports').glob('basic_effects*.ppm'))+list((ROOT/'reports').glob('basic_buffer*.ppm'))+list((ROOT/'reports').glob('basic_reference*.ppm')):
     header,size,maximum,pixels=path.read_bytes().split(b'\n',3)
     assert (header,size,maximum)==(b'P6',b'640 480',b'255')
     rows=b''.join(b'\0'+pixels[y*1920:(y+1)*1920] for y in range(480))

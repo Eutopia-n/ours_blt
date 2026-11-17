@@ -36,7 +36,9 @@ module tb_soc;
     localparam BASE=32'h01000000, PAGE_BYTES=614400;
     localparam ASSET_BASE=32'h01200000, ASSET_BYTES=1048576;
     localparam PLAYER_BASE=ASSET_BASE+2048, PLAYER_BYTES=8192;
-    localparam GAME_BASE=ASSET_BASE+'h4000, GAME_BYTES=51200, ASSET_UPLOAD_BYTES=10240+GAME_BYTES;
+    `include "game_asset_size.vh"
+    localparam GAME_BASE=ASSET_BASE+'h4000, GAME_BYTES=`GAME_ASSET_BYTES;
+    localparam ASSET_UPLOAD_BYTES=2048+8192+2*(16+256+576+1024)+GAME_BYTES;
     localparam MEM_BYTES=ASSET_BASE-BASE+ASSET_BYTES;
     reg [7:0] mem[0:MEM_BYTES-1];
     reg writing=0,reading=0;

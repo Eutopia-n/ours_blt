@@ -128,7 +128,9 @@ module tb_render;
         @(negedge clk); psel=0; penable=0;
     endtask
     task fill(input integer x,y,w,h,input [15:0] color,input bit expect_error=0);
-        reg [31:0] status;
+        `include "rtl/ui_rom_size.vh"
+    reg [31:0] ui_rom_expected[0:`UI_ROM_WORDS-1];
+    reg [31:0] status;
         integer tries;
         write_reg(48,0);
         write_reg(12,draw_base+y*1280+x*2); write_reg(16,w); write_reg(20,h);
@@ -163,7 +165,9 @@ module tb_render;
     endtask
     task raw_copy(input [31:0] source,pitch,destination,
                   input integer w,h,input bit expect_error=0);
-        reg [31:0] status;
+        `include "rtl/ui_rom_size.vh"
+    reg [31:0] ui_rom_expected[0:`UI_ROM_WORDS-1];
+    reg [31:0] status;
         integer tries;
         write_reg(48,1); write_reg(52,source); write_reg(76,pitch);
         write_reg(12,destination); write_reg(16,w); write_reg(20,h);
@@ -348,6 +352,8 @@ module tb_render;
         end
         previous_de=de;
     end
+    `include "rtl/ui_rom_size.vh"
+    reg [31:0] ui_rom_expected[0:`UI_ROM_WORDS-1];
     reg [31:0] status;
     integer old_writes,old_reads,test_width,frame_target,old_acks;
     initial begin
@@ -358,6 +364,14 @@ module tb_render;
         repeat(10) @(negedge clk); reset=0;
         read_reg(0,status); if(status!==32'h32444631) $fatal(1,"ID mismatch");
         read_reg(76,status); if(status!=1280) $fatal(1,"Default source stride changed");
+        $readmemh("assets/ui/magic_book_v5/runtime/reference/ui_stream.hex",ui_rom_expected);
+        for(integer word_index=0;word_index<`UI_ROM_WORDS;word_index=word_index+1)begin
+            write_reg(128,word_index,0);read_reg(132,status);
+            if(status!==ui_rom_expected[word_index])$fatal(1,"UI ROM APB mismatch at word %0d",word_index);
+        end
+        write_reg(128,`UI_ROM_WORDS,1);write_reg(132,0,1);
+        $display("PASS: all %0d UI ROM words read through real APB, bank transitions and invalid address rejected",`UI_ROM_WORDS);
+
         button_held=5'h0a;
         read_reg(100,status); if(status!=10) $fatal(1,"Live button register mismatch");
         button_held=5'h10;
@@ -475,7 +489,7 @@ module tb_render;
         $display("PASS: %0d DDR asset copies, independent pitches, all halfword alignments, 4K/pool boundaries, invalid ranges/strides, recovery; %0d resource bursts",checked_assets,asset_reads);
         read_reg(80,status); if(status!=0) $fatal(1,"Blend reset control");
         read_reg(84,status); if(status!=255) $fatal(1,"Blend reset alpha");
-        write_reg(48,3,1); write_reg(80,4,1);
+        write_reg(48,4,1); write_reg(80,4,1); // Op 3 is the bounded menu compositor.
         for(integer f=0;f<64;f=f+1) for(integer b=0;b<64;b=b+1)
             for(integer a=0;a<256;a=a+1)
                 if(dut.fill.blend_channel(f,b,a)!=(f*a+b*(255-a)+127)/255)

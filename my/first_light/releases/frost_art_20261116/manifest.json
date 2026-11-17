@@ -1,0 +1,71 @@
+{
+  "release": "frost_art_20261116",
+  "board_tested": false,
+  "new_book_UI_integrated": false,
+  "files": {
+    "build_input_hashes.json": {
+      "bytes": 9970,
+      "sha256": "77ed508ea709e20e32cf764b509a84ffe1058f12bc737c887f7e6a85b62e2a22"
+    },
+    "evidence/compile.log": {
+      "bytes": 1142,
+      "sha256": "d89a0474679cc800bd0c1b8ea5c8e268ecf5a5675f23eb84065e76877193797e"
+    },
+    "evidence/firmware.log": {
+      "bytes": 218,
+      "sha256": "587d480bc1fcf23ed3e92353fa2c4bca9e8b11d5dc35b8224791adb8d941b1c1"
+    },
+    "evidence/firmware_size.log": {
+      "bytes": 162,
+      "sha256": "384f262c9504f0aaff9d13c4991eb7fc3227402836614547a45e18df2806bef6"
+    },
+    "evidence/first_light.map.rpt": {
+      "bytes": 315021,
+      "sha256": "7c944c4e49947d59674b3e1d35f5ecc649c5f846ec25faeed8346975262743a4"
+    },
+    "evidence/first_light.pt_timing.rpt": {
+      "bytes": 18593,
+      "sha256": "2e0d54d35959bf649f84012fbf6630eeb5c74026b2962b2d5d8644e6fa03ad50"
+    },
+    "evidence/first_light.route.rpt": {
+      "bytes": 1143,
+      "sha256": "4163e7235a7bc3b32edb7a97112d9da3b143cd29376f3dcce9ee7ff606cd8aca"
+    },
+    "evidence/first_light.timing.rpt": {
+      "bytes": 975542,
+      "sha256": "f42fb75130965dfd1a436638c4bc2e5e27fb2fe50a15d2a550712356bfb0f844"
+    },
+    "evidence/logic_parity.json": {
+      "bytes": 154,
+      "sha256": "a715eada735163c34bf17deea624cd1252c344ef6d4f171c3ce458b319ac9eec"
+    },
+    "evidence/sprite_crop_pixel.log": {
+      "bytes": 219,
+      "sha256": "09e703adea6aa46784feafdefbc8d0d07484fd5706760a05ba532e576a5e8e7e"
+    },
+    "evidence/ui_check.log": {
+      "bytes": 1446,
+      "sha256": "7e7132319cb06c91354c8573e2d721aca79ebf60d2cbe5872436a46a1acf360b"
+    },
+    "first_light.bin": {
+      "bytes": 75860,
+      "sha256": "4b411c36a457f8f1b1b18ec922d411203142a0d2ccc1b742499712a89202dfab"
+    },
+    "first_light.bit": {
+      "bytes": 2548974,
+      "sha256": "8b8d28a26310a8cb19287611a705e544fbed33d01f4296cf1b7981e700d8f661"
+    },
+    "first_light.hex": {
+      "bytes": 2549034,
+      "sha256": "88a62505977515cec9eac20c751125f2def24c9b997f54e38585662e3a443108"
+    },
+    "README.md": {
+      "bytes": 2147,
+      "sha256": "259515975dfdf581156f1afb8c79cab8e6b1e52411e21d6b1fa3aa989085e7de"
+    },
+    "validation.json": {
+      "bytes": 1395,
+      "sha256": "3485951795118172bd1cbeafe0e6d1747432a4427f08f68a5dd686f771b61923"
+    }
+  }
+}

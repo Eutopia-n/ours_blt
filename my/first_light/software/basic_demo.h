@@ -1,6 +1,6 @@
 // Isolated basic-demo application, included after the existing game_view.h.
 #include "basic_demo_data.h"
-typedef char BasicDDRSeparation[(DUNGEON_WALL_BASE+DUNGEON_WALL_BYTES<=BASIC_IMAGE_BASE)?1:-1];
+typedef char BasicDDRSeparation[(GAME_ASSET_BASE+GAME_FRAME_COUNT*2048u<=BASIC_IMAGE_BASE)?1:-1];
 static BasicConfig basic_config;
 static BasicSample basic_samples[2];
 static uint32_t basic_assets_ready,basic_fields[2][20],basic_field_valid[2],basic_number_valid[2];
@@ -67,9 +67,8 @@ static uint32_t basic_batch(uint32_t demo,uint32_t hw,uint32_t frame,BasicSample
 static uint32_t basic_payload(uint32_t demo) {
     return basic_load(demo)*(demo==DEMO_FILL ? 32u*24u*2u : BASIC_IMAGE_BYTES);
 }
-// format: 0 decimal, 1 hexadecimal address, 2 ratio with two decimal places.
-// Cache both pages independently. Dot is local to this page, leaving the shared
-// font and advanced/game UI unchanged.
+// format: 0 decimal, 2 ratio with two decimal places, 3 engine, 5 YES/NO.
+// Cache values and sample validity independently for both display pages.
 static void basic_field(uint32_t id,uint32_t x,uint32_t y,uint32_t width,
                         uint32_t value,uint32_t valid,uint32_t format) {
     uint32_t page=draw_page(),bit=1u<<id;
@@ -77,101 +76,88 @@ static void basic_field(uint32_t id,uint32_t x,uint32_t y,uint32_t width,
         !!(basic_number_valid[page]&bit)==!!valid)return;
     basic_field_valid[page]|=bit;basic_fields[page][id]=value;
     if(valid)basic_number_valid[page]|=bit;else basic_number_valid[page]&=~bit;
-    cpu_fill(x,y,width,14,0x10a6);
-    if(!valid) {text_at(x,y,"-",0x9cf3);return;}
-    if(format==1u) {
-        static const char hex[]="0123456789ABCDEF";char s[9];
-        for(uint32_t n=0;n<8u;++n)s[n]=hex[(value>>(28u-4u*n))&15u];
-        s[8]=0;text_at_width(x,y,s,0xffe0,width);
-    } else if(format==2u) {
-        char s[11];decimal(s,value/100u);uint32_t len=0;while(s[len])++len;
-        text_at_width(x,y,s,0xffe0,width);
-        cpu_fill(x+len*12u+3u,y+12u,2,2,0xffe0);
-        char fraction[3]={(char)('0'+value/10u%10u),(char)('0'+value%10u),0};
-        text_at_width(x+(len+1u)*12u,y,fraction,0xffe0,width-(len+1u)*12u);
-    } else if(format==3u)text_at(x,y,value ? "FPGA" : "CPU",0xffe0);
-    else if(format==5u)text_at(x,y,value ? "YES" : "NO",0xffe0);
-    else number_field_at(x,y,width,value,0xffe0);
+    uint32_t metric=(x==262u || x==582u) && y>=54u && y<141u;
+    uint16_t bg=metric ? UI_DESK:UI_BG;
+    if(y<44u)bg=UI_HEADER;
+    cpu_fill(metric ? x-66u:x,y,metric ? 108u:width,14,bg);
+    if(format==3u){cpu_fill(554,13,65,19,UI_HEADER);demo_badge(554,13,value ? "FPGA":"CPU");return;}
+    if(!valid){book_text(x,y,"--",y==148u ? UI_ICE:UI_GOLD,1);return;}
+    if(format==2u) {
+        char out[18],*end=decimal(out,value/100u);*end++='.';
+        *end++=(char)('0'+value/10u%10u);*end++=(char)('0'+value%10u);*end=0;
+        book_text(x,y,out,UI_ICE,book_text_width(out,1)>width ? 0u:1u);
+    } else if(format==5u)book_text(x,y,value ? "YES":"NO",UI_GOLD,1);
+    else if(metric) {
+        // Keep the reference anchor for short values. Longer live timings grow
+        // left into the reserved gap instead of losing significant digits.
+        char out[11];decimal(out,value);uint32_t mode=book_text_width(out,1)>108u ? 0u:1u;
+        uint32_t w=book_text_width(out,mode);
+        book_text(w>width ? x+width-w:x,y,out,UI_GOLD,mode);
+    } else demo_number(x,y,width,value,1,1,UI_GOLD,bg);
 }
 static void basic_hud(uint32_t demo,uint32_t hw) {
     if(demo==DEMO_BUFFER) {
-        basic_field(2,112,82,120,basic_swaps,1,0);
-        basic_field(3,420,82,120,basic_completed_frame,1,0);
-        basic_field(4,112,106,120,basic_swap_us,1,0);
-        basic_field(5,420,106,120,basic_missed,1,0);
-        basic_field(6,112,130,60,basic_video_hz,basic_video_hz!=0u,0);
-        basic_field(7,420,130,120,basic_config.paused,1,5);
-        basic_field(8,420,154,60,8u<<basic_config.speed,1,0);
+        basic_field(2,176,84,120,basic_swaps,1,0);
+        basic_field(4,176,110,120,basic_swap_us,1,0);
+        basic_field(6,176,136,60,basic_video_hz,basic_video_hz!=0u,0);
+        basic_field(5,496,84,120,basic_missed,1,0);
+        basic_field(7,496,110,60,basic_config.paused,1,5);
+        basic_field(8,496,136,60,8u<<basic_config.speed,1,0);
     } else {
         for(uint32_t n=0;n<2u;++n) {
-            BasicSample *s=&basic_samples[n];uint32_t x=n*320u;
-            basic_field(n*3u,x+136u,34,72,s->fps,s->valid,0);
-            basic_field(n*3u+1u,x+136u,58,120,s->op_cycles/(SYSTEM_CLINT_HZ/1000000u),s->valid,0);
-            basic_field(n*3u+2u,x+136u,82,120,s->frame_us,s->valid,0);
+            BasicSample *sample=&basic_samples[n];uint32_t x=16u+n*320u;
+            basic_field(n*3u,x+246u,62,42,sample->fps,sample->valid,0);
+            basic_field(n*3u+1u,x+246u,88,42,sample->op_cycles/(SYSTEM_CLINT_HZ/1000000u),sample->valid,0);
+            basic_field(n*3u+2u,x+246u,114,42,sample->frame_us,sample->valid,0);
         }
         uint32_t valid=basic_samples[0].valid && basic_samples[1].valid && basic_samples[1].op_cycles;
-        basic_field(6,136,106,120,basic_ratio100(basic_samples[0].op_cycles,basic_samples[1].op_cycles),valid,2);
+        basic_field(6,112,148,192,basic_ratio100(basic_samples[0].op_cycles,basic_samples[1].op_cycles),valid,2);
         uint32_t us=basic_samples[hw].op_cycles/(SYSTEM_CLINT_HZ/1000000u);
-        basic_field(7,456,106,120,us ? basic_payload(demo)/us : 0,basic_samples[hw].valid && us,0);
-        basic_field(8,548,10,60,hw,1,3);
+        basic_field(7,396,148,120,us ? basic_payload(demo)/us:0,basic_samples[hw].valid && us,0);
+        basic_field(8,554,13,65,hw,1,3);
         if(basic_config.view) {
-            BasicSample *s=&basic_samples[hw];
-            // Source resource address; destination remains a driver parameter
-            // but is intentionally omitted from the presentation UI.
-            uint32_t source=basic_source(basic_config.image);
-            basic_field(9,76,184,96,source,demo==DEMO_COPY,1);
-            basic_field(11,76,216,96,s->reads,s->valid && hw,0);
-            basic_field(12,220,216,84,s->writes,s->valid && hw,0);
-            basic_field(13,124,244,156,s->rwait,s->valid && hw,0);
-            basic_field(14,124,272,156,s->wwait,s->valid && hw,0);
+            BasicSample *sample=&basic_samples[hw];
+            basic_field(11,240,184,84,sample->reads,sample->valid && hw,0);
+            basic_field(12,240,220,84,sample->writes,sample->valid && hw,0);
+            basic_field(13,240,256,84,sample->rwait,sample->valid && hw,0);
+            basic_field(14,240,292,84,sample->wwait,sample->valid && hw,0);
         }
     }
     publish_pixels();
 }
 static void basic_labels(uint32_t demo) {
-    text_at(16,10,demo_names[demo],0x07ff);
     if(demo==DEMO_BUFFER) {
-        text_at(332,10,"手动切换",0x07ff);
-        text_at(16,42,basic_config.mode ? "双缓冲  防撕裂":"单缓冲  撕裂",
-            basic_config.mode ? 0x07e0:0xfd20);
-        text_at(368,42,"S切换模式",0xffff);
-        text_at(16,82,"SWAPS",0xffff);text_at(308,82,"FRAME",0xffff);
-        text_at(16,106,"WAIT_US",0xffff);text_at(308,106,"MISSED",0xffff);
-        text_at(16,130,"OUT_HZ",0xffff);text_at(308,130,"PAUSED",0xffff);
-        text_at(16,154,basic_config.mode ? "DRAW BACK":"WRITE FRONT",0x9cf3);text_at(308,154,"STEP",0xffff);
-        text_at(16,410,basic_config.mode ? "后台绘制后换页：竖条边缘完整":"扫描中写前台：观察竖条横向错位",0x07ff);
-        text_at(16,434,"W切换速度 S切换模式 ENTER暂停",0xffff);
-        text_at(16,458,"D参考线  A返回",0x07ff);
+        book_text(16,56,basic_config.mode ? "双缓冲 / 后台绘制后换页":"单缓冲 / 扫描中写前台",UI_ICE,1);
+        static const char *const labels[6]={"SWAPS","WAIT_US","OUT_HZ","MISSED","PAUSED","STEP"};
+        for(uint32_t n=0;n<6u;++n)book_text(n<3u ? 16u:336u,84u+(n%3u)*26u,labels[n],UI_CREAM,1);
+        book_text(16,430,basic_config.paused ? "W切换速度  S切换模式  ENTER继续":"W切换速度  S切换模式  ENTER暂停",UI_CREAM,1);
+        book_text(16,454,"D参考线  A返回",UI_ICE,1);
     } else {
-        text_at(320,10,"手动切换",0x9cf3);
         for(uint32_t n=0;n<2u;++n) {
-            uint32_t x=n*320u;
-            text_at(x+16u,34,n ? "FPGA FPS" : "CPU FPS",0xffff);
-            text_at(x+16u,58,demo==DEMO_FILL ? "FILL_US" : "COPY_US",0xffff);
-            text_at(x+16u,82,"RENDER_US",0xffff);
+            uint32_t x=16u+n*320u;
+            book_text(x+72u,62,"FPS",UI_CREAM,1);
+            book_text(x+72u,88,demo==DEMO_FILL ? "FILL_US":"COPY_US",UI_CREAM,1);
+            book_text(x+72u,114,"RENDER_US",UI_CREAM,1);
         }
-        text_at(16,106,"SPEEDUP",0xffff);text_at(332,106,"MB/S",0xffff);
-        text_at(16,138,"LOAD",0x07ff);number_at(88,138,basic_load(demo),0xffe0);
-        text_at(176,138,demo==DEMO_FILL ? "32X24" : "256X192",0xffff);
-        text_at(352,138,"640X480 RGB565",0x9cf3);
+        book_text(16,148,"SPEEDUP",UI_ICE,1);book_text(336,148,"MB/S",UI_ICE,1);
         if(basic_config.view) {
-            text_at(16,160,demo==DEMO_FILL ? "OP FILL" : "OP COPY",0x07ff);
-            text_at(352,158,demo==DEMO_FILL ? "FILL RESULT" : "COPY RESULT",0x9cf3);
-            text_at(16,184,"SRC",0xffff);
-            text_at(16,216,"AR",0xffff);text_at(184,216,"AW",0xffff);
-            text_at(16,244,"RD WAIT",0xffff);text_at(16,272,"WR WAIT",0xffff);
-            text_at(16,312,"AXI MAX 16 X 32BIT",0xffff);
-            text_at(16,340,"FIFO 16 / RTL CONFIG",0xffff);
-            text_at(16,390,"BATCH COUNTERS / CPU-HDMI EXCLUDED",0x9cf3);
-            text_at(16,410,"APB CONFIG - AXI DDR - VBLANK HDMI",0x07ff);
-        } else if(demo==DEMO_COPY) {
-            text_at(BASIC_IMAGE_X,158,"DDR SOURCE",0xffff);
-            text_at(BASIC_COPY_X,158,"COPY RESULT",0xffff);
-            text_at(32,390,"图像",0x9cf3);number_at(136,390,basic_config.image+1u,0xffe0);
-            text_at(352,390,"LOAD COPIES/FRAME",0x9cf3);
-        } else text_at(16,410,"LOAD RECTANGLES/FRAME / FIXED SEED",0x9cf3);
-        text_at(16,434,demo==DEMO_COPY ? "W复制次数 D换图 ENTER详情" : "W方块数量 D换色 ENTER详情",0xffff);
-        text_at(16,458,"S切换 CPU/FPGA  A返回",0x07ff);
+            static const char *const labels[5]={"AR","AW","RD WAIT","WR WAIT","LOAD"};
+            for(uint32_t n=0;n<5u;++n)book_text(20,184u+n*36u,labels[n],UI_CREAM,1);
+            demo_number(240,328,72,basic_load(demo),1,1,UI_GOLD,UI_BG);
+            if(demo==DEMO_FILL)book_text(20,388,"AXI MAX 16 X 32BIT",UI_STONE,1);
+        }
+        if(demo==DEMO_FILL && !basic_config.view) {
+            char load[11],out[40]="LOAD ";decimal(load,basic_load(demo));uint32_t at=5,k=0;
+            while(load[k]){out[at++]=load[k++];}const char *tail=" / 32 X 24";while(*tail)out[at++]=*tail++;out[at]=0;
+            book_text(16,402,out,UI_STONE,0);
+        }
+        if(demo==DEMO_COPY) {
+            book_text(32,390,"图像",UI_STONE,1);demo_number(72,390,24,basic_config.image+1u,1,1,UI_STONE,UI_BG);
+            book_text(352,390,"256 X 192 RGB565",UI_STONE,1);
+        }
+        book_text(16,430,demo==DEMO_COPY ? (basic_config.view ? "W复制次数  D换图  ENTER图像":"W复制次数  D换图  ENTER详情"):
+                  basic_config.view ? "W方块数量  D换色  ENTER图像":"W方块数量  D换色  ENTER详情",UI_CREAM,1);
+        book_text(16,454,"S切换 CPU/FPGA  A返回",UI_ICE,1);
     }
 }
 // Static backgrounds and source preview are initialized once in both pages.
@@ -181,7 +167,16 @@ static void basic_prime(uint32_t demo) {
     basic_field_valid[0]=basic_field_valid[1]=basic_number_valid[0]=basic_number_valid[1]=0;
     basic_scene_valid[0]=basic_scene_valid[1]=0;
     for(uint32_t page=0;page<2u;++page) {
-        paint(0,0,640,480,0x10a6,1);
+        demo_skin(demo,demo==DEMO_BUFFER ? "FPGA":"");
+        if(demo!=DEMO_BUFFER)demo_metrics();
+        
+        if(demo==DEMO_FILL)demo_window(basic_config.view ? 352u:16u,176,
+            basic_config.view ? 256u:608u,basic_config.view ? 192u:224u);
+        if(demo==DEMO_COPY) {
+            if(!basic_config.view)demo_window(32,176,256,192);
+            demo_window(352,176,256,192);
+        }
+        if(demo==DEMO_BUFFER)demo_window(16,176,608,224);
         if(demo==DEMO_COPY && !basic_config.view) {
             if(copy_image(basic_source(basic_config.image),BASIC_IMAGE_STRIDE,
                 BASIC_IMAGE_X,BASIC_IMAGE_Y,BASIC_IMAGE_W,BASIC_IMAGE_H))fail("FAIL basic preview");

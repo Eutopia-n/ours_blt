@@ -1,0 +1,26 @@
+# vsim -batch -t 1ps -lib sim/work_reference tb_ui_compositor "+CASE=pause" -do "onerror {quit -code 1 -force}; run -all; quit -f" 
+# Start time: 21:10:36 on Nov 16,2026
+# ** Note: (vsim-8009) Loading existing optimized design _opt
+# //  ModelSim SE-64 10.6e Jun 23 2018
+# //
+# //  Copyright 1991-2018 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_ui_compositor(fast)
+# 
+# onerror {quit -code 1 -force}
+# run -all
+# PASS UI actual curved book frame, randomized AXI stalls, exact scalar pixels, back-page writes only. case=pause cycles=   1548532 bursts AR=      9601 AW=      9600
+# ** Note: $finish    : sim/tb_ui_compositor.sv(61)
+#    Time: 10322554308 ps  Iteration: 1  Instance: /tb_ui_compositor
+# End time: 21:10:39 on Nov 16,2026, Elapsed time: 0:00:03
+# Errors: 0, Warnings: 0

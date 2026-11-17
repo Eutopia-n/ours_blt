@@ -9,6 +9,7 @@ ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
 parser.add_argument('--baseline',type=Path,help='Optional saved entity256 source_project.zip; defaults to the bundled read-only snapshot')
 parser.add_argument('--cc',type=Path,default=Path('D:/Xilinx/Vivado/2018.3/msys64/mingw64/bin/gcc.exe'))
+parser.add_argument('--current-atlas',action='store_true',help='Test intentional new art with both rendering paths; retain the baseline renderer integrity check')
 args=parser.parse_args()
 spec=importlib.util.spec_from_file_location('prepare_game_assets',ROOT/'tools/prepare_game_assets.py')
 assets=importlib.util.module_from_spec(spec);spec.loader.exec_module(assets)
@@ -24,7 +25,7 @@ else: raise AssertionError('Invalid dimensions accepted')
 raw=(ROOT/'assets/game/game.rgb565').read_bytes()
 frames=[struct.unpack('<1024H',raw[n:n+2048]) for n in range(0,len(raw),2048)]
 bounds=[assets.frame_bounds(frame) for frame in frames]
-header=(ROOT/'software/game_frame_bounds.h').read_text()
+header=(ROOT/'software/game_frame_bounds.h').read_text(encoding='utf-8')
 generated=[tuple(map(int,m.split(','))) for m in re.findall(r'\{([\d, ]+)\}',header)]
 assert generated==bounds
 stats=[]
@@ -36,13 +37,15 @@ for i,box in enumerate(bounds):
 if args.baseline:
     with zipfile.ZipFile(args.baseline) as z:
         view_before=z.read('ours_blt_entity256/software/game_view.h').decode()
-        assert raw==z.read('ours_blt_entity256/assets/game/game.rgb565'),'Atlas pixel data changed'
+        if not args.current_atlas:
+            assert raw==z.read('ours_blt_entity256/assets/game/game.rgb565'),'Atlas pixel data changed'
 else:
-    view_before=(ROOT/'sim/sprite_crop_baseline_game_view.h').read_text()
-    snapshot=json.loads((ROOT/'sim/sprite_crop_baseline.json').read_text())
-    assert hashlib.sha256(raw).hexdigest()==snapshot['atlas_sha256'],'Atlas pixel data changed'
+    view_before=(ROOT/'sim/sprite_crop_baseline_game_view.h').read_text(encoding='utf-8')
+    snapshot=json.loads((ROOT/'sim/sprite_crop_baseline.json').read_text(encoding='utf-8'))
+    if not args.current_atlas:
+        assert hashlib.sha256(raw).hexdigest()==snapshot['atlas_sha256'],'Atlas pixel data changed'
     assert hashlib.sha256((ROOT/'sim/sprite_crop_baseline_game_view.h').read_bytes()).hexdigest()==snapshot['view_sha256']
-view_after=(ROOT/'software/game_view.h').read_text()
+view_after=(ROOT/'software/game_view.h').read_text(encoding='utf-8')
 def function(source,name):
     match=re.search(r'^static [^;{]*\b'+name+r'\([^;{]*\)\s*\{',source,re.M)
     assert match,name
@@ -144,7 +147,7 @@ int main(void) {
     game_frame_bounds[0][0]=game_frame_bounds[0][1]=0;
     game_frame_bounds[0][2]=game_frame_bounds[0][3]=32;
     compare(0,321,241,160);assert(area[1]==1024);
-    printf("SPRITE CROP PIXEL TESTS PASSED: %u cases; all25 frames, seven Alpha values, all viewport edges/corners, odd/even alignment, invalid fallback, unready/empty/1px/full frames; identical RGB565 pixels and dirty bounds\n",cases);
+    printf("SPRITE CROP PIXEL TESTS PASSED: %u cases; all%u frames, seven Alpha values, all viewport edges/corners, odd/even alignment, invalid fallback, unready/empty/1px/full frames; identical RGB565 pixels and dirty bounds\n",cases,GAME_FRAME_COUNT);
     return 0;
 }
 '''
@@ -158,4 +161,4 @@ result=subprocess.run([str(exe)],cwd=ROOT,env=env,capture_output=True,text=True,
 (ROOT/'reports/sprite_crop_pixel.log').write_text(result.stdout+result.stderr)
 print(result.stdout+result.stderr,flush=True)
 if result.returncode:raise SystemExit(result.returncode)
-print('Bounds generator PASS; original atlas byte-identical; A/B/C/D_E rectangles:',[stats[i] for i in [16,17,18,24]])
+print('Bounds generator PASS; '+('current art tested on both paths' if args.current_atlas else 'original atlas byte-identical')+'; A/B/C/D_E rectangles:',[stats[i] for i in [16,17,18,24]])

@@ -1,0 +1,32 @@
+{
+  "name": "menu_pixel_v1",
+  "canvas": [640, 480],
+  "pixel_grid": 2,
+  "palette": {
+    "ink": "#080c18",
+    "deep": "#0e1526",
+    "background": "#131d30",
+    "tile_mark": "#172337",
+    "panel": "#1c2b43",
+    "panel_shadow": "#142035",
+    "panel_light": "#293d58",
+    "edge": "#3c5570",
+    "steel": "#607d96",
+    "muted": "#a3b6cb",
+    "paper": "#dce9ed",
+    "white": "#f4f6e9",
+    "focus_fill": "#173b4c",
+    "focus_inner": "#205366",
+    "cyan_dark": "#257d8b",
+    "cyan": "#48c5d2",
+    "ice": "#9be8e3",
+    "gold_dark": "#8f6644",
+    "gold": "#e9b668",
+    "gold_light": "#ffe3a0",
+    "blue_dark": "#315780",
+    "blue": "#629bd1",
+    "violet": "#9c8fca",
+    "coral": "#df817d",
+    "green": "#75b6a0"
+  }
+}

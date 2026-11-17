@@ -4,7 +4,7 @@
 #define EFFECT_STRIDE (EFFECT_SIZE*2u)
 #define EFFECT_BYTES (EFFECT_SIZE*EFFECT_STRIDE)
 #define EFFECT_BASE (ASSET_BASE+0xB0000u)
-typedef char EffectsDDRBounds[(DUNGEON_WALL_BASE+DUNGEON_WALL_BYTES<=EFFECT_BASE &&
+typedef char EffectsDDRBounds[(GAME_ASSET_BASE+GAME_FRAME_COUNT*2048u<=EFFECT_BASE &&
     EFFECT_BASE+2u*EFFECT_BYTES<=BASIC_IMAGE_BASE)?1:-1];
 static uint32_t effects_assets_ready;
 typedef struct {uint32_t transparency,key_index,enabled,background;} EffectsConfig;
@@ -57,32 +57,36 @@ static uint32_t effects_verify(uint32_t demo,const EffectsConfig *c) {
     }
     return passed;
 }
+// Build the two live fractions without moving the reference text anchors.
+static void effects_fraction(uint32_t x,uint32_t y,const char *label,uint32_t value,uint16_t color) {
+    char out[48],number[11];uint32_t n=0,k=0;while(*label)out[n++]=*label++;
+    out[n++]=' ';decimal(number,value);while(number[k])out[n++]=number[k++];
+    const char *tail="/255";while(*tail)out[n++]=*tail++;out[n]=0;book_text(x,y,out,color,1);
+}
 static void effects_labels(uint32_t demo,const EffectsConfig *c,uint32_t passed) {
-    text_at(16,10,demo_names[demo],0x07ff);text_at(400,10,"FPGA 硬件",0x07ff);
     if(demo==DEMO_ALPHA) {
-        text_at(24,44,"透明度",0xffff);number_field_at(136,44,36,c->transparency,0xffe0);text_at(184,44,"/255",0xffff);
-        text_at(328,44,"前景权重",0xffff);number_field_at(440,44,36,alpha_value(c->transparency),0xffe0);text_at(488,44,"/255",0xffff);
-        text_at(24,76,"前景×权重 + 背景×反向权重",0x9cf3);
-        text_at(48,164,"不透明参考",0xffff);text_at(352,164,"硬件混合结果",0xffff);
-        text_at(24,402,"颜色键关 透明度越大 越透明",0x9cf3);
-        text_at(24,430,"W透明度+5 D透明度-5",0xffff);
-        text_at(24,454,"ENTER预设 S换背景 A返回",0x07ff);
+        effects_fraction(24,60,"透明度",c->transparency,UI_CREAM);
+        effects_fraction(328,60,"前景权重",alpha_value(c->transparency),UI_ICE);
+        book_text(24,92,"前景与背景混合  透明度越大 越透明",UI_STONE,1);
     } else {
-        text_at(24,44,"透明色",0xffff);text_at(136,44,c->key_index ? "品红色 F81F" : "黑色 0000",0xffe0);
-        text_at(24,76,"匹配透明色的像素跳过写入",0x9cf3);
-        text_at(48,164,"原图 颜色键关",0xffff);
-        text_at(352,164,c->enabled ? "颜色键开" : "颜色键关",0xffff);
-        text_at(24,402,"匹配色保留原背景 其他像素直接复制",0x9cf3);
-        text_at(24,430,"W开关去背 D切换透明色",0xffff);
-        text_at(24,454,"S换背景 A返回",0x07ff);
+        book_text(24,60,c->key_index ? "透明色 品红色 F81F":"透明色 黑色 0000",UI_CREAM,1);
+        book_text(328,60,c->enabled ? "颜色键开":"颜色键关",UI_ICE,1);
+        book_text(24,92,"匹配透明色的像素跳过写入",UI_STONE,1);
     }
-    text_at(24,112,"采样像素核对",0xffff);number_field_at(220,112,24,passed,0xffe0);text_at(256,112,"/8",0xffff);
-    text_at(344,112,passed==8u ? "通过" : "失败",passed==8u ? 0x07e0 : 0xf800);
+    char check[48]="采样像素核对 ",number[11];decimal(number,passed);uint32_t n=19,k=0;
+    // The UTF-8 label is six Chinese glyphs followed by one ASCII space.
+    while(number[k]){check[n++]=number[k++];}check[n++]='/';check[n++]='8';check[n]=0;
+    book_text(24,124,check,UI_GOLD,1);
+    book_text(48,164,demo==DEMO_ALPHA ? "不透明参考":"原图 颜色键关",UI_CREAM,1);
+    book_text(352,164,demo==DEMO_ALPHA ? "硬件混合结果":c->enabled ? "颜色键开":"颜色键关",UI_CREAM,1);
+    book_text(16,430,demo==DEMO_ALPHA ? "W透明度+5  D透明度-5":"W开关去背  D切换透明色",UI_CREAM,1);
+    book_text(16,454,demo==DEMO_ALPHA ? "ENTER预设  S换背景  A返回":"S换背景  A返回",UI_ICE,1);
     publish_pixels();
 }
 static void effects_redraw(uint32_t demo,const EffectsConfig *c) {
     for(uint32_t page=0;page<2u;++page) {
-        paint(0,0,640,480,0x10a6,1);
+        demo_skin(demo,"FPGA");
+        demo_window(48,192,240,192);demo_window(352,192,240,192);
         effects_draw_scene(demo,c);
         uint32_t passed=effects_verify(demo,c);
         effects_labels(demo,c,passed);

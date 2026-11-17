@@ -42,8 +42,8 @@ if args.step=='prepare':
 elif args.step=='firmware':
     verify_project()
     run([sys.executable,ROOT/'tools/prepare_game_assets.py'],'game_assets.log')
-    run([sys.executable,ROOT/'tools/prepare_scenery_assets.py'],'scenery_assets.log')
-    run([sys.executable,ROOT/'tools/prepare_dungeon_assets.py'],'dungeon_assets.log')
+    run([sys.executable,ROOT/'tools/prepare_reference_ui.py'],'book_assets.log')
+    # The solid-colour game no longer needs scenery or dungeon asset generation.
     out=ROOT/'software/build'; out.mkdir(exist_ok=True)
     gcc=EF/'toolchain/bin/riscv-none-elf-gcc.exe'
     run([gcc,'-march=rv32im_zicsr_zifencei','-mabi=ilp32','-Os','-g','-flto',
@@ -110,7 +110,7 @@ elif args.step in ['sim','sim-soc','sim-game']:
     library='sim/work_game' if args.step=='sim-game' else 'sim/work_ui' if args.ui_smoke else 'sim/work'
     if not (ROOT/library).exists():
         run([sim/'vlib.exe',library],'vlib'+suffix+'.log')
-    run([sim/'vlog.exe','-work',library,'-sv','rtl/sync_fifo.v','rtl/fill_engine.v','rtl/render_regs.v',
+    run([sim/'vlog.exe','-work',library,'-sv','rtl/sync_fifo.v','rtl/fill_engine.v','rtl/ui_compositor.v','rtl/ui_asset_rom.v','rtl/render_regs.v',
          'rtl/framebuffer_video.v','rtl/video_mode_measure.v','rtl/render_subsystem.v','rtl/button_input.v',*extra,
          'sim/tb_soc_game.sv' if args.step=='sim-game' else 'sim/tb_soc_double_buffer.sv' if soc_test and args.demo=='double-buffer' else f'sim/{test}.sv'],'vlog'+suffix+'.log')
     run([sim/'vsim.exe','-batch','-t','1ps','-lib',library,test,*(['+UI_SMOKE'] if args.ui_smoke else []),

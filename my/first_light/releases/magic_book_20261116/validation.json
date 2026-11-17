@@ -1,0 +1,192 @@
+{
+  "status": "PASS",
+  "book_menu_integrated": true,
+  "pressure_entry_display_disable_removed": true,
+  "fullscreen_demo_and_game_preserved": true,
+  "fullscreen_HUD_skin_integrated": false,
+  "firmware": {
+    "text": 100416,
+    "data": 16,
+    "bss": 16944,
+    "total": 117376,
+    "stack_reserve": 4096,
+    "spare_after_stack": 9600
+  },
+  "book": {
+    "runtime_integrated": true,
+    "expanded_ddr_bytes": 464294,
+    "compressed_bytes": 18077,
+    "snapshot_bytes": 153600,
+    "total_ddr_bytes": 617894,
+    "rle_bytes": 50668,
+    "ddr_base": "0x01216000",
+    "layers": [
+      {
+        "name": "desk",
+        "offset": 0,
+        "w": 320,
+        "h": 240,
+        "bytes": 153600,
+        "sha256": "9e414de62b2ec99c06e816787daa76aff948969f79275cae15dd836f73fa8ef3"
+      },
+      {
+        "name": "spread",
+        "offset": 153600,
+        "w": 320,
+        "h": 240,
+        "bytes": 153600,
+        "sha256": "cc497ed34ec58beea79df1b7f837ee6679d1e51b09521a745f991e41438e4356"
+      },
+      {
+        "name": "cover",
+        "offset": 307200,
+        "w": 155,
+        "h": 208,
+        "bytes": 64480,
+        "sha256": "70c48b94c03db0a3e621593b57d0f27179675e9ea701316e7184d011378c2c68"
+      },
+      {
+        "name": "front",
+        "offset": 371680,
+        "w": 139,
+        "h": 198,
+        "bytes": 55044,
+        "sha256": "d4c7aaf4a934542c0764a01edd7a9d5da0023e5a7f2f7da634ae48277db10942"
+      },
+      {
+        "name": "clasp",
+        "offset": 426724,
+        "w": 27,
+        "h": 20,
+        "bytes": 1080,
+        "sha256": "f6e2f6cd005827ad05e84dbbd8cecf9242ad782d2134240462cd1e27a5388304"
+      },
+      {
+        "name": "ornament",
+        "offset": 427804,
+        "w": 95,
+        "h": 91,
+        "bytes": 17290,
+        "sha256": "eb8ffc0cb3ef13d15849d79a4ef298d8854e567d3a8be2e94ffbd2883f208adc"
+      },
+      {
+        "name": "icon_basic",
+        "offset": 445094,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "5aa53754655cf78080bcb048f355d82cfc5b8ab31268949002ad059cbc0320f1"
+      },
+      {
+        "name": "icon_advanced",
+        "offset": 447142,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "599cbd5b49ce762903b7dd02e20f8521d99be5bcb883dd8778ebe081ee375230"
+      },
+      {
+        "name": "icon_game",
+        "offset": 449190,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "e4d9f682696ad4c317174f545f2a58cc1b026b5ab42f264d63fd34fd60ecce6f"
+      },
+      {
+        "name": "icon_fill",
+        "offset": 451238,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "4f01d6cf89278278a37a89d0e39734a4e3266ab898c8d64acf88c6512fea8377"
+      },
+      {
+        "name": "icon_copy",
+        "offset": 453286,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "a189a5545e099fddce8b617e726f3fe19ab9ab5f702459c209eade323b64587d"
+      },
+      {
+        "name": "icon_buffer",
+        "offset": 455334,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "10e6452f2999a2cb4f2da6cd07bb52ee3ed2f4f40e375c965359d51b5bf25a1e"
+      },
+      {
+        "name": "icon_key",
+        "offset": 457382,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "7d24d94bb492aa227c206576f9ea837276ca2fed01f3cf1fd0b11435a75c7d24"
+      },
+      {
+        "name": "icon_alpha",
+        "offset": 459430,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "2ce646ee07705fc244d637fb5c7aeec26727b04eb91692904726c9373cb83537"
+      },
+      {
+        "name": "icon_pressure",
+        "offset": 461478,
+        "w": 32,
+        "h": 32,
+        "bytes": 2048,
+        "sha256": "be124b3709cceb7282c714825a528ad51d34038c3a71947fa5bb4ce235741234"
+      },
+      {
+        "name": "cursor",
+        "offset": 463526,
+        "w": 16,
+        "h": 24,
+        "bytes": 768,
+        "sha256": "4f206f4579684aec5d1c5aa1c394ae53117f6c2bd3320de09e9408a54fa4e13c"
+      }
+    ],
+    "ornament_origin": [
+      72,
+      158
+    ],
+    "animation": "Real-time layered projection; no full-screen frame sequence in firmware",
+    "board_tested": false
+  },
+  "native_book_states": 9,
+  "native_opening_poses": 121,
+  "native_menu_and_pressure_path": "PASS",
+  "native_demo_game_previews": 25,
+  "native_basic_effects": "PASS (1040 effect image cases)",
+  "RTL_transition_scanout": {
+    "menu_frames": 3,
+    "pressure_frames": 3,
+    "blank_mixed_pixels": 0,
+    "front_writes": 0,
+    "underflow_or_read_errors": 0,
+    "AXI_contentions": 16844,
+    "scope": "Actual render RTL; whole-frame copies overlap scanout; C text/entry path verified separately on host"
+  },
+  "full_FPGA_build": {
+    "status": "PASS",
+    "stages": [
+      "map",
+      "interface",
+      "pnr",
+      "pgm"
+    ],
+    "cpu_mhz": 150,
+    "setup_min_ns": 0.076,
+    "hold_min_ns": 0.024,
+    "release": "releases/magic_book_20261116",
+    "bit_sha256": "0afe3fbcd0ac4c6244277cfa7cd55427d2863bbdaa505caefecd1f97f53b7414",
+    "hex_sha256": "1b322a3453d385e2a6ad655e85467e06ba0d0a7cf2ecd09a247a0974c255208a"
+  },
+  "ram_init_files_match": true,
+  "board_tested": false,
+  "full_Sapphire_CPU_run": false
+}

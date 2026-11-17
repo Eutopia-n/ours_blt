@@ -4,6 +4,7 @@
 #include "survivor_game.h"
 #include "game_assets.h"
 #include "game_frame_bounds.h"
+#include "game_art_ids.h"
 #define GAME_ASSET_BASE (ASSET_BASE+0x4000u)
 #define GAME_BACKGROUND_COLOR 0x1085u
 #define GAME_MAX_DRAW_ENEMIES GAME_MAX_ENEMIES
@@ -28,15 +29,11 @@ static uint32_t game_hud_pages,game_hud_number_valid[2],game_hud_bar_valid[2];
  * cache, avoiding DDR reads/stores while the video engine is fetching lines. */
 static uint32_t game_hud_numbers[2][12];
 static FrameMax60 game_max60;
-static uint32_t game_hud_bar_value[2][2],game_hud_bar_max[2][2];
-static uint16_t game_hud_bar_color[2][2];
 static uint32_t game_draw_floor_cycles,game_draw_sprite_cycles,game_draw_other_cycles;
 static uint32_t game_draw_enemy_count;
 // One shared selection for both framebuffer pages; no per-page alternation.
 static uint32_t game_gem_selected[(GAME_MAX_GEMS+31u)/32u];
 static uint32_t game_sprite(uint32_t frame,int32_t x,int32_t y,uint32_t alpha);
-static void init_scenery_assets(void);
-#include "dungeon_view.h"
 static void game_record_dirty_rect(uint32_t x,uint32_t y,uint32_t width,uint32_t height) {
     if(!game_capture_dirty || !width || !height) return;
     if(x<GAME_X_MIN || y<GAME_Y_MIN || x>=GAME_X_MAX || y>=GAME_Y_MAX) return;
@@ -90,17 +87,15 @@ static void init_game_assets(void) {
         }
         if(out!=32u*32u) fail("FAIL game asset");
     }
-    init_scenery_assets();
-    init_dungeon_assets();
+    // The game uses a solid fill; no scenery, wall cache or background tiles
+    // are decompressed into DDR or linked into the on-chip firmware.
     publish_pixels();
     game_assets_ready=1;
 }
 static void game_fill_background_rect(uint32_t x,uint32_t y,uint32_t width,uint32_t height) {
     if(!width || !height)return;
     paint(x,y,width,height,GAME_BACKGROUND_COLOR,1);
-    dungeon_draw_walls(x,y,width,height);
 }
-#include "scenery_view.h"
 static void game_restore_dirty_tiles(uint32_t page) {
     GameDirtyRect active[GAME_DIRTY_COLS],next[GAME_DIRTY_COLS];
     uint32_t active_count=0;
@@ -150,17 +145,10 @@ static void game_restore_dirty_tiles(uint32_t page) {
     }
 }
 static void game_draw_world_floor(uint32_t page,int32_t camera_x,int32_t camera_y,uint32_t playing,uint32_t ticks) {
-    uint32_t camera_changed=dungeon_page_camera[page][0]!=camera_x || dungeon_page_camera[page][1]!=camera_y;
-    dungeon_camera_x=camera_x;dungeon_camera_y=camera_y;
-    SceneryItem items[SCENERY_MAX_ITEMS];
-    uint32_t count=scenery_assets_ready?scenery_select(camera_x,camera_y,ticks,items):0;
-    uint32_t changed=scenery_changed(page,items,count);
-    if(changed)scenery_mark_previous(page);
-    uint32_t restored[GAME_DIRTY_ROWS];
-    for(uint32_t row=0;row<GAME_DIRTY_ROWS;row++)restored[row]=game_page_dirty[page][row];
-    uint32_t wall_moved=camera_changed && (dungeon_view_has_walls(camera_x,camera_y) ||
-        dungeon_view_has_walls(dungeon_page_camera[page][0],dungeon_page_camera[page][1]));
-    uint32_t full=!game_page_valid[page] || wall_moved || (playing && !game_page_playing[page]);
+    // Camera movement cannot change a uniform background. Keep per-page dirty
+    // restoration so moving and translucent sprites still leave no trails.
+    (void)camera_x;(void)camera_y;(void)ticks;
+    uint32_t full=!game_page_valid[page] || (playing && !game_page_playing[page]);
     uint32_t area=0;
     if(!full && game_dirty_valid[page]) {
         for(uint32_t row=0;row<GAME_DIRTY_ROWS;++row) {
@@ -180,8 +168,6 @@ static void game_draw_world_floor(uint32_t page,int32_t camera_x,int32_t camera_
     } else if(game_dirty_valid[page]) {
         game_restore_dirty_tiles(page);
     }
-    scenery_restore(page,items,count,full||changed,restored);
-    dungeon_page_camera[page][0]=(int16_t)camera_x;dungeon_page_camera[page][1]=(int16_t)camera_y;
     game_page_valid[page]=1; game_page_playing[page]=(uint8_t)(playing!=0);
     game_dirty_valid[page]=0;
     for(uint32_t row=0;row<GAME_DIRTY_ROWS;++row) game_page_dirty[page][row]=0;
@@ -229,22 +215,7 @@ static uint32_t game_sprite(uint32_t frame,int32_t x,int32_t y,uint32_t alpha) {
     game_record_dirty_rect((uint32_t)x0,(uint32_t)y0,(uint32_t)(x1-x0),(uint32_t)(y1-y0));
     return 1;
 }
-static void game_bar(uint32_t x,uint32_t y,uint32_t width,uint32_t value,uint32_t maximum,uint16_t color) {
-    uint32_t page=draw_page(),index=x<280u ? 0u : 1u,bit=1u<<index;
-    if((game_hud_bar_valid[page]&bit) && game_hud_bar_value[page][index]==value &&
-       game_hud_bar_max[page][index]==maximum && game_hud_bar_color[page][index]==color) return;
-    // These small dynamic bars are cheaper as packed CPU stores than as four
-    // separately fenced FPGA fill commands on every frame.
-    cpu_fill(x,y,width,8,0x2128);
-    uint32_t w=maximum ? value*width/maximum : 0;
-    if(w>width) w=width;
-    if(w) cpu_fill(x,y,w,8,color);
-    game_hud_bar_value[page][index]=value;
-    game_hud_bar_max[page][index]=maximum;
-    game_hud_bar_color[page][index]=color;
-    game_hud_bar_valid[page]|=bit;
-}
-static void game_hud_number(uint32_t page,uint32_t index,uint32_t x,uint32_t y,
+static void __attribute__((unused)) game_hud_number(uint32_t page,uint32_t index,uint32_t x,uint32_t y,
                             uint32_t width,uint32_t value,uint16_t color) {
     uint32_t bit=1u<<index;
     if((game_hud_number_valid[page]&bit) && game_hud_numbers[page][index]==value) return;
@@ -270,50 +241,20 @@ static void game_hud_number(uint32_t page,uint32_t index,uint32_t x,uint32_t y,
     game_hud_numbers[page][index]=value;
     game_hud_number_valid[page]|=bit;
 }
-static void game_panel(const SurvivorGame *g) {
-	uint32_t panel_height=g->state==GAME_READY ? 288u : 256u;
-	paint(72,136,496,panel_height,0x10a6,1); paint(72,136,496,3,0x07ff,1);
-    if(g->state==GAME_UPGRADE) {
-        text_at(96,154,"升级 - 选择符文",0xffff);
-        for(uint32_t n=0;n<3;++n) {
-            uint32_t y=180+n*54;
-            paint(88,y,464,48,n==g->choice ? 0x22ae : 0x10c7,1);
-            if(n==g->choice) paint(88,y,4,48,0x07ff,1);
-            uint32_t skill=g->options[n],level=g->upgrade_level[skill],maximum=game_upgrade_max(skill);
-            game_sprite(game_upgrade_icon(skill),120,y+24,255);
-            text_at_width(148,y+5,game_upgrade_name(skill),0xffff,272);
-            text_at_width(148,y+24,game_upgrade_detail(skill),0x07ff,388);
-            if(level>=maximum) text_at(444,y+5,"满级",0xffe0);
-			else {
-				text_at(432,y+5,"级",0x9cf3); number_at(456,y+5,level,0xffff);
-				text_at(468,y+5,"/",0x9cf3); number_at(480,y+5,maximum,0xffff);
-			}
-        }
-        text_at(96,362,"W/S选择 ENTER确认 D暂停",0xffe0);
-    } else if(g->state==GAME_READY) {
-        text_at(96,160,"冰霜幸存者",0xffff);
-        text_at(96,194,"生存360秒",0x07ff);
-        text_at(96,224,"W上    S下",0xffff);
-        text_at(96,248,"A左    D右",0xffff);
-        text_at(96,278,"技能自动释放",0x9cf3);
-        text_at(96,302,"ENTER暂停",0x9cf3);
-        text_at(96,326,"RISC-V负责移动 碰撞 自动攻击",0xffff);
-        text_at(96,350,"FPGA负责透明 颜色键 DDR3绘制",0x07ff);
-        text_at(96,374,"ENTER开始  A返回",0xffe0);
-        text_at(96,398,"地图可扩展 摄像机居中",0x9cf3);
-    } else {
-        text_at(96,164,g->state==GAME_PAUSED ? "已暂停" : g->state==GAME_WON ? "你已生存" : "游戏结束",0xffff);
-        text_at(96,208,"时间",0x07ff); number_at(168,208,g->ticks/60,0xffff);
-        text_at(288,208,"击杀",0x07ff); number_field_at(372,208,144,g->kills,0xffff);
-        text_at(96,240,"等级",0x07ff); number_at(180,240,g->level,0xffff);
-        text_at(288,240,"MAX60",0x07ff); number_field_at(360,240,72,game_max60.maximum,0xffff);
-        text_at(96,294,g->state==GAME_PAUSED ? "ENTER继续" : "ENTER再来一局",0xffe0);
-        text_at(96,326,"A返回菜单",0x9cf3);
-    }
+#include "reference_game_ui.h"
+static uint32_t game_enemy_frame(uint32_t kind,uint32_t ticks,uint32_t slot) {
+    // Shared two-frame animation: no animation state per enemy and no new pool.
+    static const uint8_t frames[2][5]={GAME_ART_ENEMY_IDLE,GAME_ART_ENEMY_STEP};
+    uint32_t phase=kind==2u ? ticks/6u:ticks/12u;
+    return frames[(phase+slot)&1u][kind<5u ? kind:4u];
+}
+static uint32_t game_gem_frame(const GameGem *gem) {
+    if(gem->kind)return GAME_ART_HEAL;
+    return gem->value>=10u ? GAME_ART_XP_CROWN : gem->value>=5u ? GAME_ART_XP_CLUSTER:GAME_ART_XP;
 }
 static uint32_t game_gem_visible(const GameGem *gem,int32_t camera_x,int32_t camera_y) {
     if(!gem->value)return 0;
-    const uint8_t *bounds=game_frame_bounds[gem->kind ? 23u:19u];
+    const uint8_t *bounds=game_frame_bounds[game_gem_frame(gem)];
     int32_t left=GAME_X_MIN+gem->x-camera_x-16;
     int32_t top=GAME_Y_MIN+gem->y-camera_y-16;
     return left+bounds[0]<GAME_X_MAX && left+bounds[2]>GAME_X_MIN &&
@@ -344,7 +285,7 @@ static uint32_t game_draw_gems(const SurvivorGame *g,int32_t camera_x,int32_t ca
         if(!(game_gem_selected[i>>5]&(1u<<(i&31u))))continue;
         int32_t sx=GAME_X_MIN+g->gems[i].x-camera_x;
         int32_t sy=GAME_Y_MIN+g->gems[i].y-camera_y;
-        drawn+=game_sprite(g->gems[i].kind ? 23u:19u,sx,sy,220);
+        drawn+=game_sprite(game_gem_frame(&g->gems[i]),sx,sy,220);
     }
     return drawn;
 }
@@ -353,6 +294,16 @@ static uint32_t game_draw(const SurvivorGame *g,uint32_t measured_fps,uint32_t u
     uint32_t draw_start=cycle_now();
     game_draw_floor_cycles=game_draw_sprite_cycles=game_draw_other_cycles=0;
     uint32_t page=draw_page(),page_bit=1u<<page,drawn=0;
+    (void)us;(void)ar;(void)aw;
+    uint32_t ui_key=g->state|(g->choice<<8);
+    if(g->state!=GAME_PLAY && g->state!=GAME_PAUSED) {
+        if(game_ui_key[page]!=ui_key){game_ui_page(g);game_ui_key[page]=ui_key;game_page_valid[page]=0;game_hud_pages&=~page_bit;}
+        publish_pixels();return 0;
+    }
+    if(g->state==GAME_PAUSED && game_ui_key[page]==ui_key)return 0;
+    if(game_ui_key[page]!=ui_key){game_hud_pages&=~page_bit;game_page_valid[page]=0;}
+    game_ui_key[page]=ui_key;
+    game_ui_hud(g,measured_fps,page,page_bit);
     int32_t camera_x=game_camera_x(g),camera_y=game_camera_y(g);
     uint32_t floor_start=cycle_now();
     game_capture_dirty=0;
@@ -384,14 +335,15 @@ static uint32_t game_draw(const SurvivorGame *g,uint32_t measured_fps,uint32_t u
         int32_t sx=GAME_X_MIN+e->x/32-camera_x,sy=GAME_Y_MIN+e->y/32-camera_y;
         if(sx<GAME_X_MIN-16 || sx>=GAME_X_MAX+16 || sy<GAME_Y_MIN-16 || sy>=GAME_Y_MAX+16) continue;
         int32_t bob=((g->ticks/12+i)&1u) ? 1 : 0;
-        uint32_t visible=game_world_sprite(g,e->kind>=3 ? 24 : 16+e->kind,
+        uint32_t visible=game_world_sprite(g,game_enemy_frame(e->kind,g->ticks,i),
                          e->x/32,e->y/32+bob,e->flash>84 ? 160 : 255);
         drawn+=visible; game_draw_enemy_count+=visible;
     }
     game_draw_sprite_cycles+=cycle_now()-sprite_start;
     sprite_start=cycle_now();
     for(uint32_t i=0;i<g->orbit_count;++i) {
-        int32_t x,y; game_orbit_position(g,i,&x,&y); drawn+=game_world_sprite(g,21,x,y,160);
+        int32_t x,y; game_orbit_position(g,i,&x,&y);
+        drawn+=game_world_sprite(g,((g->ticks/8u+i)&1u) ? GAME_ART_ORBIT_STEP:GAME_ART_ORBIT,x,y,160);
     }
     if(!g->invincible || (g->ticks&4u))
         drawn+=game_world_sprite(g,g->direction*4+g->walk_frame,g->x/256,g->y/256,g->invincible ? 160 : 255);
@@ -427,33 +379,7 @@ static uint32_t game_draw(const SurvivorGame *g,uint32_t measured_fps,uint32_t u
             game_record_dirty_rect((uint32_t)bx,(uint32_t)by,bar_width,4);
         }
     }
-    if(!(game_hud_pages&page_bit)) {
-        text_at(16,10,"冰霜",0x07ff);
-        text_at(164,10,"生命",0xffff); text_at(276,10,"等级",0xffff);
-        text_at(360,10,"经验",0xffff); text_at(432,10,"时间",0xffff);
-        text_at(16,56,"KILLS",0x9cf3); text_at(152,56,"ENEMY",0x9cf3);
-        text_at(264,56,"SPRITES",0x9cf3); text_at(400,56,"MAX60",0x9cf3);
-        text_at(524,56,"FPS",0x9cf3);
-        text_at(16,460,"RENDER_US",0x07ff); text_at(224,460,"DDR_RD",0x07ff);
-        text_at(420,460,"DDR_WR",0x07ff);
-        text_at(16,442,"W/S上/下 A/D左/右 ENTER暂停",0x9cf3);
-        game_hud_pages|=page_bit;
-    }
-    game_hud_number(page,0,200,10,48,g->hp,0xffe0);
-    game_hud_number(page,1,312,10,36,g->level,0xffe0);
-    game_hud_number(page,2,492,10,48,g->ticks/60,0xffe0);
-    uint16_t hp_color=g->hp*4u<=g->max_hp ? 0xf800 : g->hp*2u<=g->max_hp ? 0xffe0 : 0x07e0;
-    game_bar(16,34,248,g->hp,g->max_hp,hp_color);
-    game_bar(280,34,352,g->xp,g->xp_target,0x07ff);
-    game_hud_number(page,3,80,56,60,g->kills,0xffff);
-    game_hud_number(page,4,216,56,36,g->enemy_count,0xffff);
-    game_hud_number(page,5,352,56,36,drawn,0xffff);
-    game_hud_number(page,6,568,56,36,measured_fps,0xffff);
-    game_hud_number(page,7,468,56,36,game_max60.maximum,0xffff);
-    game_hud_number(page,8,136,460,84,us,0xffff);
-    game_hud_number(page,9,308,460,84,ar,0xffff);
-    game_hud_number(page,10,504,460,84,aw,0xffff);
-    if(g->state!=GAME_PLAY) game_panel(g);
+    if(g->state==GAME_PAUSED)game_ui_pause();
     publish_pixels();
     uint32_t draw_cycles=cycle_now()-draw_start;
     uint32_t measured_parts=game_draw_floor_cycles+game_draw_sprite_cycles;
@@ -461,6 +387,9 @@ static uint32_t game_draw(const SurvivorGame *g,uint32_t measured_fps,uint32_t u
     return drawn;
 }
 static void game_loop(void) {
+    book_init_assets();book_load(BOOK_GAME_ORNAMENT);book_transient=BOOK_GAME_ORNAMENT;
+    init_game_assets();book_assets_ready=0;book_cache_valid=0;
+    game_ui_key[0]=game_ui_key[1]=0xffffffffu;
     game_prime_framebuffers(); game_reset(&survivor,0x6d2b79f5u);
     game_max60.maximum=0;
     frame_max60_clear_window(&game_max60);

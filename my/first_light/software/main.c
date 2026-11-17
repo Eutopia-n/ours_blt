@@ -2,6 +2,19 @@
 #include "player_asset.h"
 #include "demo_controls.h"
 #include "frame_metrics.h"
+/* Freestanding GCC may emit memcpy for the small strip descriptors. */
+__attribute__((used,externally_visible)) void *memcpy(void *destination,const void *source,unsigned int size) {
+    volatile unsigned char *dst=destination;
+    const volatile unsigned char *src=source;
+    while(size--)*dst++=*src++;
+    return destination;
+}
+/* GCC also emits memset when initializing bounded UI text buffers. */
+__attribute__((used,externally_visible)) void *memset(void *destination,int value,unsigned int size) {
+    volatile unsigned char *dst=destination;
+    while(size--)*dst++=(unsigned char)value;
+    return destination;
+}
 static void init_game_assets(void);
 
 static uint32_t cycle_now(void) {
@@ -55,7 +68,7 @@ static const char *const demo_names[6]={
     "矩形填充","图像复制","双缓冲",
     "颜色键","透明混合","SPRITE 压力"
 };
-static const char *const demo_details[6]={
+static const char *const demo_details[6] __attribute__((unused))={
     "RGB565 硬件填充","DDR 图像复制到显存",
     "垂直消隐交换页面",
     "黑色像素变为透明","W加5 D减5",
@@ -476,59 +489,45 @@ static void hud(uint32_t hw,uint32_t demo,uint32_t automatic,uint32_t frame,uint
     text_at(16,450,demo==DEMO_ALPHA ? "S切换 CPU/FPGA  A返回" : "D调整参数  S切换 CPU/FPGA  A返回",0x07ff);
     publish_pixels();
 }
+#include "book_menu.h"
+#include "demo_skin.h"
 static uint32_t menu_screen(void) {
+    book_init_assets();
     for (;;) {
+        if(book_closed) {
+            puts_uart("BOOK COVER\r\n");
+            book_cover();publish_pixels();
+            if(present_frame())fail("FAIL book cover");
+            mmio_write(GFX_BASE+GFX_DISPLAY,1);
+            uint32_t key;
+            do {key=button_event();}while(key!=16u);
+            book_closed=0;book_animate(0);continue;
+        }
         puts_uart("MENU\r\n");
         // Menu pixels are UI work, outside the CPU/HW benchmark interval.
         __asm__ volatile (".word 0x500f" ::: "memory");
-        if(fill_rect(0,0,640,480,0x0843)) fail("FAIL menu fill");
-        if(fill_rect(24,18,592,64,0x10a6)) fail("FAIL menu header");
-        text_at(40,30,menu_level ? (menu_group ? "高阶演示" : "基础演示") :
-                    "TI60 二维实验室",0xffff);
-        text_at(40,54,menu_level ? "选择功能" : "选择测试",0x07ff);
-        draw_player(0,566,34,1);
-        uint32_t count=menu_level ? 3u : 3u;
-        uint32_t choice=menu_level ? menu_item[menu_group] : menu_group;
-        if (!menu_level) {
-            for(uint32_t n=0;n<3;++n) {
-                uint32_t y=96+n*80;
-                if(fill_rect(32,y,576,68,n==choice ? 0x22ae : 0x10c7)) fail("FAIL menu card");
-                if(n==choice && fill_rect(32,y,4,68,0x07ff)) fail("FAIL menu selection");
-                text_at(52,y+12,n==2 ? "冰霜幸存者" : n ? "高阶演示" : "基础演示",0xffff);
-            text_at(52,y+40,n==2 ? "自动施法 生存360秒" : "3项功能",0x07ff);
-            }
-            text_at(40,356,"W上一项    S下一项",0xffff);
-            text_at(40,384,"ENTER打开",0xffe0);
-            text_at(40,432,"6项演示 + 幸存者游戏",0x9cf3);
-        } else {
-            for(uint32_t n=0;n<count;++n) {
-                uint32_t y=90+n*68, demo=menu_group ? 3u+n : n;
-                if(fill_rect(32,y,576,58,n==choice ? 0x22ae : 0x10c7)) fail("FAIL menu card");
-                if(n==choice && fill_rect(32,y,4,58,0x07ff)) fail("FAIL menu selection");
-                text_at(52,y+8,demo_names[demo],0xffff);
-                text_at(52,y+32,demo_details[demo],0x07ff);
-            }
-            text_at(40,374,"W上一项    S下一项",0xffff);
-            text_at(40,402,"ENTER开始      A返回",0xffe0);
-            text_at(40,442,"碰撞与移动计算在游戏中运行",0x9cf3);
-        }
-        publish_pixels();
-        if(present_frame()) fail("FAIL menu present");
+        book_menu_frame();publish_pixels();
+        if(present_frame())fail("FAIL menu present");
         mmio_write(GFX_BASE+GFX_DISPLAY,1);
         // A basic-demo exit primes both retired pages with this same menu.
         // No old moving-page pixels remain available for a later page switch.
         if(menu_repaint_pages && --menu_repaint_pages)continue;
         uint32_t keys;
-        do { keys=button_event(); } while (!keys);
-        if(keys==4 && menu_level) { menu_level=0; continue; }
-        if(keys==16) {
-            if(!menu_level && menu_group==2) return 8;
-            if(menu_level) return menu_group*3+menu_item[menu_group];
-            menu_level=1;
+        do {keys=button_event();}while(!keys);
+        if(keys==4u) {
+            if(menu_level) {menu_level=0;book_turn();}
+            else {book_animate(1);book_closed=1;}
+            continue;
         }
-        if(keys==1 || keys==2) {
-            choice=(choice+(keys==1 ? count-1 : 1))%count;
-            if(menu_level) menu_item[menu_group]=choice; else menu_group=choice;
+        if(keys==16u) {
+            if(!menu_level && menu_group==2u)return 8u;
+            if(menu_level)return menu_group*3u+menu_item[menu_group];
+            menu_level=1;book_turn();
+        }
+        if(keys==1u || keys==2u) {
+            uint32_t choice=menu_level ? menu_item[menu_group]:menu_group;
+            choice=(choice+(keys==1u ? 2u:1u))%3u;
+            if(menu_level)menu_item[menu_group]=choice;else menu_group=choice;
         }
     }
 }
@@ -538,51 +537,60 @@ static uint32_t menu_screen(void) {
 // Game and pressure pages never run together, so share their per-page HUD cache.
 static void bench_hud(void) {
     uint32_t page=draw_page(),size=bench_sizes[bench_size_index];
-    game_hud_number(page,0,112,32,120,sprite_count,0xffe0);
-    game_hud_number(page,1,414,32,120,sprite_best_60[bench_size_index],0xffe0);
-    game_hud_number(page,2,160,56,24,size,0xffe0);
-    game_hud_number(page,3,220,56,24,size,0xffe0);
-    game_hud_number(page,4,64,80,36,fps[1],0xffe0);
-    game_hud_number(page,5,272,80,120,render_us[1],0xffff);
-    game_hud_number(page,6,100,104,120,burst_ar[1],0xffff);
-    game_hud_number(page,7,414,104,120,burst_aw[1],0xffff);
-    uint32_t state=samples[1] ? (bench60_pass ? 2u : 1u) : 0u;
-    if(!(game_hud_number_valid[page]&256u) || game_hud_numbers[page][8]!=state) {
-        cpu_fill(424,80,144,14,0x10a6);
-        text_at(424,80,state==2u ? "60FPS PASS" : state ? "60FPS FAIL" : "60FPS WAIT",0x9cf3);
-        game_hud_numbers[page][8]=state;
-        game_hud_number_valid[page]|=256u;
+    uint32_t sampling_changed=!(game_hud_number_valid[page]&32u) || game_hud_numbers[page][6]!=!!samples[1];
+    const uint32_t values[5]={sprite_count,fps[1],sprite_best_60[bench_size_index],size,burst_ar[1]};
+    for(uint32_t n=0;n<3u;++n) {
+        uint32_t bit=1u<<n;
+        if(!(game_hud_number_valid[page]&bit) || game_hud_numbers[page][n]!=values[n] || (n && sampling_changed)) {
+            uint32_t valid=n==0u || samples[1] || (n==2u && values[n]);
+            demo_number(n==0u ? 16u:n==1u ? 234u:440u,88,180,values[n],valid,2,UI_GOLD,UI_BG);
+            game_hud_numbers[page][n]=values[n];game_hud_number_valid[page]|=bit;
+        }
+    }
+    if(!(game_hud_number_valid[page]&8u) || game_hud_numbers[page][3]!=size) {
+        char out[32]="SIZE ",number[11];uint32_t at=5,k=0;decimal(number,size);
+        while(number[k]){out[at++]=number[k++];}out[at++]=' ';out[at++]='X';out[at++]=' ';k=0;
+        while(number[k]){out[at++]=number[k++];}out[at]=0;
+        cpu_fill(16,126,300,14,UI_BG);book_text(16,126,out,UI_STONE,1);
+        game_hud_numbers[page][3]=size;game_hud_number_valid[page]|=8u;
+    }
+    if(!(game_hud_number_valid[page]&16u) || game_hud_numbers[page][4]!=burst_ar[1] || game_hud_numbers[page][5]!=burst_aw[1] || sampling_changed) {
+        char out[32]="DDR RD/WR ",number[11];uint32_t at=10,k=0;
+        if(!samples[1]){const char *pending="--/--";while(*pending)out[at++]=*pending++;}
+        else {
+            decimal_field(number,burst_ar[1],6);while(number[k]){out[at++]=number[k++];}out[at++]='/';k=0;
+            decimal_field(number,burst_aw[1],6);while(number[k]){out[at++]=number[k++];}
+        }
+        out[at]=0;
+        cpu_fill(336,126,304,14,UI_BG);book_text(336,126,out,UI_STONE,book_text_width(out,1)>304u ? 0u:1u);
+        game_hud_numbers[page][4]=burst_ar[1];game_hud_numbers[page][5]=burst_aw[1];game_hud_number_valid[page]|=16u;
+    }
+    // Sampling state participates in the FPS cache key, including the first
+    // valid sample whose numeric value can still equal the initial zero.
+    if(sampling_changed) {
+        demo_number(234,88,180,fps[1],!!samples[1],2,UI_GOLD,UI_BG);
+        game_hud_numbers[page][6]=!!samples[1];game_hud_number_valid[page]|=32u;
     }
     publish_pixels();
 }
 static void bench_prime_framebuffers(void) {
-    // Pause DDR scanout at a frame boundary before the one-time CPU text upload.
-    // Keep HDMI sync running, and retire the last outstanding old-page fetch.
+    // Keep the complete menu visible while composing the retired back page.
+    // Present each finished pressure page at vblank; never blank HDMI here.
     puts_uart("BENCH INIT\r\n");
-    mmio_write(GFX_BASE+GFX_DISPLAY,0);
-    if(present_frame()) fail("FAIL bench pause");
     // Draw static text before sampling, once in each retired back buffer.
     game_hud_number_valid[0]=game_hud_number_valid[1]=0;
     for(uint32_t page=0;page<2;++page) {
-        paint(0,0,640,480,0x0862,1);
-        paint(0,0,640,144,0x10a6,1);
-        text_at(16,8,demo_names[DEMO_BENCH],0x07ff);
-        text_at(400,8,"FIXED 60 FPS",0xffe0);
-        text_at(16,32,"SPRITES",0xffff); text_at(330,32,"MAX60",0x07ff);
-        text_at(16,56,"SPRITE SIZE",0xffff); text_at(196,56,"X",0xffff);
-        text_at(16,80,"FPS",0xffff); text_at(152,80,"RENDER_US",0xffff);
-        text_at(16,104,"DDR_RD",0xffff); text_at(330,104,"DDR_WR",0xffff);
-        text_at(16,128,demo_details[DEMO_BENCH],0xffff);
-        text_at(16,426,action_labels[DEMO_BENCH],0xffff);
-        text_at(16,450,"D换尺寸  A返回",0x07ff);
+        demo_skin(DEMO_BENCH,"FPGA");
+        book_text(16,60,"SPRITES",UI_CREAM,1);book_text(234,60,"FPS",UI_CREAM,1);book_text(440,60,"MAX60",UI_CREAM,1);
+        book_text(16,430,"W加5  S减5  长按连发",UI_CREAM,1);
+        book_text(16,454,"D换尺寸  A返回",UI_ICE,1);
+        demo_window(0,152,640,256);
         // Seed the moving region too: the first visible pressure page already
         // contains its Sprite rather than waiting for the measurement loop.
         scene(0,1,DEMO_BENCH,0);
         bench_hud();
         if(present_frame()) fail("FAIL bench init");
     }
-    mmio_write(GFX_BASE+GFX_DISPLAY,1);
-    if(present_frame()) fail("FAIL bench resume");
     puts_uart("BENCH RUN\r\n");
 }
 int main(void) {
@@ -595,7 +603,10 @@ int main(void) {
     init_assets();
     for (;;) {
         uint32_t demo=menu_screen();
-        if(demo==8) { puts_uart("GAME\r\n"); game_loop(); continue; }
+        // Animation cache shares DDR with these mutually exclusive images.
+        // Reload at entry, before sampling; never upload inside a timed batch.
+        book_cache_valid=0;basic_assets_ready=0;effects_assets_ready=0;
+        if(demo==8) { puts_uart("GAME\r\n"); game_loop();book_assets_ready=0;book_cache_valid=0;continue; }
         if(demo<=DEMO_BUFFER) { basic_demo_loop(demo); basic_return_to_menu(); continue; }
         if(demo==DEMO_KEY || demo==DEMO_ALPHA) { effects_demo_loop(demo); continue; }
         clear_samples();

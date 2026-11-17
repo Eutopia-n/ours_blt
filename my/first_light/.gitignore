@@ -13,3 +13,7 @@ sim/cpu120_probe/
 sim/enemy_separation_probe/
 sim/work_separation_baseline/
 sim/work_separation_current/
+
+# Isolated reference UI regressions.
+sim/work_reference/
+sim/work_ui_scanout/

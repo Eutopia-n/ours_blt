@@ -1,0 +1,15 @@
+Model Technology ModelSim SE-64 vlog 10.6e Compiler 2018.06 Jun 23 2018
+Start time: 19:13:55 on Nov 16,2026
+vlog -sv -work sim/work_bench_entry rtl/sync_fifo.v rtl/fill_engine.v rtl/render_regs.v rtl/framebuffer_video.v rtl/video_mode_measure.v rtl/render_subsystem.v S:\Ti60F225_DemoBoard_v4\my\first_light\software\build\bench_entry\tb_bench_entry.sv 
+-- Compiling module sync_fifo
+-- Compiling module fill_engine
+-- Compiling module render_regs
+-- Compiling module framebuffer_video
+-- Compiling module video_mode_measure
+-- Compiling module render_subsystem
+-- Compiling module tb_bench_entry
+
+Top level modules:
+	tb_bench_entry
+End time: 19:13:55 on Nov 16,2026, Elapsed time: 0:00:00
+Errors: 0, Warnings: 0

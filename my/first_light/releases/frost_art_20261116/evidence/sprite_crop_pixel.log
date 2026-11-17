@@ -1,0 +1,1 @@
+SPRITE CROP PIXEL TESTS PASSED: 108368 cases; all36 frames, seven Alpha values, all viewport edges/corners, odd/even alignment, invalid fallback, unready/empty/1px/full frames; identical RGB565 pixels and dirty bounds

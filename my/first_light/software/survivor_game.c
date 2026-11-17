@@ -4,6 +4,7 @@
  * MIT notice are preserved in third_party/survivors_reference.
  */
 #include "survivor_game.h"
+#include "game_art_ids.h"
 
 static int32_t magnitude(int32_t v) { return v<0 ? -v : v; }
 static int32_t clamp(int32_t v,int32_t lo,int32_t hi) { return v<lo ? lo : v>hi ? hi : v; }
@@ -95,7 +96,8 @@ uint32_t game_upgrade_max(uint32_t n) {
     return maximum[n%6];
 }
 uint32_t game_upgrade_icon(uint32_t n) {
-    static const uint8_t icons[]={20,22,21,2,19,23};
+    static const uint8_t icons[]={GAME_ART_POWER,GAME_ART_CAST,GAME_ART_ORBIT,
+                                 GAME_ART_BOOTS,GAME_ART_MAGNET,GAME_ART_HEAL};
     return icons[n%6];
 }
 static uint32_t next_upgrade(const SurvivorGame *g,uint32_t start) {

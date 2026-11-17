@@ -1,0 +1,129 @@
+{
+  "canvas": [
+    640,
+    480
+  ],
+  "safe_frame": [
+    16,
+    16,
+    608,
+    448
+  ],
+  "header": {
+    "rect": [
+      24,
+      24,
+      592,
+      88
+    ],
+    "frame": "header_panel",
+    "title_origin": [
+      116,
+      42
+    ],
+    "title_cn_scale": 2,
+    "title_ascii_scale": 3,
+    "subtitle_origin": [
+      118,
+      82
+    ]
+  },
+  "rows": [
+    {
+      "rect": [
+        32,
+        132,
+        576,
+        68
+      ],
+      "icon_rect": [
+        56,
+        150,
+        32,
+        32
+      ],
+      "title_origin": [
+        120,
+        138
+      ],
+      "description_origin": [
+        122,
+        178
+      ]
+    },
+    {
+      "rect": [
+        32,
+        208,
+        576,
+        68
+      ],
+      "icon_rect": [
+        56,
+        226,
+        32,
+        32
+      ],
+      "title_origin": [
+        120,
+        214
+      ],
+      "description_origin": [
+        122,
+        254
+      ]
+    },
+    {
+      "rect": [
+        32,
+        284,
+        576,
+        68
+      ],
+      "icon_rect": [
+        56,
+        302,
+        32,
+        32
+      ],
+      "title_origin": [
+        120,
+        290
+      ],
+      "description_origin": [
+        122,
+        330
+      ]
+    }
+  ],
+  "footer_rect": [
+    24,
+    392,
+    592,
+    52
+  ],
+  "footer_text_y": 450,
+  "navigation": {
+    "previous": "W",
+    "next": "S",
+    "enter": "ENTER",
+    "back": "A"
+  },
+  "cursor": {
+    "frames": [
+      "cursor_0",
+      "cursor_1",
+      "cursor_2",
+      "cursor_3"
+    ],
+    "optional_frame_ms": 150,
+    "static_frame": "cursor_0"
+  },
+  "render_notes": [
+    "Preview layout proposal; existing menu_screen has not been modified.",
+    "Body uses existing font_cn.h / font5x7.h; large titles need an integer-scaling text helper.",
+    "PNG alpha is binary; transparent atlas pixels are RGB565 0x0000.",
+    "Use explicit 512-byte source stride for atlas regions; individual assets use width*2.",
+    "Nine-slice margins are already in output pixels; repeat edges and center without filtering."
+  ]
+}

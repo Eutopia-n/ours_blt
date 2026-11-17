@@ -1,0 +1,353 @@
+{
+  "name": "magic_book_v4",
+  "version": 4,
+  "canvas": [
+    640,
+    480
+  ],
+  "runtime_integrated": false,
+  "screens": [
+    "cover",
+    "home_0",
+    "home_1",
+    "home_2",
+    "basic_0",
+    "basic_1",
+    "basic_2",
+    "advanced_0",
+    "advanced_1",
+    "advanced_2",
+    "fill",
+    "copy",
+    "buffer",
+    "key",
+    "alpha",
+    "pressure",
+    "game_ready",
+    "game_play",
+    "game_paused",
+    "game_upgrade",
+    "game_over",
+    "game_won"
+  ],
+  "opening_frames": 121,
+  "atlas": {
+    "size": [
+      256,
+      256
+    ],
+    "stride": 512,
+    "raw_bytes": 131072,
+    "sha256": "b4eab77f0b6359839aeab9c7826bf120cae7b0106463070f4de88da837351c10"
+  },
+  "embedded": {
+    "palette_colors": 37,
+    "rle_bytes": 10994,
+    "descriptor_bytes": 240,
+    "c_data_bytes": 11308,
+    "rle_shift": 6,
+    "rle_mask": 63,
+    "excluded": "Full-screen background, cover/open book layers, preview frames, new drawing code and original player are not part of this C data size."
+  },
+  "assets": [
+    {
+      "id": 0,
+      "name": "icon_basic",
+      "rect": [
+        116,
+        102,
+        32,
+        32
+      ],
+      "margin": 0,
+      "role": "icon"
+    },
+    {
+      "id": 1,
+      "name": "icon_advanced",
+      "rect": [
+        2,
+        76,
+        32,
+        32
+      ],
+      "margin": 0,
+      "role": "icon"
+    },
+    {
+      "id": 2,
+      "name": "icon_game",
+      "rect": [
+        70,
+        106,
+        32,
+        32
+      ],
+      "margin": 0,
+      "role": "icon"
+    },
+    {
+      "id": 3,
+      "name": "icon_fill",
+      "rect": [
+        218,
+        102,
+        32,
+        32
+      ],
+      "margin": 0,
+      "role": "icon"
+    },
+    {
+      "id": 4,
+      "name": "icon_copy",
+      "rect": [
+        184,
+        102,
+        32,
+        32
+      ],
+      "margin": 0,
+      "role": "icon"
+    },
+    {
+      "id": 5,
+      "name": "icon_buffer",
+      "rect": [
+        150,
+        102,
+        32,
+        32
+      ],
+      "margin": 0,
+      "role": "icon"
+    },
+    {
+      "id": 6,
+      "name": "icon_key",
+      "rect": [
+        2,
+        110,
+        32,
+        32
+      ],
+      "margin": 0,
+      "role": "icon"
+    },
+    {
+      "id": 7,
+      "name": "icon_alpha",
+      "rect": [
+        36,
+        76,
+        32,
+        32
+      ],
+      "margin": 0,
+      "role": "icon"
+    },
+    {
+      "id": 8,
+      "name": "icon_pressure",
+      "rect": [
+        36,
+        110,
+        32,
+        32
+      ],
+      "margin": 0,
+      "role": "icon"
+    },
+    {
+      "id": 9,
+      "name": "cursor_0",
+      "rect": [
+        116,
+        56,
+        16,
+        24
+      ],
+      "margin": 0,
+      "role": "cursor"
+    },
+    {
+      "id": 10,
+      "name": "cursor_1",
+      "rect": [
+        76,
+        68,
+        16,
+        24
+      ],
+      "margin": 0,
+      "role": "cursor"
+    },
+    {
+      "id": 11,
+      "name": "cursor_2",
+      "rect": [
+        206,
+        136,
+        16,
+        24
+      ],
+      "margin": 0,
+      "role": "cursor"
+    },
+    {
+      "id": 12,
+      "name": "cursor_3",
+      "rect": [
+        224,
+        136,
+        16,
+        24
+      ],
+      "margin": 0,
+      "role": "cursor"
+    },
+    {
+      "id": 13,
+      "name": "card_normal",
+      "rect": [
+        198,
+        2,
+        48,
+        48
+      ],
+      "margin": 12,
+      "role": "nine_slice"
+    },
+    {
+      "id": 14,
+      "name": "card_selected",
+      "rect": [
+        198,
+        52,
+        48,
+        48
+      ],
+      "margin": 12,
+      "role": "nine_slice"
+    },
+    {
+      "id": 15,
+      "name": "card_pressed",
+      "rect": [
+        148,
+        52,
+        48,
+        48
+      ],
+      "margin": 12,
+      "role": "nine_slice"
+    },
+    {
+      "id": 16,
+      "name": "card_disabled",
+      "rect": [
+        148,
+        2,
+        48,
+        48
+      ],
+      "margin": 12,
+      "role": "nine_slice"
+    },
+    {
+      "id": 17,
+      "name": "frost_seal",
+      "rect": [
+        2,
+        2,
+        72,
+        72
+      ],
+      "margin": 0,
+      "role": "emblem"
+    },
+    {
+      "id": 18,
+      "name": "bookmark",
+      "rect": [
+        94,
+        56,
+        20,
+        48
+      ],
+      "margin": 0,
+      "role": "decoration"
+    },
+    {
+      "id": 19,
+      "name": "parchment_tile",
+      "rect": [
+        172,
+        136,
+        32,
+        32
+      ],
+      "margin": 0,
+      "role": "tile"
+    },
+    {
+      "id": 20,
+      "name": "leather_tile",
+      "rect": [
+        104,
+        136,
+        32,
+        32
+      ],
+      "margin": 0,
+      "role": "tile"
+    },
+    {
+      "id": 21,
+      "name": "cover_corner",
+      "rect": [
+        94,
+        2,
+        52,
+        52
+      ],
+      "margin": 0,
+      "role": "corner"
+    },
+    {
+      "id": 22,
+      "name": "page_curl",
+      "rect": [
+        138,
+        136,
+        32,
+        32
+      ],
+      "margin": 0,
+      "role": "corner"
+    },
+    {
+      "id": 23,
+      "name": "spine_strip",
+      "rect": [
+        76,
+        2,
+        16,
+        64
+      ],
+      "margin": 0,
+      "role": "tile"
+    }
+  ],
+  "source_player_sha256": "cc3a1862756b24c90a209679918fc658fa3152d7e16e561272245da89bdff6d1",
+  "sources": {
+    "new_art": "Original pixel book shapes and ornaments; no AI image generation service used.",
+    "reuse": "Original player/scenery/game art and menu_pixel_v2 component PNGs; original rights apply."
+  },
+  "checks": {
+    "rle_roundtrip": true,
+    "binary_alpha": true,
+    "existing_font_glyphs": true
+  },
+  "performance_values": "-- denotes unmeasured; game counters are visual fixtures, not hardware results."
+}

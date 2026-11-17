@@ -1,0 +1,718 @@
+{
+  "name": "menu_pixel_v2",
+  "version": 2,
+  "authoring": "Original deterministic pixel art; no AI image service used.",
+  "style": "Fantasy quest menu matched to the original blue-hooded player; no alternate player design.",
+  "canvas": [
+    640,
+    480
+  ],
+  "pixel_grid": 2,
+  "atlas": {
+    "size": [
+      256,
+      256
+    ],
+    "stride_bytes": 512,
+    "format": "RGB565 little endian",
+    "color_key": 0,
+    "raw_bytes": 131072,
+    "sha256": "38bf3275d5f533167f342e50b38395d66d0a38cc2e160f55e7d558d6d23eb369"
+  },
+  "embedded": {
+    "palette_colors": 22,
+    "palette_bytes": 44,
+    "rle_words": 4767,
+    "rle_bytes": 9534,
+    "descriptor_bytes": 300,
+    "c_data_bytes": 9878,
+    "token": "uint16_t: (run_length << 5) | palette_index; length 1..2047"
+  },
+  "palette": {
+    "ink": {
+      "rgb": [
+        16,
+        20,
+        32
+      ],
+      "rgb565": "0x10a4"
+    },
+    "deep": {
+      "rgb": [
+        24,
+        32,
+        49
+      ],
+      "rgb565": "0x1906"
+    },
+    "background": {
+      "rgb": [
+        32,
+        40,
+        57
+      ],
+      "rgb565": "0x2147"
+    },
+    "tile_mark": {
+      "rgb": [
+        32,
+        48,
+        74
+      ],
+      "rgb565": "0x2189"
+    },
+    "panel": {
+      "rgb": [
+        189,
+        165,
+        123
+      ],
+      "rgb565": "0xbd2f"
+    },
+    "panel_shadow": {
+      "rgb": [
+        82,
+        68,
+        49
+      ],
+      "rgb565": "0x5226"
+    },
+    "panel_light": {
+      "rgb": [
+        213,
+        190,
+        148
+      ],
+      "rgb565": "0xd5f2"
+    },
+    "edge": {
+      "rgb": [
+        115,
+        97,
+        65
+      ],
+      "rgb565": "0x7308"
+    },
+    "steel": {
+      "rgb": [
+        115,
+        133,
+        156
+      ],
+      "rgb565": "0x7433"
+    },
+    "muted": {
+      "rgb": [
+        172,
+        182,
+        197
+      ],
+      "rgb565": "0xadb8"
+    },
+    "paper": {
+      "rgb": [
+        238,
+        218,
+        180
+      ],
+      "rgb565": "0xeed6"
+    },
+    "white": {
+      "rgb": [
+        255,
+        238,
+        205
+      ],
+      "rgb565": "0xff79"
+    },
+    "focus_fill": {
+      "rgb": [
+        230,
+        206,
+        164
+      ],
+      "rgb565": "0xe674"
+    },
+    "focus_inner": {
+      "rgb": [
+        180,
+        153,
+        106
+      ],
+      "rgb565": "0xb4cd"
+    },
+    "cyan_dark": {
+      "rgb": [
+        0,
+        97,
+        156
+      ],
+      "rgb565": "0x0313"
+    },
+    "cyan": {
+      "rgb": [
+        0,
+        141,
+        205
+      ],
+      "rgb565": "0x0479"
+    },
+    "ice": {
+      "rgb": [
+        131,
+        210,
+        238
+      ],
+      "rgb565": "0x869d"
+    },
+    "gold_dark": {
+      "rgb": [
+        156,
+        109,
+        57
+      ],
+      "rgb565": "0x9b67"
+    },
+    "gold": {
+      "rgb": [
+        222,
+        165,
+        90
+      ],
+      "rgb565": "0xdd2b"
+    },
+    "gold_light": {
+      "rgb": [
+        246,
+        210,
+        139
+      ],
+      "rgb565": "0xf691"
+    },
+    "blue_dark": {
+      "rgb": [
+        0,
+        48,
+        131
+      ],
+      "rgb565": "0x0190"
+    },
+    "blue": {
+      "rgb": [
+        0,
+        80,
+        189
+      ],
+      "rgb565": "0x0297"
+    },
+    "violet": {
+      "rgb": [
+        115,
+        105,
+        139
+      ],
+      "rgb565": "0x7351"
+    },
+    "coral": {
+      "rgb": [
+        172,
+        97,
+        82
+      ],
+      "rgb565": "0xab0a"
+    },
+    "green": {
+      "rgb": [
+        106,
+        145,
+        123
+      ],
+      "rgb565": "0x6c8f"
+    }
+  },
+  "assets": [
+    {
+      "id": 0,
+      "name": "background_tile",
+      "rect": [
+        68,
+        60,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "tile",
+      "raw_file": "rgb565/background_tile.rgb565",
+      "png_file": "png/background_tile.png"
+    },
+    {
+      "id": 1,
+      "name": "stone_tile",
+      "rect": [
+        36,
+        132,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "tile",
+      "raw_file": "rgb565/stone_tile.rgb565",
+      "png_file": "png/stone_tile.png"
+    },
+    {
+      "id": 2,
+      "name": "panel_normal",
+      "rect": [
+        2,
+        166,
+        24,
+        24
+      ],
+      "nine_slice_margin": 8,
+      "role": "nine_slice",
+      "raw_file": "rgb565/panel_normal.rgb565",
+      "png_file": "png/panel_normal.png"
+    },
+    {
+      "id": 3,
+      "name": "panel_selected",
+      "rect": [
+        54,
+        166,
+        24,
+        24
+      ],
+      "nine_slice_margin": 8,
+      "role": "nine_slice",
+      "raw_file": "rgb565/panel_selected.rgb565",
+      "png_file": "png/panel_selected.png"
+    },
+    {
+      "id": 4,
+      "name": "panel_pressed",
+      "rect": [
+        28,
+        166,
+        24,
+        24
+      ],
+      "nine_slice_margin": 8,
+      "role": "nine_slice",
+      "raw_file": "rgb565/panel_pressed.rgb565",
+      "png_file": "png/panel_pressed.png"
+    },
+    {
+      "id": 5,
+      "name": "panel_disabled",
+      "rect": [
+        220,
+        132,
+        24,
+        24
+      ],
+      "nine_slice_margin": 8,
+      "role": "nine_slice",
+      "raw_file": "rgb565/panel_disabled.rgb565",
+      "png_file": "png/panel_disabled.png"
+    },
+    {
+      "id": 6,
+      "name": "header_panel",
+      "rect": [
+        136,
+        60,
+        32,
+        32
+      ],
+      "nine_slice_margin": 12,
+      "role": "nine_slice",
+      "raw_file": "rgb565/header_panel.rgb565",
+      "png_file": "png/header_panel.png"
+    },
+    {
+      "id": 7,
+      "name": "icon_well",
+      "rect": [
+        142,
+        132,
+        24,
+        24
+      ],
+      "nine_slice_margin": 8,
+      "role": "nine_slice",
+      "raw_file": "rgb565/icon_well.rgb565",
+      "png_file": "png/icon_well.png"
+    },
+    {
+      "id": 8,
+      "name": "keycap_normal",
+      "rect": [
+        168,
+        132,
+        24,
+        24
+      ],
+      "nine_slice_margin": 8,
+      "role": "nine_slice",
+      "raw_file": "rgb565/keycap_normal.rgb565",
+      "png_file": "png/keycap_normal.png"
+    },
+    {
+      "id": 9,
+      "name": "keycap_pressed",
+      "rect": [
+        194,
+        132,
+        24,
+        24
+      ],
+      "nine_slice_margin": 8,
+      "role": "nine_slice",
+      "raw_file": "rgb565/keycap_pressed.rgb565",
+      "png_file": "png/keycap_pressed.png"
+    },
+    {
+      "id": 10,
+      "name": "icon_basic",
+      "rect": [
+        2,
+        98,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_basic.rgb565",
+      "png_file": "png/icon_basic.png"
+    },
+    {
+      "id": 11,
+      "name": "icon_advanced",
+      "rect": [
+        170,
+        60,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_advanced.rgb565",
+      "png_file": "png/icon_advanced.png"
+    },
+    {
+      "id": 12,
+      "name": "icon_game",
+      "rect": [
+        138,
+        98,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_game.rgb565",
+      "png_file": "png/icon_game.png"
+    },
+    {
+      "id": 13,
+      "name": "icon_fill",
+      "rect": [
+        104,
+        98,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_fill.rgb565",
+      "png_file": "png/icon_fill.png"
+    },
+    {
+      "id": 14,
+      "name": "icon_copy",
+      "rect": [
+        70,
+        98,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_copy.rgb565",
+      "png_file": "png/icon_copy.png"
+    },
+    {
+      "id": 15,
+      "name": "icon_buffer",
+      "rect": [
+        36,
+        98,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_buffer.rgb565",
+      "png_file": "png/icon_buffer.png"
+    },
+    {
+      "id": 16,
+      "name": "icon_key",
+      "rect": [
+        172,
+        98,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_key.rgb565",
+      "png_file": "png/icon_key.png"
+    },
+    {
+      "id": 17,
+      "name": "icon_alpha",
+      "rect": [
+        204,
+        60,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_alpha.rgb565",
+      "png_file": "png/icon_alpha.png"
+    },
+    {
+      "id": 18,
+      "name": "icon_pressure",
+      "rect": [
+        206,
+        98,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_pressure.rgb565",
+      "png_file": "png/icon_pressure.png"
+    },
+    {
+      "id": 19,
+      "name": "frost_seal",
+      "rect": [
+        174,
+        2,
+        48,
+        48
+      ],
+      "nine_slice_margin": 0,
+      "role": "emblem",
+      "raw_file": "rgb565/frost_seal.rgb565",
+      "png_file": "png/frost_seal.png"
+    },
+    {
+      "id": 20,
+      "name": "cloth_banner",
+      "rect": [
+        2,
+        2,
+        40,
+        56
+      ],
+      "nine_slice_margin": 0,
+      "role": "decoration",
+      "raw_file": "rgb565/cloth_banner.rgb565",
+      "png_file": "png/cloth_banner.png"
+    },
+    {
+      "id": 21,
+      "name": "stone_pedestal",
+      "rect": [
+        44,
+        2,
+        128,
+        56
+      ],
+      "nine_slice_margin": 0,
+      "role": "decoration",
+      "raw_file": "rgb565/stone_pedestal.rgb565",
+      "png_file": "png/stone_pedestal.png"
+    },
+    {
+      "id": 22,
+      "name": "frost_rune",
+      "rect": [
+        102,
+        60,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "decoration",
+      "raw_file": "rgb565/frost_rune.rgb565",
+      "png_file": "png/frost_rune.png"
+    },
+    {
+      "id": 23,
+      "name": "pedestal_glow",
+      "rect": [
+        2,
+        60,
+        64,
+        36
+      ],
+      "nine_slice_margin": 0,
+      "role": "decoration",
+      "raw_file": "rgb565/pedestal_glow.rgb565",
+      "png_file": "png/pedestal_glow.png"
+    },
+    {
+      "id": 24,
+      "name": "stone_leaf",
+      "rect": [
+        2,
+        132,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "decoration",
+      "raw_file": "rgb565/stone_leaf.rgb565",
+      "png_file": "png/stone_leaf.png"
+    },
+    {
+      "id": 25,
+      "name": "cursor_0",
+      "rect": [
+        70,
+        132,
+        16,
+        24
+      ],
+      "nine_slice_margin": 0,
+      "role": "cursor",
+      "raw_file": "rgb565/cursor_0.rgb565",
+      "png_file": "png/cursor_0.png"
+    },
+    {
+      "id": 26,
+      "name": "cursor_1",
+      "rect": [
+        88,
+        132,
+        16,
+        24
+      ],
+      "nine_slice_margin": 0,
+      "role": "cursor",
+      "raw_file": "rgb565/cursor_1.rgb565",
+      "png_file": "png/cursor_1.png"
+    },
+    {
+      "id": 27,
+      "name": "cursor_2",
+      "rect": [
+        106,
+        132,
+        16,
+        24
+      ],
+      "nine_slice_margin": 0,
+      "role": "cursor",
+      "raw_file": "rgb565/cursor_2.rgb565",
+      "png_file": "png/cursor_2.png"
+    },
+    {
+      "id": 28,
+      "name": "cursor_3",
+      "rect": [
+        124,
+        132,
+        16,
+        24
+      ],
+      "nine_slice_margin": 0,
+      "role": "cursor",
+      "raw_file": "rgb565/cursor_3.rgb565",
+      "png_file": "png/cursor_3.png"
+    },
+    {
+      "id": 29,
+      "name": "separator_tile",
+      "rect": [
+        80,
+        166,
+        32,
+        8
+      ],
+      "nine_slice_margin": 0,
+      "role": "tile",
+      "raw_file": "rgb565/separator_tile.rgb565",
+      "png_file": "png/separator_tile.png"
+    }
+  ],
+  "previews": [
+    {
+      "group": "home",
+      "selected": 0,
+      "path": "previews/menu_home_0.png"
+    },
+    {
+      "group": "home",
+      "selected": 1,
+      "path": "previews/menu_home_1.png"
+    },
+    {
+      "group": "home",
+      "selected": 2,
+      "path": "previews/menu_home_2.png"
+    },
+    {
+      "group": "basic",
+      "selected": 0,
+      "path": "previews/menu_basic_0.png"
+    },
+    {
+      "group": "basic",
+      "selected": 1,
+      "path": "previews/menu_basic_1.png"
+    },
+    {
+      "group": "basic",
+      "selected": 2,
+      "path": "previews/menu_basic_2.png"
+    },
+    {
+      "group": "advanced",
+      "selected": 0,
+      "path": "previews/menu_advanced_0.png"
+    },
+    {
+      "group": "advanced",
+      "selected": 1,
+      "path": "previews/menu_advanced_1.png"
+    },
+    {
+      "group": "advanced",
+      "selected": 2,
+      "path": "previews/menu_advanced_2.png"
+    }
+  ],
+  "runtime_integrated": false,
+  "existing_dependencies": {
+    "fonts": [
+      "software/font_cn.h",
+      "software/font5x7.h"
+    ],
+    "preview_only_player": "assets/player/walk_32.png; exact front frame at 3x nearest neighbor; original user-provided art, original rights apply.",
+    "player_sha256": "cc3a1862756b24c90a209679918fc658fa3152d7e16e561272245da89bdff6d1"
+  },
+  "checks": {
+    "atlas_rle_roundtrip": true,
+    "binary_alpha": true,
+    "color_key_opaque_collision": false,
+    "atlas_bounds": true,
+    "project_glyph_coverage": true
+  }
+}

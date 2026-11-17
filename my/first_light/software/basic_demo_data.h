@@ -7,7 +7,7 @@
 #define BASIC_IMAGE_H 192u
 #define BASIC_IMAGE_STRIDE (BASIC_IMAGE_W*2u)
 #define BASIC_IMAGE_BYTES (BASIC_IMAGE_STRIDE*BASIC_IMAGE_H)
-// Dedicated DDR space, beyond the unchanged game's wall cache.
+// Keep the existing dedicated DDR address; the game wall cache is now unused.
 #define BASIC_IMAGE_BASE (ASSET_BASE+0xC0000u)
 #define BASIC_IMAGE_X 32u
 #define BASIC_COPY_X 352u

@@ -31,12 +31,29 @@ Thumbs.db
 .DS_Store
 .vscode/
 .idea/
-# Keep one current, verified release, including its evidence logs.
+# Keep the current art build and the earlier release, including evidence logs.
 /my/first_light/releases/*
 !/my/first_light/releases/demo_buffer_slow_20261101/
 !/my/first_light/releases/demo_buffer_slow_20261101/**
 !/my/first_light/releases/demo_buffer_slow_20261101/evidence/*.log
+!/my/first_light/releases/frost_art_20261116/
+!/my/first_light/releases/frost_art_20261116/**
+!/my/first_light/releases/frost_art_20261116/evidence/*.log
+!/my/first_light/releases/magic_book_20261116/
+!/my/first_light/releases/magic_book_20261116/**
+!/my/first_light/releases/magic_book_20261116/evidence/*.log
+!/my/first_light/releases/fullscreen_art_20261116/
+!/my/first_light/releases/fullscreen_art_20261116/**
+!/my/first_light/releases/fullscreen_art_20261116/evidence/*.log
 /my/first_light/reports/scenery_*.png
 /my/first_light/reports/dungeon_world.rgb565
 /my/first_light/reports/dungeon_world.png
 /my/first_light/reports/sim_frame.png
+/my/first_light/reports/book_opening_*.png
+
+!/my/first_light/releases/reference_ui_20261116/
+!/my/first_light/releases/reference_ui_20261116/**
+!/my/first_light/releases/reference_ui_20261116/evidence/*.log
+!/my/first_light/releases/reference_ui_fix_20261116/
+!/my/first_light/releases/reference_ui_fix_20261116/**
+!/my/first_light/releases/reference_ui_fix_20261116/evidence/*.log
