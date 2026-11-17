@@ -128,7 +128,9 @@ module tb_render;
         @(negedge clk); psel=0; penable=0;
     endtask
     task fill(input integer x,y,w,h,input [15:0] color,input bit expect_error=0);
-        reg [31:0] status;
+        `include "rtl/ui_rom_size.vh"
+    reg [31:0] ui_rom_expected[0:`UI_ROM_WORDS-1];
+    reg [31:0] status;
         integer tries;
         write_reg(48,0);
         write_reg(12,draw_base+y*1280+x*2); write_reg(16,w); write_reg(20,h);
@@ -163,7 +165,9 @@ module tb_render;
     endtask
     task raw_copy(input [31:0] source,pitch,destination,
                   input integer w,h,input bit expect_error=0);
-        reg [31:0] status;
+        `include "rtl/ui_rom_size.vh"
+    reg [31:0] ui_rom_expected[0:`UI_ROM_WORDS-1];
+    reg [31:0] status;
         integer tries;
         write_reg(48,1); write_reg(52,source); write_reg(76,pitch);
         write_reg(12,destination); write_reg(16,w); write_reg(20,h);
@@ -348,6 +352,8 @@ module tb_render;
         end
         previous_de=de;
     end
+    `include "rtl/ui_rom_size.vh"
+    reg [31:0] ui_rom_expected[0:`UI_ROM_WORDS-1];
     reg [31:0] status;
     integer old_writes,old_reads,test_width,frame_target,old_acks;
     initial begin
@@ -358,6 +364,14 @@ module tb_render;
         repeat(10) @(negedge clk); reset=0;
         read_reg(0,status); if(status!==32'h32444631) $fatal(1,"ID mismatch");
         read_reg(76,status); if(status!=1280) $fatal(1,"Default source stride changed");
+        $readmemh("assets/ui/magic_book_v5/runtime/reference/ui_stream.hex",ui_rom_expected);
+        for(integer word_index=0;word_index<`UI_ROM_WORDS;word_index=word_index+1)begin
+            write_reg(128,word_index,0);read_reg(132,status);
+            if(status!==ui_rom_expected[word_index])$fatal(1,"UI ROM APB mismatch at word %0d",word_index);
+        end
+        write_reg(128,`UI_ROM_WORDS,1);write_reg(132,0,1);
+        $display("PASS: all %0d UI ROM words read through real APB, bank transitions and invalid address rejected",`UI_ROM_WORDS);
+
         button_held=5'h0a;
         read_reg(100,status); if(status!=10) $fatal(1,"Live button register mismatch");
         button_held=5'h10;
@@ -432,6 +446,17 @@ module tb_render;
                                   (parity>>1)&1,270,test_width,4);
             end
         checked_asset(ASSET_BASE,1280,0,0,640,480);
+        // Packed wall bands: wide top/bottom pitch, narrow vertical pitch,
+        // odd X, final clipped side rows and the exact end of the wall cache.
+        checked_asset(32'h01240000,4096,8,80,624,32);
+        $display("WALL COPY north: cycles=%0d, CPU150 equivalent_us=%0d",dut.fill.cycles,dut.fill.cycles/150);
+        checked_asset(32'h01240002,4096,9,80,623,32);
+        checked_asset(32'h01280000,64,8,112,32,328);
+        $display("WALL COPY west: cycles=%0d, CPU150 equivalent_us=%0d",dut.fill.cycles,dut.fill.cycles/150);
+        checked_asset(32'h01260000+1424*2,4096,8,408,624,32);
+        checked_asset(32'h01280000+1016*64,64,8,80,32,328);
+        checked_asset(32'h012a9ffe,2,639,479,1,1);
+        rejected_copy(32'h01400000,4096,BASE,32,1);
         checked_asset(ASSET_BASE+ASSET_BYTES-2,2,639,479,1,1);
         checked_asset(ASSET_BASE+ASSET_BYTES-33*2*3,66,1,310,33,3);
         checked_asset(ASSET_BASE,65534,7,310,2,16);
@@ -464,7 +489,7 @@ module tb_render;
         $display("PASS: %0d DDR asset copies, independent pitches, all halfword alignments, 4K/pool boundaries, invalid ranges/strides, recovery; %0d resource bursts",checked_assets,asset_reads);
         read_reg(80,status); if(status!=0) $fatal(1,"Blend reset control");
         read_reg(84,status); if(status!=255) $fatal(1,"Blend reset alpha");
-        write_reg(48,3,1); write_reg(80,4,1);
+        write_reg(48,4,1); write_reg(80,4,1); // Op 3 is the bounded menu compositor.
         for(integer f=0;f<64;f=f+1) for(integer b=0;b<64;b=b+1)
             for(integer a=0;a<256;a=a+1)
                 if(dut.fill.blend_channel(f,b,a)!=(f*a+b*(255-a)+127)/255)
@@ -483,6 +508,8 @@ module tb_render;
         end
         checked_blend(ASSET_BASE,1280,0,40,640,2,73,3);
         checked_blend(ASSET_BASE+ASSET_BYTES-2,2,639,479,1,1,192,3);
+        // Enlarged altar uses a 128x128 RGB565 key image with 256B pitch.
+        checked_blend(32'h01220000,256,200,200,128,128,255,2);
         // A keyed source must cause a zero-strobe write beat, even when
         // alpha is disabled. Reading back unchanged data alone is insufficient.
         old_writes=key_skips;

@@ -1,0 +1,158 @@
+{
+  "release": "fullscreen_art_20261116",
+  "board_tested": false,
+  "files": {
+    "build_input_hashes.json": {
+      "bytes": 7874,
+      "sha256": "dcf0bdc3d497096b28cb42f043153f841f001589176f7e9c52c17f2b240c1fc1"
+    },
+    "evidence/animation_stack.txt": {
+      "bytes": 3896,
+      "sha256": "34b2f387a0d9dee9319a81e235516a9b5342e0ae12bc4b63f81384693d7886bc"
+    },
+    "evidence/basic_demo_host.log": {
+      "bytes": 507,
+      "sha256": "77e263a80a81f0bc22cea52fa782b96b53d9a8665223a49ee4258b288206fd64"
+    },
+    "evidence/bench_entry_run.log": {
+      "bytes": 1366,
+      "sha256": "a3b087c2a50b657c77aca7f64ee314f1252fb73e02f27d5789b852b5323d523b"
+    },
+    "evidence/bench_entry_vlog.log": {
+      "bytes": 728,
+      "sha256": "bba1cacf018008812aa9cf721a2658af958a755ae82dad4f60c65150d433deb7"
+    },
+    "evidence/book_assets.log": {
+      "bytes": 76,
+      "sha256": "b162ac775a77901c940dcf3ca85ce616bf0cfc2b2316a414b95f827ff7c73bf6"
+    },
+    "evidence/book_cover.png": {
+      "bytes": 11797,
+      "sha256": "61769a89f31608e152133b0a98d88c336b7ece2f86e5ca78e609dc137b05cfcd"
+    },
+    "evidence/book_firmware_menus.png": {
+      "bytes": 75892,
+      "sha256": "c4f7c1a1a993186dca92f6dbae6466e52f2f6d76ab915c4b514292d59e32fdc7"
+    },
+    "evidence/book_firmware_opening.gif": {
+      "bytes": 826917,
+      "sha256": "721b78432df09a5470ee2e5e8609236841c9044d9e738186be30f0e4dfd4e558"
+    },
+    "evidence/book_menu_0_0.png": {
+      "bytes": 14037,
+      "sha256": "79a1726703e8b77b5877e18f170496588212d04c790de5a6bf86589219bddfea"
+    },
+    "evidence/book_menu_1_0.png": {
+      "bytes": 13791,
+      "sha256": "16aa599e75f13e34f6924d5ed4bbbf2e261c95f56110400c318419369d235571"
+    },
+    "evidence/book_menu_2_2.png": {
+      "bytes": 14103,
+      "sha256": "84c80153c67a2f2ddd038989a5e667704dccec49e8051496ba8c838e0c0a3d29"
+    },
+    "evidence/book_menu_check.log": {
+      "bytes": 451,
+      "sha256": "be6883002e0e9ccad3b1672bb278c7a73d35dbee53a3fee3b548c357e4f885b8"
+    },
+    "evidence/book_pressure_entry.png": {
+      "bytes": 5087,
+      "sha256": "08fd2b255c324f4929d517c3f42f674a12d0ca581c62bc33e305024933193281"
+    },
+    "evidence/compile.log": {
+      "bytes": 1142,
+      "sha256": "d89a0474679cc800bd0c1b8ea5c8e268ecf5a5675f23eb84065e76877193797e"
+    },
+    "evidence/firmware.log": {
+      "bytes": 218,
+      "sha256": "587d480bc1fcf23ed3e92353fa2c4bca9e8b11d5dc35b8224791adb8d941b1c1"
+    },
+    "evidence/firmware_size.log": {
+      "bytes": 162,
+      "sha256": "acb0c2680e143bcdf540d7b894c16e972115ef76f690bf6618d8adbced680a83"
+    },
+    "evidence/first_light.pt_timing.rpt": {
+      "bytes": 18593,
+      "sha256": "42fec456e00975faa3d1fab1065258c2dd8b556c292d344b2b29447d8597850d"
+    },
+    "evidence/first_light.route.rpt": {
+      "bytes": 1143,
+      "sha256": "41e91b371cc93181bc0e4224c5c411ca71482c65f756960f0d33aedf5965905f"
+    },
+    "evidence/first_light.timing.rpt": {
+      "bytes": 975542,
+      "sha256": "8a7dfdae5ea8af646f455414b98acdce4526d2b42ffc7300c064da536db40f20"
+    },
+    "evidence/fullscreen_demo_gallery.png": {
+      "bytes": 34756,
+      "sha256": "3fd1c28801608143873806ff9a80cc26fd9d0c37bd6df6c07441b3c5337edb3a"
+    },
+    "evidence/ui_check.log": {
+      "bytes": 1375,
+      "sha256": "9491232f0bd6f4032c6f717df116b625c35ec703d07ad6982c58a90c317e1de8"
+    },
+    "first_light.bin": {
+      "bytes": 102288,
+      "sha256": "de7727954a776bc5bbe4cc8719aef9bb09ccbdbaf977cdc283e3e5d3fe46a99b"
+    },
+    "first_light.bit": {
+      "bytes": 2600703,
+      "sha256": "afc044871464ad175cfef1be42718150197db491d4f295bdcfae8b8424a3c7d4"
+    },
+    "first_light.hex": {
+      "bytes": 2600763,
+      "sha256": "ed8313efd2428b6c695dd1b61e0be64abde40a9e4d154fb00627854e4c144298"
+    },
+    "README.md": {
+      "bytes": 3221,
+      "sha256": "630f6ce7964ec66f1d5c4fc6c675d448a7626ec08de7768061571fa0c9262919"
+    },
+    "source_snapshot/software/basic_demo.h": {
+      "bytes": 18722,
+      "sha256": "c01dead93b016f7cc16681dc3e7eea6864b09d23af0271366001c4bd59328199"
+    },
+    "source_snapshot/software/book_menu.h": {
+      "bytes": 19404,
+      "sha256": "b1d4de7cef3550024fa8db97f733df9fa50a920356a1d91a30f17349c92e1ad8"
+    },
+    "source_snapshot/software/book_menu_assets.h": {
+      "bytes": 99041,
+      "sha256": "a3193009739189c451a2868733969e1f89aa8c4f708aacef7f029d0e4f57f4de"
+    },
+    "source_snapshot/software/demo_skin.h": {
+      "bytes": 1778,
+      "sha256": "d422bc7ccf0a6e95bcaa7af21f5c7162da777387fd207a315d26f7de1606b6f5"
+    },
+    "source_snapshot/software/effects_demo.h": {
+      "bytes": 6269,
+      "sha256": "f184fcb7c107ef0a1b65b379fc9b9314b9fb786e32693679099db1cea90a8f73"
+    },
+    "source_snapshot/software/main.c": {
+      "bytes": 34901,
+      "sha256": "97b8373b045942796b96e873bbe4fc68dc1d8f8811311304c72fa67f6016b16d"
+    },
+    "source_snapshot/tools/check_basic_demo.py": {
+      "bytes": 25964,
+      "sha256": "7b3bc01c9792032008492931cc6f4407fc15fdfd45e612020d262af0c94fd0bc"
+    },
+    "source_snapshot/tools/check_bench_entry.py": {
+      "bytes": 5847,
+      "sha256": "56e5958d5aaa9747121d1457b02145a47d708e04b2f4c132cb156800c644aacc"
+    },
+    "source_snapshot/tools/check_book_menu.py": {
+      "bytes": 16934,
+      "sha256": "15b9c7a4df77b8109958cf62f2e61a38c2b1f514fbc0530a0aadcd81a7fcbab3"
+    },
+    "source_snapshot/tools/check_ui.py": {
+      "bytes": 20768,
+      "sha256": "0e09892e2fea726df29d20529ac3906ba791a82923a82d71c9b6f96168be5d00"
+    },
+    "source_snapshot/tools/prepare_book_menu.py": {
+      "bytes": 7670,
+      "sha256": "b03ab09363b696d61352fc3da5370d1188cdc2b70dab7cccdee3e4c96253341a"
+    },
+    "validation.json": {
+      "bytes": 6455,
+      "sha256": "d653091c3d7217882b40b2e097cc9e4fcee802858559ce248ac09395d67712c3"
+    }
+  }
+}

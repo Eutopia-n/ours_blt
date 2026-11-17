@@ -1,0 +1,2 @@
+BOOK MENU PASS: exact asset upload; 9 pages; 121 animation poses; cover/open/close; all6 routes; game entry; wraparound/return selection; both-page priming; actual pressure entry + return; guards; no active-page writes or display disable.
+BOOK OPTIMIZATION PASS: 96 meshes match scalar reference; 33 cached poses have zero CPU fill pixels; actual demo-entry reset restores shared images byte-for-byte; pool remains 1 MiB. Board FPS is not measured.

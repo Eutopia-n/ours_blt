@@ -1,0 +1,134 @@
+{
+  "release": "magic_book_20261116",
+  "board_tested": false,
+  "files": {
+    "build_input_hashes.json": {
+      "bytes": 7779,
+      "sha256": "a8ebb7e8bbfadadc978df4de0be848618e1505e3baa19fdf576250f273d40e9b"
+    },
+    "evidence/basic_demo_host.log": {
+      "bytes": 507,
+      "sha256": "77e263a80a81f0bc22cea52fa782b96b53d9a8665223a49ee4258b288206fd64"
+    },
+    "evidence/bench_entry_run.log": {
+      "bytes": 1356,
+      "sha256": "e713e4eb3263fca3aa47a94781fcd9c6c132923ea787580711f68b0fdf04fd3a"
+    },
+    "evidence/bench_entry_vlog.log": {
+      "bytes": 728,
+      "sha256": "bc44bf0f94830eff18c2f9b3526793d2cf22f24667cfef08607561e9e70b9122"
+    },
+    "evidence/book_assets.log": {
+      "bytes": 76,
+      "sha256": "a20ff2e15dfaee4a30e99469cfdce8a21ad8915c9c2e266627fb9164a5779f81"
+    },
+    "evidence/book_cover.png": {
+      "bytes": 11797,
+      "sha256": "61769a89f31608e152133b0a98d88c336b7ece2f86e5ca78e609dc137b05cfcd"
+    },
+    "evidence/book_firmware_menus.png": {
+      "bytes": 75892,
+      "sha256": "c4f7c1a1a993186dca92f6dbae6466e52f2f6d76ab915c4b514292d59e32fdc7"
+    },
+    "evidence/book_firmware_opening.gif": {
+      "bytes": 821680,
+      "sha256": "2ea9f053749abea454f969d31c916bcf1b6231ff96fd59b4d200ccce854e3d5f"
+    },
+    "evidence/book_menu_0_0.png": {
+      "bytes": 14037,
+      "sha256": "79a1726703e8b77b5877e18f170496588212d04c790de5a6bf86589219bddfea"
+    },
+    "evidence/book_menu_1_0.png": {
+      "bytes": 13791,
+      "sha256": "16aa599e75f13e34f6924d5ed4bbbf2e261c95f56110400c318419369d235571"
+    },
+    "evidence/book_menu_2_2.png": {
+      "bytes": 14103,
+      "sha256": "84c80153c67a2f2ddd038989a5e667704dccec49e8051496ba8c838e0c0a3d29"
+    },
+    "evidence/book_menu_check.log": {
+      "bytes": 240,
+      "sha256": "303d879bbeb71226840e8e493071f81d5303c0062abc2daca750f5211d100980"
+    },
+    "evidence/book_pressure_entry.png": {
+      "bytes": 4641,
+      "sha256": "39a519d02d99faa3b1714e0c17994e6858cf884e88fc358e3d8d31bb65a3136c"
+    },
+    "evidence/compile.log": {
+      "bytes": 1142,
+      "sha256": "d89a0474679cc800bd0c1b8ea5c8e268ecf5a5675f23eb84065e76877193797e"
+    },
+    "evidence/firmware.log": {
+      "bytes": 218,
+      "sha256": "587d480bc1fcf23ed3e92353fa2c4bca9e8b11d5dc35b8224791adb8d941b1c1"
+    },
+    "evidence/firmware_size.log": {
+      "bytes": 162,
+      "sha256": "13a871b7ff942a548b6dcc29c835d1a7bff4391c12ce9ba85ffe495987ab33a3"
+    },
+    "evidence/first_light.map.rpt": {
+      "bytes": 315021,
+      "sha256": "09f56eef7621b3e3f7db7a4dcb036165f84a50d1355214e3496f512ff73d3ad0"
+    },
+    "evidence/first_light.pt_timing.rpt": {
+      "bytes": 18593,
+      "sha256": "a8b46a934d8d7a94ab764ab2b20c91d2a810d5152ce2a26fc9cbeb944ff094b2"
+    },
+    "evidence/first_light.route.rpt": {
+      "bytes": 1143,
+      "sha256": "f00b22a6f0719ef34d30958b3494f6b9503d76c5664f1580d66740ad31d8b8b4"
+    },
+    "evidence/first_light.timing.rpt": {
+      "bytes": 975542,
+      "sha256": "d588304e128231bdbcda9bbc2e6299c8641a7899d4e286c1ba4d5553daafb7de"
+    },
+    "evidence/ui_check.log": {
+      "bytes": 1375,
+      "sha256": "a054923f85cc16bf1854a40fa0bff95008ba3ff47636a7318f75133fd0df225d"
+    },
+    "first_light.bin": {
+      "bytes": 100432,
+      "sha256": "45fc56f77292ea2f6fbf1f7ef2b885bce57ab25574b494395201f94ea2861036"
+    },
+    "first_light.bit": {
+      "bytes": 2596374,
+      "sha256": "0afe3fbcd0ac4c6244277cfa7cd55427d2863bbdaa505caefecd1f97f53b7414"
+    },
+    "first_light.hex": {
+      "bytes": 2596434,
+      "sha256": "1b322a3453d385e2a6ad655e85467e06ba0d0a7cf2ecd09a247a0974c255208a"
+    },
+    "README.md": {
+      "bytes": 3528,
+      "sha256": "9a532457551c52301bb08aea1b714fdd4014e87b74815a8ce5b291fc8212d2b0"
+    },
+    "source_snapshot/software/book_menu.h": {
+      "bytes": 15351,
+      "sha256": "da78ae188740745e0ce2079e056ad9482fdfb47398b33a20b8e88f949be8337a"
+    },
+    "source_snapshot/software/book_menu_assets.h": {
+      "bytes": 100164,
+      "sha256": "c4e4a03a3c174fcddd108017f9a73adf8aeb5ac8451586a52c9b9d817db2dac9"
+    },
+    "source_snapshot/software/main.c": {
+      "bytes": 34772,
+      "sha256": "ce0bfc086101b23581b5393f6be5f78f15bff69786e96df487ecf9446f2da5be"
+    },
+    "source_snapshot/tools/check_bench_entry.py": {
+      "bytes": 5847,
+      "sha256": "56e5958d5aaa9747121d1457b02145a47d708e04b2f4c132cb156800c644aacc"
+    },
+    "source_snapshot/tools/check_book_menu.py": {
+      "bytes": 11871,
+      "sha256": "78fa365a200b21073c6fb9d138acba02b19cf32922cb4a8c6df90be0bb2fc5a5"
+    },
+    "source_snapshot/tools/prepare_book_menu.py": {
+      "bytes": 6768,
+      "sha256": "ff4e43b3dc4726329f869aae867f65461c7ae588398607243ad8746148b17086"
+    },
+    "validation.json": {
+      "bytes": 5404,
+      "sha256": "623ac9d70c7d05f122a4156b62bb65dfccf5b5de4098d09f1c10286b30b64a40"
+    }
+  }
+}

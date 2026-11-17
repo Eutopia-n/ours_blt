@@ -14,3 +14,7 @@
 *.dll binary
 *.sys binary
 *.bin binary
+
+# FPGA programming artifacts must preserve exact bytes.
+*.bit binary
+*.hex binary

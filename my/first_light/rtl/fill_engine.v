@@ -123,7 +123,10 @@ module fill_engine #(
                             (({17'd0,height}-33'd1) << 8);
     // Limit source pitch to 16 bits before multiplying. Check the full APB
     // value too, so a large/overflowing stride cannot wrap into a valid range.
-    wire [31:0] source_offset = (height - 16'd1) * src_stride[15:0];
+    // Keep the subtraction explicitly 16 bits too. A 32-bit expression here
+    // inferred a cascaded multiplier on the command validation critical path.
+    wire [15:0] source_rows = height - 16'd1;
+    wire [31:0] source_offset = source_rows * src_stride[15:0];
     wire [32:0] source_end = {1'b0,src} + {1'b0,source_offset} + ({17'd0,width} << 1);
     wire source_in_frame = src >= frame_base &&
         source_end <= {1'b0,frame_base}+{1'b0,FB_BYTES} && src_stride == 1280;

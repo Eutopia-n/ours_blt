@@ -4,6 +4,7 @@ import argparse
 import os
 import subprocess
 import sys
+from expand_soc_ram import OCR_BYTES, STACK_BYTES, verify_project
 
 # Efinity logs may contain UTF-8 replacement characters; keep the wrapper
 # usable on Windows consoles whose default code page is GBK.
@@ -39,7 +40,10 @@ if args.step=='prepare':
     extra=['--board-root',board_root] if board_root else []
     run([sys.executable,ROOT/'tools/prepare.py',*extra],'prepare.log')
 elif args.step=='firmware':
+    verify_project()
     run([sys.executable,ROOT/'tools/prepare_game_assets.py'],'game_assets.log')
+    run([sys.executable,ROOT/'tools/prepare_reference_ui.py'],'book_assets.log')
+    # The solid-colour game no longer needs scenery or dungeon asset generation.
     out=ROOT/'software/build'; out.mkdir(exist_ok=True)
     gcc=EF/'toolchain/bin/riscv-none-elf-gcc.exe'
     run([gcc,'-march=rv32im_zicsr_zifencei','-mabi=ilp32','-Os','-g','-flto',
@@ -54,15 +58,15 @@ elif args.step=='firmware':
          out/'first_light.elf',out/'first_light.bin'],'objcopy.log')
     run([EF/'toolchain/bin/riscv-none-elf-size.exe',out/'first_light.elf'],'firmware_size.log')
     data=(out/'first_light.bin').read_bytes()
-    if len(data)>61440: raise SystemExit('Firmware overlaps reserved stack')
-    data=data.ljust(65536,b'\0')
+    if len(data)>OCR_BYTES-STACK_BYTES: raise SystemExit('Firmware overlaps reserved stack')
+    data=data.ljust(OCR_BYTES,b'\0')
     for lane in range(4):
         name=f'EfxSapphireSoc.v_toplevel_system_ramA_logic_ram_symbol{lane}.bin'
         content='\n'.join(f'{b:08b}' for b in data[lane::4])+'\n'
         (ROOT/'vendor/soc'/name).write_text(content)
         # Efinity and ModelSim resolve readmemb relative to the build working directory.
         (ROOT/name).write_text(content)
-    print('Embedded firmware into 64 KiB on-chip RAM (no SPI flash programming).')
+    print(f'Embedded firmware into {OCR_BYTES//1024} KiB on-chip RAM (no SPI flash programming).')
 elif args.step=='sim-buttons':
     sim=Path(args.modelsim)
     if not (ROOT/'sim/work').exists():
@@ -106,7 +110,7 @@ elif args.step in ['sim','sim-soc','sim-game']:
     library='sim/work_game' if args.step=='sim-game' else 'sim/work_ui' if args.ui_smoke else 'sim/work'
     if not (ROOT/library).exists():
         run([sim/'vlib.exe',library],'vlib'+suffix+'.log')
-    run([sim/'vlog.exe','-work',library,'-sv','rtl/sync_fifo.v','rtl/fill_engine.v','rtl/render_regs.v',
+    run([sim/'vlog.exe','-work',library,'-sv','rtl/sync_fifo.v','rtl/fill_engine.v','rtl/ui_compositor.v','rtl/ui_asset_rom.v','rtl/render_regs.v',
          'rtl/framebuffer_video.v','rtl/video_mode_measure.v','rtl/render_subsystem.v','rtl/button_input.v',*extra,
          'sim/tb_soc_game.sv' if args.step=='sim-game' else 'sim/tb_soc_double_buffer.sv' if soc_test and args.demo=='double-buffer' else f'sim/{test}.sv'],'vlog'+suffix+'.log')
     run([sim/'vsim.exe','-batch','-t','1ps','-lib',library,test,*(['+UI_SMOKE'] if args.ui_smoke else []),

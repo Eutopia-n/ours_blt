@@ -1,0 +1,1 @@
+`define GAME_ASSET_BYTES 73728

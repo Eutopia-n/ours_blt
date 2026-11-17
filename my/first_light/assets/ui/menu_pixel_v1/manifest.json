@@ -1,0 +1,646 @@
+{
+  "name": "menu_pixel_v1",
+  "version": 1,
+  "authoring": "Original deterministic pixel art; no AI image service used.",
+  "canvas": [
+    640,
+    480
+  ],
+  "pixel_grid": 2,
+  "atlas": {
+    "size": [
+      256,
+      256
+    ],
+    "stride_bytes": 512,
+    "format": "RGB565 little endian",
+    "color_key": 0,
+    "raw_bytes": 131072,
+    "sha256": "f486c1f9bdf74cd8bef06f16bf324db810e3528fa079946167bfad4e6fe4ada3"
+  },
+  "embedded": {
+    "palette_colors": 22,
+    "palette_bytes": 44,
+    "rle_words": 3371,
+    "rle_bytes": 6742,
+    "descriptor_bytes": 250,
+    "c_data_bytes": 7036,
+    "token": "uint16_t: (run_length << 5) | palette_index; length 1..2047"
+  },
+  "palette": {
+    "ink": {
+      "rgb": [
+        8,
+        12,
+        24
+      ],
+      "rgb565": "0x0863"
+    },
+    "deep": {
+      "rgb": [
+        8,
+        20,
+        32
+      ],
+      "rgb565": "0x08a4"
+    },
+    "background": {
+      "rgb": [
+        16,
+        28,
+        49
+      ],
+      "rgb565": "0x10e6"
+    },
+    "tile_mark": {
+      "rgb": [
+        16,
+        32,
+        49
+      ],
+      "rgb565": "0x1106"
+    },
+    "panel": {
+      "rgb": [
+        24,
+        40,
+        65
+      ],
+      "rgb565": "0x1948"
+    },
+    "panel_shadow": {
+      "rgb": [
+        16,
+        32,
+        49
+      ],
+      "rgb565": "0x1106"
+    },
+    "panel_light": {
+      "rgb": [
+        41,
+        60,
+        90
+      ],
+      "rgb565": "0x29eb"
+    },
+    "edge": {
+      "rgb": [
+        57,
+        85,
+        115
+      ],
+      "rgb565": "0x3aae"
+    },
+    "steel": {
+      "rgb": [
+        98,
+        125,
+        148
+      ],
+      "rgb565": "0x63f2"
+    },
+    "muted": {
+      "rgb": [
+        164,
+        182,
+        205
+      ],
+      "rgb565": "0xa5b9"
+    },
+    "paper": {
+      "rgb": [
+        222,
+        234,
+        238
+      ],
+      "rgb565": "0xdf5d"
+    },
+    "white": {
+      "rgb": [
+        246,
+        246,
+        238
+      ],
+      "rgb565": "0xf7bd"
+    },
+    "focus_fill": {
+      "rgb": [
+        16,
+        56,
+        74
+      ],
+      "rgb565": "0x11c9"
+    },
+    "focus_inner": {
+      "rgb": [
+        32,
+        80,
+        98
+      ],
+      "rgb565": "0x228c"
+    },
+    "cyan_dark": {
+      "rgb": [
+        32,
+        125,
+        139
+      ],
+      "rgb565": "0x23f1"
+    },
+    "cyan": {
+      "rgb": [
+        74,
+        198,
+        213
+      ],
+      "rgb565": "0x4e3a"
+    },
+    "ice": {
+      "rgb": [
+        156,
+        234,
+        230
+      ],
+      "rgb565": "0x9f5c"
+    },
+    "gold_dark": {
+      "rgb": [
+        139,
+        101,
+        65
+      ],
+      "rgb565": "0x8b28"
+    },
+    "gold": {
+      "rgb": [
+        238,
+        182,
+        106
+      ],
+      "rgb565": "0xedad"
+    },
+    "gold_light": {
+      "rgb": [
+        255,
+        226,
+        164
+      ],
+      "rgb565": "0xff14"
+    },
+    "blue_dark": {
+      "rgb": [
+        49,
+        85,
+        131
+      ],
+      "rgb565": "0x32b0"
+    },
+    "blue": {
+      "rgb": [
+        98,
+        153,
+        213
+      ],
+      "rgb565": "0x64da"
+    },
+    "violet": {
+      "rgb": [
+        156,
+        141,
+        205
+      ],
+      "rgb565": "0x9c79"
+    },
+    "coral": {
+      "rgb": [
+        222,
+        129,
+        123
+      ],
+      "rgb565": "0xdc0f"
+    },
+    "green": {
+      "rgb": [
+        115,
+        182,
+        164
+      ],
+      "rgb565": "0x75b4"
+    }
+  },
+  "assets": [
+    {
+      "id": 0,
+      "name": "background_tile",
+      "rect": [
+        52,
+        2,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "tile",
+      "raw_file": "rgb565/background_tile.rgb565",
+      "png_file": "png/background_tile.png"
+    },
+    {
+      "id": 1,
+      "name": "grid_tile",
+      "rect": [
+        86,
+        2,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "tile",
+      "raw_file": "rgb565/grid_tile.rgb565",
+      "png_file": "png/grid_tile.png"
+    },
+    {
+      "id": 2,
+      "name": "panel_normal",
+      "rect": [
+        142,
+        86,
+        24,
+        24
+      ],
+      "nine_slice_margin": 8,
+      "role": "nine_slice",
+      "raw_file": "rgb565/panel_normal.rgb565",
+      "png_file": "png/panel_normal.png"
+    },
+    {
+      "id": 3,
+      "name": "panel_selected",
+      "rect": [
+        194,
+        86,
+        24,
+        24
+      ],
+      "nine_slice_margin": 8,
+      "role": "nine_slice",
+      "raw_file": "rgb565/panel_selected.rgb565",
+      "png_file": "png/panel_selected.png"
+    },
+    {
+      "id": 4,
+      "name": "panel_pressed",
+      "rect": [
+        168,
+        86,
+        24,
+        24
+      ],
+      "nine_slice_margin": 8,
+      "role": "nine_slice",
+      "raw_file": "rgb565/panel_pressed.rgb565",
+      "png_file": "png/panel_pressed.png"
+    },
+    {
+      "id": 5,
+      "name": "panel_disabled",
+      "rect": [
+        116,
+        86,
+        24,
+        24
+      ],
+      "nine_slice_margin": 8,
+      "role": "nine_slice",
+      "raw_file": "rgb565/panel_disabled.rgb565",
+      "png_file": "png/panel_disabled.png"
+    },
+    {
+      "id": 6,
+      "name": "header_panel",
+      "rect": [
+        120,
+        2,
+        32,
+        32
+      ],
+      "nine_slice_margin": 12,
+      "role": "nine_slice",
+      "raw_file": "rgb565/header_panel.rgb565",
+      "png_file": "png/header_panel.png"
+    },
+    {
+      "id": 7,
+      "name": "icon_well",
+      "rect": [
+        38,
+        86,
+        24,
+        24
+      ],
+      "nine_slice_margin": 8,
+      "role": "nine_slice",
+      "raw_file": "rgb565/icon_well.rgb565",
+      "png_file": "png/icon_well.png"
+    },
+    {
+      "id": 8,
+      "name": "keycap_normal",
+      "rect": [
+        64,
+        86,
+        24,
+        24
+      ],
+      "nine_slice_margin": 8,
+      "role": "nine_slice",
+      "raw_file": "rgb565/keycap_normal.rgb565",
+      "png_file": "png/keycap_normal.png"
+    },
+    {
+      "id": 9,
+      "name": "keycap_pressed",
+      "rect": [
+        90,
+        86,
+        24,
+        24
+      ],
+      "nine_slice_margin": 8,
+      "role": "nine_slice",
+      "raw_file": "rgb565/keycap_pressed.rgb565",
+      "png_file": "png/keycap_pressed.png"
+    },
+    {
+      "id": 10,
+      "name": "icon_basic",
+      "rect": [
+        222,
+        2,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_basic.rgb565",
+      "png_file": "png/icon_basic.png"
+    },
+    {
+      "id": 11,
+      "name": "icon_advanced",
+      "rect": [
+        154,
+        2,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_advanced.rgb565",
+      "png_file": "png/icon_advanced.png"
+    },
+    {
+      "id": 12,
+      "name": "icon_game",
+      "rect": [
+        104,
+        52,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_game.rgb565",
+      "png_file": "png/icon_game.png"
+    },
+    {
+      "id": 13,
+      "name": "icon_fill",
+      "rect": [
+        70,
+        52,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_fill.rgb565",
+      "png_file": "png/icon_fill.png"
+    },
+    {
+      "id": 14,
+      "name": "icon_copy",
+      "rect": [
+        36,
+        52,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_copy.rgb565",
+      "png_file": "png/icon_copy.png"
+    },
+    {
+      "id": 15,
+      "name": "icon_buffer",
+      "rect": [
+        2,
+        52,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_buffer.rgb565",
+      "png_file": "png/icon_buffer.png"
+    },
+    {
+      "id": 16,
+      "name": "icon_key",
+      "rect": [
+        138,
+        52,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_key.rgb565",
+      "png_file": "png/icon_key.png"
+    },
+    {
+      "id": 17,
+      "name": "icon_alpha",
+      "rect": [
+        188,
+        2,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_alpha.rgb565",
+      "png_file": "png/icon_alpha.png"
+    },
+    {
+      "id": 18,
+      "name": "icon_pressure",
+      "rect": [
+        172,
+        52,
+        32,
+        32
+      ],
+      "nine_slice_margin": 0,
+      "role": "icon",
+      "raw_file": "rgb565/icon_pressure.rgb565",
+      "png_file": "png/icon_pressure.png"
+    },
+    {
+      "id": 19,
+      "name": "chip_emblem",
+      "rect": [
+        2,
+        2,
+        48,
+        48
+      ],
+      "nine_slice_margin": 0,
+      "role": "emblem",
+      "raw_file": "rgb565/chip_emblem.rgb565",
+      "png_file": "png/chip_emblem.png"
+    },
+    {
+      "id": 20,
+      "name": "cursor_0",
+      "rect": [
+        206,
+        52,
+        16,
+        24
+      ],
+      "nine_slice_margin": 0,
+      "role": "cursor",
+      "raw_file": "rgb565/cursor_0.rgb565",
+      "png_file": "png/cursor_0.png"
+    },
+    {
+      "id": 21,
+      "name": "cursor_1",
+      "rect": [
+        224,
+        52,
+        16,
+        24
+      ],
+      "nine_slice_margin": 0,
+      "role": "cursor",
+      "raw_file": "rgb565/cursor_1.rgb565",
+      "png_file": "png/cursor_1.png"
+    },
+    {
+      "id": 22,
+      "name": "cursor_2",
+      "rect": [
+        2,
+        86,
+        16,
+        24
+      ],
+      "nine_slice_margin": 0,
+      "role": "cursor",
+      "raw_file": "rgb565/cursor_2.rgb565",
+      "png_file": "png/cursor_2.png"
+    },
+    {
+      "id": 23,
+      "name": "cursor_3",
+      "rect": [
+        20,
+        86,
+        16,
+        24
+      ],
+      "nine_slice_margin": 0,
+      "role": "cursor",
+      "raw_file": "rgb565/cursor_3.rgb565",
+      "png_file": "png/cursor_3.png"
+    },
+    {
+      "id": 24,
+      "name": "separator_tile",
+      "rect": [
+        220,
+        86,
+        32,
+        8
+      ],
+      "nine_slice_margin": 0,
+      "role": "tile",
+      "raw_file": "rgb565/separator_tile.rgb565",
+      "png_file": "png/separator_tile.png"
+    }
+  ],
+  "previews": [
+    {
+      "group": "home",
+      "selected": 0,
+      "path": "previews/menu_home_0.png"
+    },
+    {
+      "group": "home",
+      "selected": 1,
+      "path": "previews/menu_home_1.png"
+    },
+    {
+      "group": "home",
+      "selected": 2,
+      "path": "previews/menu_home_2.png"
+    },
+    {
+      "group": "basic",
+      "selected": 0,
+      "path": "previews/menu_basic_0.png"
+    },
+    {
+      "group": "basic",
+      "selected": 1,
+      "path": "previews/menu_basic_1.png"
+    },
+    {
+      "group": "basic",
+      "selected": 2,
+      "path": "previews/menu_basic_2.png"
+    },
+    {
+      "group": "advanced",
+      "selected": 0,
+      "path": "previews/menu_advanced_0.png"
+    },
+    {
+      "group": "advanced",
+      "selected": 1,
+      "path": "previews/menu_advanced_1.png"
+    },
+    {
+      "group": "advanced",
+      "selected": 2,
+      "path": "previews/menu_advanced_2.png"
+    }
+  ],
+  "runtime_integrated": false,
+  "existing_dependencies": {
+    "fonts": [
+      "software/font_cn.h",
+      "software/font5x7.h"
+    ],
+    "preview_only_player": "assets/player/walk_32.png; original user-provided art, original rights apply."
+  },
+  "checks": {
+    "atlas_rle_roundtrip": true,
+    "binary_alpha": true,
+    "color_key_opaque_collision": false,
+    "atlas_bounds": true,
+    "project_glyph_coverage": true
+  }
+}

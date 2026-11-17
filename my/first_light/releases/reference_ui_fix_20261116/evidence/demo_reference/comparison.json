@@ -1,0 +1,245 @@
+{
+  "fill": {
+    "different_pixels": 0,
+    "compared_pixels": 171008,
+    "excluded_rectangles": [
+      [
+        16,
+        176,
+        624,
+        400
+      ]
+    ]
+  },
+  "fill_detail": {
+    "different_pixels": 0,
+    "compared_pixels": 258048,
+    "excluded_rectangles": [
+      [
+        352,
+        176,
+        608,
+        368
+      ]
+    ]
+  },
+  "copy": {
+    "different_pixels": 0,
+    "compared_pixels": 307200,
+    "excluded_rectangles": []
+  },
+  "copy_2": {
+    "different_pixels": 0,
+    "compared_pixels": 307200,
+    "excluded_rectangles": []
+  },
+  "copy_detail": {
+    "different_pixels": 0,
+    "compared_pixels": 307200,
+    "excluded_rectangles": []
+  },
+  "buffer": {
+    "different_pixels": 0,
+    "compared_pixels": 165968,
+    "excluded_rectangles": [
+      [
+        16,
+        176,
+        624,
+        400
+      ],
+      [
+        176,
+        84,
+        296,
+        98
+      ],
+      [
+        176,
+        110,
+        296,
+        124
+      ],
+      [
+        496,
+        84,
+        616,
+        98
+      ]
+    ]
+  },
+  "buffer_paused": {
+    "different_pixels": 0,
+    "compared_pixels": 165968,
+    "excluded_rectangles": [
+      [
+        16,
+        176,
+        624,
+        400
+      ],
+      [
+        176,
+        84,
+        296,
+        98
+      ],
+      [
+        176,
+        110,
+        296,
+        124
+      ],
+      [
+        496,
+        84,
+        616,
+        98
+      ]
+    ]
+  },
+  "buffer_double": {
+    "different_pixels": 0,
+    "compared_pixels": 165968,
+    "excluded_rectangles": [
+      [
+        16,
+        176,
+        624,
+        400
+      ],
+      [
+        176,
+        84,
+        296,
+        98
+      ],
+      [
+        176,
+        110,
+        296,
+        124
+      ],
+      [
+        496,
+        84,
+        616,
+        98
+      ]
+    ]
+  },
+  "buffer_double_paused": {
+    "different_pixels": 0,
+    "compared_pixels": 165968,
+    "excluded_rectangles": [
+      [
+        16,
+        176,
+        624,
+        400
+      ],
+      [
+        176,
+        84,
+        296,
+        98
+      ],
+      [
+        176,
+        110,
+        296,
+        124
+      ],
+      [
+        496,
+        84,
+        616,
+        98
+      ]
+    ]
+  },
+  "key": {
+    "different_pixels": 0,
+    "compared_pixels": 306528,
+    "excluded_rectangles": [
+      [
+        120,
+        124,
+        168,
+        138
+      ]
+    ]
+  },
+  "key_off": {
+    "different_pixels": 0,
+    "compared_pixels": 306528,
+    "excluded_rectangles": [
+      [
+        120,
+        124,
+        168,
+        138
+      ]
+    ]
+  },
+  "key_magenta": {
+    "different_pixels": 0,
+    "compared_pixels": 306528,
+    "excluded_rectangles": [
+      [
+        120,
+        124,
+        168,
+        138
+      ]
+    ]
+  },
+  "alpha": {
+    "different_pixels": 0,
+    "compared_pixels": 306528,
+    "excluded_rectangles": [
+      [
+        120,
+        124,
+        168,
+        138
+      ]
+    ]
+  },
+  "alpha_0": {
+    "different_pixels": 0,
+    "compared_pixels": 306528,
+    "excluded_rectangles": [
+      [
+        120,
+        124,
+        168,
+        138
+      ]
+    ]
+  },
+  "alpha_128": {
+    "different_pixels": 0,
+    "compared_pixels": 306528,
+    "excluded_rectangles": [
+      [
+        120,
+        124,
+        168,
+        138
+      ]
+    ]
+  },
+  "pressure_1": {
+    "different_pixels": 0,
+    "compared_pixels": 143360,
+    "excluded_rectangles": [
+      [
+        0,
+        152,
+        640,
+        408
+      ]
+    ]
+  }
+}

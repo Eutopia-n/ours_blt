@@ -1,0 +1,33 @@
+{
+  "name": "menu_pixel_v2",
+  "canvas": [640, 480],
+  "pixel_grid": 2,
+  "direction": "Blue-hooded adventurer, parchment quest cards, dark stone and restrained blue magic",
+  "palette": {
+    "ink": "#101521",
+    "deep": "#192333",
+    "background": "#202b3d",
+    "tile_mark": "#273348",
+    "panel": "#bca47a",
+    "panel_shadow": "#514534",
+    "panel_light": "#d3bf97",
+    "edge": "#776244",
+    "steel": "#71849a",
+    "muted": "#a8b5c1",
+    "paper": "#ead9b0",
+    "white": "#f8edcc",
+    "focus_fill": "#e1cda4",
+    "focus_inner": "#b69869",
+    "cyan_dark": "#006398",
+    "cyan": "#008fce",
+    "ice": "#82d1e9",
+    "gold_dark": "#9a6d3b",
+    "gold": "#d8a65f",
+    "gold_light": "#f3d18d",
+    "blue_dark": "#003080",
+    "blue": "#0053b8",
+    "violet": "#75688e",
+    "coral": "#a86157",
+    "green": "#6e927e"
+  }
+}

@@ -1,0 +1,252 @@
+{
+  "style": "frost_pixel_v1",
+  "frame_count": 36,
+  "base": "../base_game_v1.rgb565",
+  "player_frames_preserved": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "healing_heart_redesigned": 23,
+  "frames": [
+    {
+      "index": 16,
+      "name": "frost_slime_0",
+      "label": "霜晶史莱姆",
+      "path": "frost_slime_0.png",
+      "sha256": "9a131d53365bb6ec6d807e3f923a17fcf0b73f9e40ebb10837cea33ea7855815"
+    },
+    {
+      "index": 17,
+      "name": "bone_acolyte_0",
+      "label": "白骨学徒",
+      "path": "bone_acolyte_0.png",
+      "sha256": "32e867e97799bd0f680088059a102192f8e2fe01f6b97725921c71d4e326da01"
+    },
+    {
+      "index": 18,
+      "name": "rune_bat_0",
+      "label": "暮晶蝙蝠",
+      "path": "rune_bat_0.png",
+      "sha256": "44c905f73d63e83ab4431c2d644baa8921ba67f26c4c6e77481979a8df65e20b"
+    },
+    {
+      "index": 19,
+      "name": "xp_crystal",
+      "label": "经验水晶",
+      "path": "xp_crystal.png",
+      "sha256": "276d285a7658ecbe18c84c541fcf508d88f15580950c301984b6b616fcbe9b38"
+    },
+    {
+      "index": 20,
+      "name": "power_seal",
+      "label": "奥术强化",
+      "path": "power_seal.png",
+      "sha256": "6fd92fbaaf55362507cc4f2c9a8545cc8abc3803b673c88372db2a41a5f437e5"
+    },
+    {
+      "index": 21,
+      "name": "orbit_crystal_0",
+      "label": "冰霜法环",
+      "path": "orbit_crystal_0.png",
+      "sha256": "4b26aebd24185e563c668c84fa1e8d55f5958224e9afd3fba4998edcc2581ded"
+    },
+    {
+      "index": 22,
+      "name": "cast_scroll",
+      "label": "快速施法",
+      "path": "cast_scroll.png",
+      "sha256": "95339e847c3fd35abf08ace1f74251d42fa6da19e55145f07206a8ec29e4f572"
+    },
+    {
+      "index": 23,
+      "name": "healing_heart",
+      "label": "治疗红心",
+      "path": "healing_heart.png",
+      "sha256": "ea2f43651769311d5993b970b728336f5e3021dc5d8a683423b02eb040c8ab6d"
+    },
+    {
+      "index": 24,
+      "name": "frost_guardian_0",
+      "label": "寒霜守卫",
+      "path": "frost_guardian_0.png",
+      "sha256": "a8cff22f5e637fbaedf188fa0c70006f6271b9e535cbc68b080216e3bffd26bc"
+    },
+    {
+      "index": 25,
+      "name": "crown_guardian_0",
+      "label": "鎏金统领",
+      "path": "crown_guardian_0.png",
+      "sha256": "b288a754a5e7d2570463bd37bdff969f490123c463160873d42926ff9f1cb67d"
+    },
+    {
+      "index": 26,
+      "name": "frost_slime_1",
+      "label": "霜晶史莱姆",
+      "path": "frost_slime_1.png",
+      "sha256": "c049dc1100d77b0956e81a13337b9e3f74051a497cefe1e9f0db2a009d342671"
+    },
+    {
+      "index": 27,
+      "name": "bone_acolyte_1",
+      "label": "白骨学徒",
+      "path": "bone_acolyte_1.png",
+      "sha256": "c9bb0c336df2a9b4bf4d9c28c5a48e1c1553d5fc6aa4d6e4fa600a436ea8f953"
+    },
+    {
+      "index": 28,
+      "name": "rune_bat_1",
+      "label": "暮晶蝙蝠",
+      "path": "rune_bat_1.png",
+      "sha256": "bf35bad4fbe91464925030e32b630175c3a854d4c05a5fc8bd4b242babedcef1"
+    },
+    {
+      "index": 29,
+      "name": "frost_guardian_1",
+      "label": "寒霜守卫",
+      "path": "frost_guardian_1.png",
+      "sha256": "b403c10c09170dfa1954d919acc190510eb7fce45311651844653375e8a6b6fb"
+    },
+    {
+      "index": 30,
+      "name": "crown_guardian_1",
+      "label": "鎏金统领",
+      "path": "crown_guardian_1.png",
+      "sha256": "90a891149233151bb59129bcbf1a8145473653a4f5f4552d8cb73193fd6d3dfa"
+    },
+    {
+      "index": 31,
+      "name": "swift_boots",
+      "label": "迅捷战靴",
+      "path": "swift_boots.png",
+      "sha256": "89fc12c192a022778fb63b98d19abffa2a17a6958e469e8910f6a4a4c31668f4"
+    },
+    {
+      "index": 32,
+      "name": "crystal_magnet",
+      "label": "宝石磁力",
+      "path": "crystal_magnet.png",
+      "sha256": "ebf90261aaf8899a369154691bbce4a47346c2aea2104e0c3649b32bcdb135e9"
+    },
+    {
+      "index": 33,
+      "name": "xp_cluster",
+      "label": "经验晶簇",
+      "path": "xp_cluster.png",
+      "sha256": "340e6ac82fbd8ebd6b8f541536236bd9d2f6f068c543779acfdeb68a6e5bf6bb"
+    },
+    {
+      "index": 34,
+      "name": "xp_crown",
+      "label": "高阶经验棱晶",
+      "path": "xp_crown.png",
+      "sha256": "3918b8fca9cd516161bd90f69a1346c47dc06169f8934ceeb4c0d989afbae017"
+    },
+    {
+      "index": 35,
+      "name": "orbit_crystal_1",
+      "label": "冰霜法环",
+      "path": "orbit_crystal_1.png",
+      "sha256": "9552b372de5f11d4b005f45b011409752720a562d8b052ff99409952094d2fed"
+    }
+  ],
+  "enemy_frames": [
+    [
+      16,
+      17,
+      18,
+      24,
+      25
+    ],
+    [
+      26,
+      27,
+      28,
+      29,
+      30
+    ]
+  ],
+  "upgrade_icons": [
+    20,
+    22,
+    21,
+    31,
+    32,
+    23
+  ],
+  "gem_frames": [
+    19,
+    33,
+    34
+  ],
+  "reserve_loaded_by_firmware": false,
+  "reserve": [
+    {
+      "name": "hit_0",
+      "label": "命中星芒",
+      "frame": 0,
+      "integrated": false
+    },
+    {
+      "name": "hit_1",
+      "label": "命中星芒",
+      "frame": 1,
+      "integrated": false
+    },
+    {
+      "name": "summon_0",
+      "label": "召唤符文",
+      "frame": 0,
+      "integrated": false
+    },
+    {
+      "name": "summon_1",
+      "label": "召唤符文",
+      "frame": 1,
+      "integrated": false
+    },
+    {
+      "name": "chest_0",
+      "label": "符文宝箱",
+      "frame": 0,
+      "integrated": false
+    },
+    {
+      "name": "chest_1",
+      "label": "符文宝箱",
+      "frame": 1,
+      "integrated": false
+    },
+    {
+      "name": "vial_0",
+      "label": "蓝晶药瓶",
+      "frame": 0,
+      "integrated": false
+    },
+    {
+      "name": "flower_0",
+      "label": "霜晶花",
+      "frame": 0,
+      "integrated": false
+    },
+    {
+      "name": "key_0",
+      "label": "秘库钥匙",
+      "frame": 0,
+      "integrated": false
+    }
+  ]
+}

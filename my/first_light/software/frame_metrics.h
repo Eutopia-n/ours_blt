@@ -1,9 +1,16 @@
 #ifndef FRAME_METRICS_H
 #define FRAME_METRICS_H
 #include <stdint.h>
+#include "soc.h"
 
-#define FRAME_60_CYCLES 1666667u
+#define FRAME_60_CYCLES ((SYSTEM_CLINT_HZ+30u)/60u)
 #define FRAME_60_SAMPLES 30u
+// 30 * 150 MHz exceeds uint32_t. Convert the elapsed interval to microseconds
+// first, avoiding 64-bit runtime division in this freestanding RV32 firmware.
+static inline uint32_t frame_measured_fps(uint32_t samples,uint32_t cycles) {
+    uint32_t us=cycles/(SYSTEM_CLINT_HZ/1000000u);
+    return us ? (samples*1000000u+us/2u)/us : 0;
+}
 typedef struct {
     uint32_t frames,peak,failed,maximum;
 } FrameMax60;

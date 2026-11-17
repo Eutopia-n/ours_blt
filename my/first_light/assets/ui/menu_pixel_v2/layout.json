@@ -1,0 +1,179 @@
+{
+  "canvas": [
+    640,
+    480
+  ],
+  "safe_frame": [
+    16,
+    16,
+    608,
+    448
+  ],
+  "header": {
+    "rect": [
+      24,
+      24,
+      592,
+      88
+    ],
+    "frame": "header_panel",
+    "title_origin": [
+      112,
+      40
+    ],
+    "title_cn_scale": 2,
+    "title_ascii_scale": 3,
+    "subtitle_origin": [
+      114,
+      80
+    ]
+  },
+  "hero": {
+    "source": "assets/player/walk_32.png",
+    "source_rect": [
+      0,
+      0,
+      32,
+      32
+    ],
+    "destination": [
+      66,
+      220,
+      96,
+      96
+    ],
+    "scale": 3,
+    "filter": "nearest",
+    "runtime_note": "Reuse existing character; implement integer scaling or one-time expansion during integration."
+  },
+  "decorations": {
+    "banner": [
+      94,
+      130,
+      40,
+      56
+    ],
+    "pedestal": [
+      50,
+      306,
+      128,
+      56
+    ]
+  },
+  "rows": [
+    {
+      "rect": [
+        232,
+        130,
+        384,
+        72
+      ],
+      "icon_rect": [
+        248,
+        148,
+        32,
+        32
+      ],
+      "title_origin": [
+        296,
+        136
+      ],
+      "description_origin": [
+        298,
+        178
+      ],
+      "cursor_rect": [
+        210,
+        154,
+        16,
+        24
+      ]
+    },
+    {
+      "rect": [
+        232,
+        214,
+        384,
+        72
+      ],
+      "icon_rect": [
+        248,
+        232,
+        32,
+        32
+      ],
+      "title_origin": [
+        296,
+        220
+      ],
+      "description_origin": [
+        298,
+        262
+      ],
+      "cursor_rect": [
+        210,
+        238,
+        16,
+        24
+      ]
+    },
+    {
+      "rect": [
+        232,
+        298,
+        384,
+        72
+      ],
+      "icon_rect": [
+        248,
+        316,
+        32,
+        32
+      ],
+      "title_origin": [
+        296,
+        304
+      ],
+      "description_origin": [
+        298,
+        346
+      ],
+      "cursor_rect": [
+        210,
+        322,
+        16,
+        24
+      ]
+    }
+  ],
+  "footer_rect": [
+    24,
+    404,
+    592,
+    48
+  ],
+  "footer_text_y": 462,
+  "navigation": {
+    "previous": "W",
+    "next": "S",
+    "enter": "ENTER",
+    "back": "A"
+  },
+  "cursor": {
+    "frames": [
+      "cursor_0",
+      "cursor_1",
+      "cursor_2",
+      "cursor_3"
+    ],
+    "optional_frame_ms": 150,
+    "static_frame": "cursor_0"
+  },
+  "render_notes": [
+    "Preview layout proposal; existing menu_screen has not been modified.",
+    "Body uses existing font_cn.h / font5x7.h; large titles need an integer-scaling text helper.",
+    "PNG alpha is binary; transparent atlas pixels are RGB565 0x0000.",
+    "Use explicit 512-byte source stride for atlas regions; individual assets use width*2.",
+    "Nine-slice margins are already in output pixels; repeat edges and center without filtering."
+  ]
+}

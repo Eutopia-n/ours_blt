@@ -1,5 +1,5 @@
 {
-  "frames": 25,
+  "frames": 36,
   "player": "direction*4+walk_frame",
   "slime": 16,
   "skeleton": 17,
@@ -10,13 +10,72 @@
   "spark": 22,
   "healing_heart": 23,
   "ice_warden": 24,
-  "healing_heart_source": "healing_heart.png (user-supplied red heart, edge-connected gray canvas removed to Color Key)",
+  "healing_heart_source": "Project-native pixel red heart with brass edge and ivory healing cross; original user source preserved.",
   "width": 32,
   "height": 32,
   "stride": 64,
   "format": "RGB565 little endian",
   "key": 0,
   "ddr_base": "0x01204000",
-  "compressed_bytes": 20006,
-  "kenney_source_sha256": "d24e60a41e4ac7a745c0304dfde121143688557f40215f23221c29cfe683825f"
+  "compressed_bytes": 25686,
+  "kenney_source_sha256": "d24e60a41e4ac7a745c0304dfde121143688557f40215f23221c29cfe683825f",
+  "art_style": "frost_pixel_v1",
+  "enemy_animation_frames": [
+    [
+      16,
+      17,
+      18,
+      24,
+      25
+    ],
+    [
+      26,
+      27,
+      28,
+      29,
+      30
+    ]
+  ],
+  "crown_guardian": 25,
+  "upgrade_icons": [
+    20,
+    22,
+    21,
+    31,
+    32,
+    23
+  ],
+  "gem_tiers": [
+    19,
+    33,
+    34
+  ],
+  "frame_names": {
+    "16": "frost_slime_0",
+    "17": "bone_acolyte_0",
+    "18": "rune_bat_0",
+    "19": "xp_crystal",
+    "20": "power_seal",
+    "21": "orbit_crystal_0",
+    "22": "cast_scroll",
+    "23": "healing_heart",
+    "24": "frost_guardian_0",
+    "25": "crown_guardian_0",
+    "26": "frost_slime_1",
+    "27": "bone_acolyte_1",
+    "28": "rune_bat_1",
+    "29": "frost_guardian_1",
+    "30": "crown_guardian_1",
+    "31": "swift_boots",
+    "32": "crystal_magnet",
+    "33": "xp_cluster",
+    "34": "xp_crown",
+    "35": "orbit_crystal_1"
+  },
+  "ddr_bytes": 73728,
+  "added_ddr_bytes": 22528,
+  "background_texture_bytes": 0,
+  "reserve_loaded": false,
+  "player_preserved": true,
+  "healing_heart_preserved": false
 }

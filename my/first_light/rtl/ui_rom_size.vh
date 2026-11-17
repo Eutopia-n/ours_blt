@@ -1,0 +1,1 @@
+`define UI_ROM_WORDS 7227

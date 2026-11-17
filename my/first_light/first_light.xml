@@ -11,6 +11,8 @@
         <efx:design_file name="rtl/render_subsystem.v" version="default" library="default" />
         <efx:design_file name="rtl/render_regs.v" version="default" library="default" />
         <efx:design_file name="rtl/sync_fifo.v" version="default" library="default" />
+        <efx:design_file name="rtl/ui_asset_rom.v" version="default" library="default" />
+        <efx:design_file name="rtl/ui_compositor.v" version="default" library="default" />
         <efx:design_file name="rtl/fill_engine.v" version="default" library="default" />
         <efx:design_file name="rtl/framebuffer_video.v" version="default" library="default" />
         <efx:design_file name="rtl/video_mode_measure.v" version="default" library="default" />
@@ -90,8 +92,9 @@
     <efx:place_and_route tool_name="efx_pnr">
         <efx:param name="work_dir" value="work_pnr" value_type="e_string" />
         <efx:param name="verbose" value="off" value_type="e_bool" />
-        <efx:param name="seed" value="1" value_type="e_integer" />
-        <efx:param name="placer_effort_level" value="2" value_type="e_option" />
+        <efx:param name="seed" value="2" value_type="e_integer" />
+        <efx:param name="optimization_level" value="TIMING_2" value_type="e_option" />
+        <efx:param name="placer_effort_level" value="3" value_type="e_option" />
         <efx:param name="max_threads" value="4" value_type="e_integer" />
         <efx:param name="beneficial_skew" value="on" value_type="e_option" />
         <efx:param name="print_critical_path" value="10" value_type="e_integer" />

@@ -1,0 +1,5 @@
+{
+  "status": "PASS",
+  "baseline": "HEAD:software/survivor_game.c",
+  "result": "ticks=30000 state_hash=0737c1a2 upgrades=17 restarts=14 pauses=34"
+}

@@ -1,0 +1,66 @@
+{
+  "canvas": [
+    640,
+    480
+  ],
+  "book_bounds": [
+    10,
+    18,
+    620,
+    446
+  ],
+  "left_page_safe": [
+    42,
+    48,
+    256,
+    354
+  ],
+  "right_page_safe": [
+    342,
+    48,
+    256,
+    354
+  ],
+  "gutter_reserved": [
+    300,
+    42,
+    40,
+    366
+  ],
+  "navigation": [
+    "cover",
+    "home",
+    "basic / advanced",
+    "demo or game"
+  ],
+  "controls": {
+    "cover": "Enter opens the book",
+    "menu": "W/S select; Enter opens; A returns",
+    "home_back": "A closes the book in this prototype; firmware behavior is not yet changed"
+  },
+  "game_view_proposal": [
+    46,
+    128,
+    548,
+    266
+  ],
+  "game_view_current": [
+    8,
+    80,
+    624,
+    360
+  ],
+  "game_layout_note": "New viewport and HUD layout require camera/clipping and pixel tests; no production change in this deliverable.",
+  "cross_spread_views": [
+    "buffer",
+    "pressure",
+    "game"
+  ],
+  "cross_spread_note": "Book remains visible around the drawing window; no gutter shadow is painted over effect/game pixels.",
+  "opening": {
+    "frames": 13,
+    "step_ms": 70,
+    "render_strategy": "Reference animation only. Reconstruct from base book and a variable-width leaf; do not retain 13 full screens in DDR."
+  },
+  "fonts": "Existing font_cn.h and font5x7.h; large titles and hero previews use nearest integer scaling."
+}

@@ -1,0 +1,167 @@
+{
+  "canvas": [
+    640,
+    480
+  ],
+  "book_bounds": [
+    14,
+    18,
+    622,
+    462
+  ],
+  "cover_layer": {
+    "origin": [
+      170,
+      32
+    ],
+    "size": [
+      310,
+      416
+    ],
+    "color_key": 0
+  },
+  "open_book_layer": {
+    "origin": [
+      0,
+      0
+    ],
+    "size": [
+      640,
+      480
+    ],
+    "color_key": 0
+  },
+  "left_page_safe": [
+    42,
+    48,
+    256,
+    354
+  ],
+  "right_page_safe": [
+    342,
+    48,
+    256,
+    354
+  ],
+  "gutter_reserved": [
+    300,
+    42,
+    40,
+    366
+  ],
+  "navigation": [
+    "cover",
+    "home",
+    "basic / advanced",
+    "demo or game"
+  ],
+  "controls": {
+    "cover": "Enter opens the book",
+    "menu": "W/S select; Enter opens; A returns",
+    "home_back": "A closes the book in both firmware and prototype"
+  },
+  "game_view_proposal": [
+    8,
+    80,
+    624,
+    360
+  ],
+  "game_view_current": [
+    8,
+    80,
+    624,
+    360
+  ],
+  "game_layout_note": "Original fullscreen viewport retained; reference HUD and all game states are integrated, with solid background and frost sprites.",
+  "game_art": {
+    "style": "frost_pixel_v1",
+    "runtime_frames": 36,
+    "runtime_bytes": 73728,
+    "background_texture_bytes": 0
+  },
+  "game_background": {
+    "mode": "solid_fill",
+    "rgb565": 4229,
+    "texture_bytes": 0,
+    "removed_ddr_bytes": 483328,
+    "note": "Firmware also skips scenery/tile loading and wall rendering. Original source assets are preserved."
+  },
+  "book_views": [
+    "cover",
+    "home",
+    "basic",
+    "advanced"
+  ],
+  "fullscreen_demo_views": [
+    "fill",
+    "copy",
+    "buffer",
+    "key",
+    "alpha",
+    "pressure"
+  ],
+  "demo_regions": {
+    "copy_source": [
+      32,
+      176,
+      256,
+      192
+    ],
+    "copy_result": [
+      352,
+      176,
+      256,
+      192
+    ],
+    "effect_left": [
+      48,
+      192,
+      240,
+      192
+    ],
+    "effect_right": [
+      352,
+      192,
+      240,
+      192
+    ],
+    "fill_and_buffer": [
+      16,
+      176,
+      608,
+      224
+    ],
+    "pressure": [
+      0,
+      152,
+      640,
+      256
+    ]
+  },
+  "fullscreen_game_views": [
+    "game_ready",
+    "game_play",
+    "game_paused",
+    "game_upgrade",
+    "game_over",
+    "game_won"
+  ],
+  "cross_spread_views": [],
+  "cross_spread_note": "Only the cover and menus use a book. All demos and all game states are fullscreen.",
+  "opening": {
+    "frames": 121,
+    "step_ms": 20,
+    "motion_ms": 2400,
+    "frame_directory": "animation_smooth",
+    "render_strategy": "Reference animation only. Separate cover, body, curved leaf and clasp. Do not keep all full-screen frames in DDR."
+  },
+  "fonts": "Existing font_cn.h and font5x7.h; large titles and hero previews use nearest integer scaling.",
+  "runtime_menu_integrated": true,
+  "runtime_demo_skin_integrated": true,
+  "runtime_demo_preview": "runtime/fullscreen_demo_gallery.png",
+  "runtime_game_UI_integrated": true,
+  "runtime_scope": "Local HTML cover, menus and ready page match RGB565; complete fullscreen game UI integrated; FPGA scanline animation",
+  "current_release": "releases/reference_ui_20261116",
+  "board_tested": false,
+  "runtime_reference_manifest": "runtime/reference/manifest.json"
+}

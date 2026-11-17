@@ -1,0 +1,26 @@
+UI PASS bolt_glow_normal: 0 text/number fields
+UI PASS bolt_glow_piercing: 0 text/number fields
+UI PASS demo_0: 25 text/number fields
+UI PASS demo_1: 26 text/number fields
+UI PASS demo_2: 28 text/number fields
+UI PASS demo_3: 26 text/number fields
+UI PASS demo_4: 29 text/number fields
+UI PASS demo_5: 25 text/number fields
+UI PASS transparency_0_0: 29 text/number fields
+UI PASS transparency_0_100: 29 text/number fields
+UI PASS transparency_0_200: 29 text/number fields
+UI PASS transparency_0_255: 29 text/number fields
+UI PASS transparency_1_0: 29 text/number fields
+UI PASS transparency_1_100: 29 text/number fields
+UI PASS transparency_1_200: 29 text/number fields
+UI PASS transparency_1_255: 29 text/number fields
+UI PASS pressure: 22 text/number fields
+UI PASS game: 25 text/number fields
+UI PASS upgrade_0: 45 text/number fields
+UI PASS upgrade_1: 45 text/number fields
+UI PASS upgrade_max: 36 text/number fields
+UI PASS state_0: 35 text/number fields
+UI PASS state_3: 36 text/number fields
+UI PASS state_4: 36 text/number fields
+UI PASS state_5: 36 text/number fields
+UI CHECK PASSED: 25 demo/game previews; all6 menu routes (book pixels checked separately), wraparound and game entry; pressure entry never disables display; collision/edge/overflow guards; actual Sprite clipping, 256 enemies + 256 bolts, high-slot/off-screen/empty guards

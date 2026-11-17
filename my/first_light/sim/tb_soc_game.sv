@@ -32,14 +32,16 @@ module tb_soc;
         .pixel(pixel),.hs(hs),.vs(vs),.de(de));
     localparam BASE=32'h01000000,PAGE_BYTES=614400;
     localparam ASSET_BASE=32'h01200000,GAME_BASE=32'h01204000,BG=32'h01220000;
-    localparam GAME_BYTES=51200,MEM_BYTES=3145728;
+    `include "game_asset_size.vh"
+    `include "book_asset_size.vh"
+    localparam GAME_BYTES=`GAME_ASSET_BYTES,MEM_BYTES=3145728;
     reg [7:0] mem[0:MEM_BYTES-1],expected[0:MEM_BYTES-1];
     reg [15:0] game_expected[0:GAME_BYTES/2-1],player_expected[0:4095];
     integer bus_cycle=0,wa,ra,wl,rl,wb,rb,ws,rs;
     reg [7:0] wid,rid;
     reg writing=0,reading=0;
     integer present=0,acks=0,verified_scans=0,commands=0,blends=0,bg_copies=0,held_reads=0;
-    integer asset_writes=0,bg_writes=0,map_copies=0,page_present[0:1],previewed[0:1];
+    integer book_writes=0,asset_writes=0,bg_writes=0,map_copies=0,page_present[0:1],previewed[0:1];
     integer state_seen[0:6],game_frames=0,menu_count=0,state=-1,progress_file;
     integer game_fps=0,game_render_us=0,game_perf_samples=0;
     integer direction_mask=0,frame_mask=0,enemy_reads=0,orb_reads=0;
@@ -83,8 +85,8 @@ module tb_soc;
                     if(frame<16) begin
                         direction_mask=direction_mask|(1<<(frame/4)); frame_mask=frame_mask|(1<<(frame%4));
                     end
-                    if(frame>=16 && frame<=18 || frame==24) enemy_reads++;
-                    if(frame==21) orb_reads++;
+                    if(frame>=16 && frame<=18 || frame>=24 && frame<=30) enemy_reads++;
+                    if(frame==21 || frame==35) orb_reads++;
                     if(graphics.blend_ctrl!=3 || graphics.color_key!=0) $fatal(1,"Game needs Alpha + Key");
                 end
             end
@@ -106,7 +108,8 @@ module tb_soc;
     endtask
     task check_assets;
         begin
-        if(asset_writes!=65184) $fatal(1,"Game resources not uploaded once: %0d",asset_writes);
+        if(asset_writes!=2048+8192+2*(16+256+576+1024)+GAME_BYTES)
+            $fatal(1,"Game resources not uploaded once: %0d",asset_writes);
             for(integer n=0;n<4096;n++)
                 if({mem[ASSET_BASE-BASE+2048+n*2+1],mem[ASSET_BASE-BASE+2048+n*2]}!==player_expected[n])
                     $fatal(1,"Menu player asset mismatch");
@@ -121,7 +124,7 @@ module tb_soc;
             if(!((m_awaddr>=BASE && m_awaddr<BASE+2*PAGE_BYTES) ||
                  (m_awaddr>=ASSET_BASE && m_awaddr<GAME_BASE) ||
                  (m_awaddr>=GAME_BASE && m_awaddr<GAME_BASE+GAME_BYTES) ||
-                 (m_awaddr>=BG && m_awaddr<BG+524288))) $fatal(1,"Unexpected DDR write %h",m_awaddr);
+                 (m_awaddr>=`BOOK_ASSET_BASE && m_awaddr<`BOOK_ASSET_END))) $fatal(1,"Unexpected DDR write %h",m_awaddr);
             if(m_awaddr>=ASSET_BASE && m_awid[7]) $fatal(1,"Hardware overwrote assets");
             if(graphics.display_enable && m_awaddr<BASE+2*PAGE_BYTES &&
                ((m_awaddr>=BASE+PAGE_BYTES)==graphics.display_page_sync[1])) $fatal(1,"Front page write");
@@ -133,7 +136,8 @@ module tb_soc;
                 if(!wid[7]) expected[(wa&~15)+b]=m_wdata[8*b+:8];
                 else if(expected[(wa&~15)+b]!==m_wdata[8*b+:8]) $fatal(1,"Hardware pixel differs from independent blend/reference at %h",BASE+(wa&~15)+b);
                 mem[(wa&~15)+b]=m_wdata[8*b+:8];
-                if(wa>=BG-BASE) bg_writes++;
+                if(wa>=`BOOK_ASSET_BASE-BASE && wa<`BOOK_ASSET_END-BASE) book_writes++;
+                else if(wa>=BG-BASE) bg_writes++;
                 else if(wa>=ASSET_BASE-BASE) asset_writes++;
             end
             wa=(wa&~(ws-1))+ws; wb++;
@@ -188,7 +192,7 @@ module tb_soc;
         key_i=31; #2000;
     endtask
     task menu_key(input reg [4:0] mask);
-        integer previous_count; previous_count=present; tap(mask); wait(present>previous_count);
+        integer previous_count; previous_count=menu_count; tap(mask); wait(menu_count>previous_count);
     endtask
     task hold_key(input reg [4:0] mask,input integer frames);
         integer previous_count; previous_count=game_frames; key_i=~mask;
@@ -196,6 +200,7 @@ module tb_soc;
     endtask
     initial begin
         wait(present>=1 && verified_scans>=1);
+        tap(16); wait(menu_count>=1); // open the book before navigating
         menu_key(2); menu_key(2); tap(16); // root game entry
         wait(state_seen[0]>=1); tap(16); wait(state_seen[1]>=1);
         hold_key(8,15); hold_key(1,6); hold_key(4,6); hold_key(2,6);
@@ -203,9 +208,9 @@ module tb_soc;
         hold_key(10,5); tap(16); wait(state_seen[3]>=2); tap(4);
         wait(menu_count>=4); // 3 root redraws, then returned root.
         wait(previewed[graphics.display_page_active]==present && acks==present);
-        if(held_reads<15 || game_frames<20 || bg_copies<2 || map_copies<40 || floor_source_max<=floor_source_min || blends<20 || enemy_reads==0 || orb_reads==0 ||
+        if(held_reads<15 || game_frames<20 || bg_copies!=0 || map_copies!=0 || blends<20 || enemy_reads==0 || orb_reads==0 ||
            game_perf_samples==0 || game_fps<60 || game_render_us>=16667 ||
-           direction_mask!=15 || frame_mask!=15 || bg_writes!=524288)
+           direction_mask!=15 || frame_mask!=15 || bg_writes!=0)
             $fatal(1,"Missing game input/animation/asset/pause/camera coverage: dirs=%h frames=%h floor=%h..%h",direction_mask,frame_mask,floor_source_min,floor_source_max);
         if(graphics.underflow||graphics.read_error) $fatal(1,"Game scanout error");
         $display("SOC GAME TEST PASSED: %0d pages, %0d game frames, %0d verified HDMI scans, %0d commands, live keys, all directions/walk frames, enemy/orbit Alpha+Key, pause/resume/menu, no front writes; %0d sprite asset bytes, %0d background bytes",present,game_frames,verified_scans,commands,asset_writes,bg_writes);
@@ -251,5 +256,5 @@ module tb_soc;
         repeat(50) @(negedge clk); reset=0;
     end
     initial forever begin #10000000; $fdisplay(progress_file,"time=%0t present=%0d game_frames=%0d background=%0d",$time,present,game_frames,bg_writes); $fflush(progress_file); end
-    initial begin #(64'd5000000000); $fatal(1,"Game SoC timeout"); end
+    initial begin #(64'd10000000000); $fatal(1,"Game SoC timeout"); end
 endmodule

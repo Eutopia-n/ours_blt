@@ -1,4 +1,42 @@
-# 独立功能演示与人物资源（2026-10-19）
+# Enter 修复与本地预设对齐版（2026-11-16）
+
+Enter 停在封面的问题已修复：UI 完成信号保持到下一条指令，避免 CPU 漏读。六项演示的 16 种页面状态已按本地 HTML 排版核对；检查脚本为 `tools/check_demo_reference.py`，实时数值和移动测试区不作为静态像素对照。
+
+以 [魔法书交互预览.html](assets/ui/magic_book_v5/魔法书交互预览.html) 为视觉基准，封面和九个菜单状态在 RGB565 下逐像素一致。W/S 选择，Enter 打开章节或进入演示，A 返回；目录按 A 合书。六项功能演示、游戏准备/运行/暂停/强化/结算均为全屏。
+
+正式资源由 `tools/prepare_reference_ui.py` 导出到 `runtime/reference/`，无损压缩素材放在 FPGA ROM；绘制在 `software/book_menu.h`，动画在 `software/reference_book_animation.h`，游戏全屏界面在 `software/reference_game_ui.h`。新增 `rtl/ui_compositor.v` 执行缩放、明暗和透明合成；原填充/复制/混合功能继续使用原引擎。没有把整屏动画帧序列放入固件。开书按 2.4 秒、章节按 0.64 秒推进，慢帧会跳过过期姿态。
+
+`tools/check_reference_ui.py` 检查实际 C 页面与本地预设、资源解码、开书全部中间姿态、章节双向跳转及游戏状态；`tools/check_ui_compositor.py` 检查六组真实绘制指令的 FPGA 输出；`tools/check_ui_scanout.py` 检查开书绘制与 HDMI 同时运行；`tools/check_bench_entry.py` 检查菜单/压力页连续切换。
+
+新版下载目录：[reference_ui_fix_20261116](releases/reference_ui_fix_20261116/README.md)。尚未上板，请从串口 `BOOK FRAMES ... MS ...` 确认板卡动画耗时。原 1 MiB DDR 素材区与菜单缓存错时复用；游戏暂停遮罩使用的指令区暂借人物图集，暂停后会重新加载，已验证恢复后的图集和人物像素。
+
+填充、复制进入时默认 CPU，S 手动切换；详情页隐藏 DST。双缓冲页已移除 A/B 状态块，进入默认单缓冲撕裂，S 手动切换双缓冲防撕裂，不自动切换。速度三档为每帧 8/16/32 像素，每次进入默认低速 8。
+基础页的操作和指标以 [基础演示说明](BASIC_DEMO.md) 为准。
+颜色键、Alpha 两页改为 FPGA 硬件效果验证，删除 CPU/FPGA 对比，见 [高阶两页说明](EFFECTS_DEMO.md)。游戏界面采用全屏新布局，玩法及压测的数量五步与 MAX60 判定保留。
+Alpha 初始透明度 255/255；Sprite 压测初始 32×32，D 按 32→24→16→4→32 循环降档；数量五步和 MAX60 判定保持。
+下文的旧基础页面布局和 W/D 操作是历史说明。
+
+透明混合页：W 每次增加透明度 5，D 每次减少 5；短按、长按连发均使用同一步长，
+范围 0～255 饱和。0/255 为完全不透明，255/255 为完全透明；显示值越大，背景越明显。
+CPU 和 FPGA 演示统一使用 `Alpha = 255 - 页面透明度`，不改变游戏的 Alpha 参数。
+压测页：W 每次增加 5 个 Sprite，S 每次减少 5 个；仍从 1 个开始、最低 1 个，
+即 1→6→11，数量改变后重开性能采样。四档尺寸、长按节奏及 MAX60 判定保持原样。
+本轮验证记录见 [步长与透明度修正](reports/demo_controls_5_20261031.md)。
+
+首页为基础演示、高阶演示、冰霜幸存者。基础演示仅保留矩形填充、图像复制、
+双缓冲三项；高阶演示保留颜色键、透明混合、SPRITE压力三项。视频模式演示已删除。
+W/S选择，Enter进入，A返回；游戏进行中W/S/A/D移动，Enter暂停。
+
+当前CPU/renderer为150MHz、程序RAM为128KiB。实际HDMI尺寸测量、帧计数和扫描
+仍供其他功能使用，未删除。具体改动和验收见[本版记录](reports/enemy270_validation.md)。
+
+菜单验证使用tools/check_ui.py检查真实菜单函数的六项跳转、双向循环及游戏入口。
+tools/check_soc_ram_boot.py检查真实CPU启动。sim/tb_soc.sv仍是旧七项演示/旧按键映射
+的历史测试，本版没有将其作为验收依据。
+
+以下为历史说明，数量、时钟和旧验证记录不代表本版。
+
+## 独立功能演示与人物资源历史（2026-10-19）
 
 工程入口：`first_light.xml`。固件入口：`software/main.c`。
 

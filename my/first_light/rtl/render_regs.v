@@ -24,6 +24,10 @@ module render_regs #(
     output reg draw_page, output reg swap_page, output reg swap_toggle,
     output reg [15:0] width, height, color
 );
+    `include "rtl/ui_rom_size.vh"
+    wire [31:0] ui_rom_q;
+    reg [12:0] ui_rom_address;
+    ui_asset_rom assets(.clk(clk),.address(ui_rom_address),.data(ui_rom_q));
     wire transfer = psel && penable;
     wire wr = transfer && pwrite;
     wire swap_pending = swap_toggle != swap_ack;
@@ -32,19 +36,20 @@ module render_regs #(
         paddr == 32 || paddr == 36 || paddr == 40 || paddr == 44 ||
         paddr == 48 || paddr == 52 || paddr == 56 || paddr == 60 ||
         paddr == 64 || paddr == 68 || paddr == 72 || paddr == 76 ||
-        paddr == 80 || paddr == 84 || paddr == 88 || paddr == 92 || paddr == 96 || paddr == 100 || paddr == 104 || paddr == 108 || paddr == 112 || paddr == 116;
+        paddr == 80 || paddr == 84 || paddr == 88 || paddr == 92 || paddr == 96 || paddr == 100 || paddr == 104 || paddr == 108 || paddr == 112 || paddr == 116 || paddr == 128 || paddr == 132;
         // 0x5c/0x60 are read-only hardware AXI burst counters.
     wire writable = paddr == 8 || paddr == 12 || paddr == 16 || paddr == 20 ||
         paddr == 24 || paddr == 28 || paddr == 32 || paddr == 48 || paddr == 52 ||
         paddr == 56 || paddr == 60 || paddr == 64 || paddr == 76 ||
-        paddr == 80 || paddr == 84 || paddr == 88;
+        paddr == 80 || paddr == 84 || paddr == 88 || paddr == 128;
     assign pready = 1'b1;
     assign pslverror = transfer && (!known || paddr[1:0] != 0 ||
         (pwrite && (!writable || busy || start ||
          (swap_pending && (paddr == 60 || paddr == 64 || paddr == 8)) ||
          (paddr == 8 && pwdata != 1) || (paddr == 32 && pwdata > 1) ||
-         (paddr == 48 && pwdata > 2) || (paddr == 56 && pwdata > 1) ||
+         (paddr == 48 && pwdata > 3) || (paddr == 56 && pwdata > 1) ||
          (paddr == 60 && pwdata > 1) || (paddr == 64 && pwdata != 1) ||
+         (paddr == 128 && pwdata >= `UI_ROM_WORDS) ||
          (paddr == 80 && pwdata[31:2] != 0))));
     always @* begin
         case (paddr)
@@ -79,12 +84,14 @@ module render_regs #(
         108: prdata = video_frame_count; // Display refresh epochs, not rendered FPS.
         112: prdata = ddr_read_wait_cycles;
         116: prdata = ddr_write_wait_cycles;
+        128: prdata = ui_rom_address;
+        132: prdata = ui_rom_q;
         default: prdata = 0;
         endcase
     end
     always @(posedge clk) begin
         if (reset) begin
-            start <= 0; display_enable <= 0;
+            start <= 0; display_enable <= 0;ui_rom_address<=0;
             operation <= 0; src <= 32'h01000000; dst <= 32'h01000000; stride <= 1280;
             src_stride <= 1280; // Preserve old framebuffer-only firmware.
             blend_ctrl <= 0; blend_alpha <= 8'd255; color_key <= 0;
@@ -93,6 +100,7 @@ module render_regs #(
         end else begin
             start <= 0;
             if (wr && !pslverror) case (paddr)
+            128: ui_rom_address <= pwdata[12:0];
             8: start <= 1;
             12: dst <= pwdata;
             16: width <= pwdata[15:0];

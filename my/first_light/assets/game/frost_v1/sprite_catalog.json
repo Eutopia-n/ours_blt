@@ -1,0 +1,218 @@
+[
+  {
+    "index": 0,
+    "name": "player_down_0",
+    "png": "png/player_down_0.png",
+    "rgb565": "rgb565/player_down_0.rgb565"
+  },
+  {
+    "index": 1,
+    "name": "player_down_1",
+    "png": "png/player_down_1.png",
+    "rgb565": "rgb565/player_down_1.rgb565"
+  },
+  {
+    "index": 2,
+    "name": "player_down_2",
+    "png": "png/player_down_2.png",
+    "rgb565": "rgb565/player_down_2.rgb565"
+  },
+  {
+    "index": 3,
+    "name": "player_down_3",
+    "png": "png/player_down_3.png",
+    "rgb565": "rgb565/player_down_3.rgb565"
+  },
+  {
+    "index": 4,
+    "name": "player_left_0",
+    "png": "png/player_left_0.png",
+    "rgb565": "rgb565/player_left_0.rgb565"
+  },
+  {
+    "index": 5,
+    "name": "player_left_1",
+    "png": "png/player_left_1.png",
+    "rgb565": "rgb565/player_left_1.rgb565"
+  },
+  {
+    "index": 6,
+    "name": "player_left_2",
+    "png": "png/player_left_2.png",
+    "rgb565": "rgb565/player_left_2.rgb565"
+  },
+  {
+    "index": 7,
+    "name": "player_left_3",
+    "png": "png/player_left_3.png",
+    "rgb565": "rgb565/player_left_3.rgb565"
+  },
+  {
+    "index": 8,
+    "name": "player_right_0",
+    "png": "png/player_right_0.png",
+    "rgb565": "rgb565/player_right_0.rgb565"
+  },
+  {
+    "index": 9,
+    "name": "player_right_1",
+    "png": "png/player_right_1.png",
+    "rgb565": "rgb565/player_right_1.rgb565"
+  },
+  {
+    "index": 10,
+    "name": "player_right_2",
+    "png": "png/player_right_2.png",
+    "rgb565": "rgb565/player_right_2.rgb565"
+  },
+  {
+    "index": 11,
+    "name": "player_right_3",
+    "png": "png/player_right_3.png",
+    "rgb565": "rgb565/player_right_3.rgb565"
+  },
+  {
+    "index": 12,
+    "name": "player_up_0",
+    "png": "png/player_up_0.png",
+    "rgb565": "rgb565/player_up_0.rgb565"
+  },
+  {
+    "index": 13,
+    "name": "player_up_1",
+    "png": "png/player_up_1.png",
+    "rgb565": "rgb565/player_up_1.rgb565"
+  },
+  {
+    "index": 14,
+    "name": "player_up_2",
+    "png": "png/player_up_2.png",
+    "rgb565": "rgb565/player_up_2.rgb565"
+  },
+  {
+    "index": 15,
+    "name": "player_up_3",
+    "png": "png/player_up_3.png",
+    "rgb565": "rgb565/player_up_3.rgb565"
+  },
+  {
+    "index": 16,
+    "name": "frost_slime_0",
+    "png": "png/frost_slime_0.png",
+    "rgb565": "rgb565/frost_slime_0.rgb565"
+  },
+  {
+    "index": 17,
+    "name": "bone_acolyte_0",
+    "png": "png/bone_acolyte_0.png",
+    "rgb565": "rgb565/bone_acolyte_0.rgb565"
+  },
+  {
+    "index": 18,
+    "name": "rune_bat_0",
+    "png": "png/rune_bat_0.png",
+    "rgb565": "rgb565/rune_bat_0.rgb565"
+  },
+  {
+    "index": 19,
+    "name": "xp_crystal",
+    "png": "png/xp_crystal.png",
+    "rgb565": "rgb565/xp_crystal.rgb565"
+  },
+  {
+    "index": 20,
+    "name": "power_seal",
+    "png": "png/power_seal.png",
+    "rgb565": "rgb565/power_seal.rgb565"
+  },
+  {
+    "index": 21,
+    "name": "orbit_crystal_0",
+    "png": "png/orbit_crystal_0.png",
+    "rgb565": "rgb565/orbit_crystal_0.rgb565"
+  },
+  {
+    "index": 22,
+    "name": "cast_scroll",
+    "png": "png/cast_scroll.png",
+    "rgb565": "rgb565/cast_scroll.rgb565"
+  },
+  {
+    "index": 23,
+    "name": "healing_heart",
+    "png": "png/healing_heart.png",
+    "rgb565": "rgb565/healing_heart.rgb565"
+  },
+  {
+    "index": 24,
+    "name": "frost_guardian_0",
+    "png": "png/frost_guardian_0.png",
+    "rgb565": "rgb565/frost_guardian_0.rgb565"
+  },
+  {
+    "index": 25,
+    "name": "crown_guardian_0",
+    "png": "png/crown_guardian_0.png",
+    "rgb565": "rgb565/crown_guardian_0.rgb565"
+  },
+  {
+    "index": 26,
+    "name": "frost_slime_1",
+    "png": "png/frost_slime_1.png",
+    "rgb565": "rgb565/frost_slime_1.rgb565"
+  },
+  {
+    "index": 27,
+    "name": "bone_acolyte_1",
+    "png": "png/bone_acolyte_1.png",
+    "rgb565": "rgb565/bone_acolyte_1.rgb565"
+  },
+  {
+    "index": 28,
+    "name": "rune_bat_1",
+    "png": "png/rune_bat_1.png",
+    "rgb565": "rgb565/rune_bat_1.rgb565"
+  },
+  {
+    "index": 29,
+    "name": "frost_guardian_1",
+    "png": "png/frost_guardian_1.png",
+    "rgb565": "rgb565/frost_guardian_1.rgb565"
+  },
+  {
+    "index": 30,
+    "name": "crown_guardian_1",
+    "png": "png/crown_guardian_1.png",
+    "rgb565": "rgb565/crown_guardian_1.rgb565"
+  },
+  {
+    "index": 31,
+    "name": "swift_boots",
+    "png": "png/swift_boots.png",
+    "rgb565": "rgb565/swift_boots.rgb565"
+  },
+  {
+    "index": 32,
+    "name": "crystal_magnet",
+    "png": "png/crystal_magnet.png",
+    "rgb565": "rgb565/crystal_magnet.rgb565"
+  },
+  {
+    "index": 33,
+    "name": "xp_cluster",
+    "png": "png/xp_cluster.png",
+    "rgb565": "rgb565/xp_cluster.rgb565"
+  },
+  {
+    "index": 34,
+    "name": "xp_crown",
+    "png": "png/xp_crown.png",
+    "rgb565": "rgb565/xp_crown.rgb565"
+  },
+  {
+    "index": 35,
+    "name": "orbit_crystal_1",
+    "png": "png/orbit_crystal_1.png",
+    "rgb565": "rgb565/orbit_crystal_1.rgb565"
+  }
+]

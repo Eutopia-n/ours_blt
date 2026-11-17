@@ -31,3 +31,7 @@
 - 中文字形使用 [TakWolf/fusion-pixel-font](https://github.com/TakWolf/fusion-pixel-font) 的 Fusion Pixel 12px zh_Hans 点阵字形；当前实际使用的字符子集保存在 [software/font_cn.h](software/font_cn.h)，按 12×12 点阵绘制并置于现有 14×14 字符单元中央。
 - 上游字体版本为 `2026.10.25`，字体授权为 SIL Open Font License 1.1；许可证副本保存在 [third_party/fusion-pixel-font/OFL.txt](third_party/fusion-pixel-font/OFL.txt)。本项目仅保留界面需要的字形，不包含完整上游字库。
 - 字库作为 C 头文件编译进片内固件，不依赖字体运行时，也不会读取外部字体文件。需要更新字形时，可按 [third_party/fusion-pixel-font/README.md](third_party/fusion-pixel-font/README.md) 的步骤重新生成。
+
+## 已选地牢背景
+
+W1围墙与F1A地砖来自本次会话内置image_gen生成并经用户选用的图像，非Kenney素材。当前只使用W1围墙；F1A地砖保留原图但已移出运行场景。批准原图、生成记录及确定性编译过程见[assets/dungeon](assets/dungeon/README.md)。本工程不将其标为CC0/MIT素材。

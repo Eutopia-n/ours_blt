@@ -1,0 +1,65 @@
+{
+  "status": "PASS",
+  "runtime_frames": 36,
+  "runtime_texture_bytes": 73728,
+  "added_texture_bytes": 22528,
+  "background_texture_bytes": 0,
+  "background_bytes_not_loaded": 483328,
+  "reserve_frames": 9,
+  "reserve_loaded": false,
+  "player_frames_byte_identical": true,
+  "healing_heart_redesigned": true,
+  "RLE_roundtrip": true,
+  "binary_alpha": true,
+  "firmware_before_art": {
+    "text": 69984,
+    "data": 12,
+    "bss": 16940,
+    "total": 86936
+  },
+  "firmware_after_art": {
+    "text": 75848,
+    "data": 12,
+    "bss": 16940,
+    "total": 92800
+  },
+  "firmware_added_bytes": 5864,
+  "stack_reserve_bytes": 4096,
+  "on_chip_spare_after_stack": 7720,
+  "sprite_crop_cases": 108368,
+  "background_restore_frames": 360,
+  "ui_host_previews": 29,
+  "game_logic_parity_ticks": 30000,
+  "board_tested": false,
+  "full_FPGA_build_done": true,
+  "new_book_UI_integrated": true,
+  "ram_init_files_match": true,
+  "full_FPGA_build": {
+    "status": "PASS",
+    "stages": [
+      "map",
+      "interface",
+      "pnr",
+      "pgm"
+    ],
+    "cpu_mhz": 150,
+    "setup_min_ns": 0.076,
+    "hold_min_ns": 0.024,
+    "release": "releases/fullscreen_art_20261116",
+    "bit_sha256": "afc044871464ad175cfef1be42718150197db491d4f295bdcfae8b8424a3c7d4",
+    "hex_sha256": "ed8313efd2428b6c695dd1b61e0be64abde40a9e4d154fb00627854e4c144298"
+  },
+  "current_firmware": {
+    "text": 95448,
+    "data": 36,
+    "bss": 21228,
+    "static_total": 116712,
+    "stack_reserve": 4096,
+    "spare_after_stack": 10264
+  },
+  "book_menu_integrated": true,
+  "book_UI_scope": "Reference cover and menus, hardware animation and complete fullscreen game UI integrated",
+  "fullscreen_demo_skin_integrated": true,
+  "current_release": "reference_ui_fix_20261116",
+  "fullscreen_game_HUD_skin_integrated": true
+}

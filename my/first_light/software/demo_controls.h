@@ -1,12 +1,14 @@
 #ifndef DEMO_CONTROLS_H
 #define DEMO_CONTROLS_H
 #include <stdint.h>
+#include "soc.h"
 
-#define DEMO_ALPHA_REPEAT_DELAY 30000000u
-#define DEMO_ALPHA_REPEAT_PERIOD 12000000u
-#define DEMO_ALPHA_STEP 1u
-#define DEMO_BENCH_REPEAT_DELAY 30000000u
-#define DEMO_BENCH_REPEAT_PERIOD 6000000u
+#define DEMO_ALPHA_REPEAT_DELAY (SYSTEM_CLINT_HZ*3u/10u)
+#define DEMO_ALPHA_REPEAT_PERIOD (SYSTEM_CLINT_HZ*12u/100u)
+#define DEMO_ALPHA_STEP 5u
+#define DEMO_BENCH_STEP 5u
+#define DEMO_BENCH_REPEAT_DELAY (SYSTEM_CLINT_HZ*3u/10u)
+#define DEMO_BENCH_REPEAT_PERIOD (SYSTEM_CLINT_HZ*6u/100u)
 
 static uint32_t demo_bench_update(uint32_t value,uint32_t pressed,uint32_t held,
                                   uint32_t now,uint32_t *next_repeat,
@@ -30,8 +32,8 @@ static uint32_t demo_bench_update(uint32_t value,uint32_t pressed,uint32_t held,
         // At most one change per frame; do not replay a backlog after a stall.
         *next_repeat=now+DEMO_BENCH_REPEAT_PERIOD;
     }
-    if(direction>0) return value<UINT32_MAX ? value+1u : value;
-    return value>1u ? value-1u : 1u;
+    if(direction>0) return value<=UINT32_MAX-DEMO_BENCH_STEP ? value+DEMO_BENCH_STEP : UINT32_MAX;
+    return value>1u+DEMO_BENCH_STEP ? value-DEMO_BENCH_STEP : 1u;
 }
 
 static uint32_t demo_alpha_update(uint32_t value,uint32_t pressed,uint32_t held,
@@ -44,7 +46,7 @@ static uint32_t demo_alpha_update(uint32_t value,uint32_t pressed,uint32_t held,
     if(direction) {
         *repeat_direction=direction;
         *next_repeat=now+DEMO_ALPHA_REPEAT_DELAY;
-        if(direction>0) return value<255u ? value+DEMO_ALPHA_STEP : 255u;
+        if(direction>0) return value<255u-DEMO_ALPHA_STEP ? value+DEMO_ALPHA_STEP : 255u;
         return value>DEMO_ALPHA_STEP ? value-DEMO_ALPHA_STEP : 0u;
     }
     if(!(held&5u)) { *next_repeat=0; *repeat_direction=0; return value; }
@@ -55,7 +57,7 @@ static uint32_t demo_alpha_update(uint32_t value,uint32_t pressed,uint32_t held,
     if(!*next_repeat) { *next_repeat=now+DEMO_ALPHA_REPEAT_DELAY; return value; }
     if((int32_t)(now-*next_repeat)>=0) {
         *next_repeat=now+DEMO_ALPHA_REPEAT_PERIOD;
-        if(direction>0) return value<255u ? value+DEMO_ALPHA_STEP : 255u;
+        if(direction>0) return value<255u-DEMO_ALPHA_STEP ? value+DEMO_ALPHA_STEP : 255u;
         return value>DEMO_ALPHA_STEP ? value-DEMO_ALPHA_STEP : 0u;
     }
     return value;

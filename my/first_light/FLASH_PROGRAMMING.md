@@ -1,35 +1,28 @@
-# SPI Flash 掉电启动
+# 下载与 SPI Flash 启动
 
-工程将 RISC-V 固件和图片初始化数据嵌入 FPGA bitstream。`compile` 只在电脑生成 bitstream，断电后会消失；要让板卡独立上电启动，需把配置写入 Ti60 板载 SPI Flash 一次。
+当前文件：[first_light.hex](releases/demo_buffer_slow_20261101/first_light.hex)、[first_light.bit](releases/demo_buffer_slow_20261101/first_light.bit)。bitstream 已包含 RISC-V 固件与初始化素材。
 
-## 编程步骤
+## JTAG 连接下写 Flash
 
-1. 用最新工程编译：
+在 Efinity Programmer 中：
 
-   ```powershell
-   python tools/build.py firmware
-   python tools/build.py compile
-   ```
+1. USB Target 选择已连接板卡，Image 选择上面的 HEX。
+2. Programming Mode 选 SPI Active using JTAG Bridge（单路 SPI，本工程 width=1）。
+3. 勾选 Auto configure JTAG Bridge Image，使用软件为 Ti60 自动匹配的桥接文件。
+4. Starting Flash Address 为 0x00000000，Flash Length 保持默认，勾选 Erase Before Programming，校验选 Normal verify，JTAG 时钟先保持默认。
+5. 点击 Program Flash / Start Program，完成写入与校验后按配置复位键或重新上电启动。
 
-2. 接好 Ti60 板卡电源与 JTAG 下载器，打开 PowerShell 并切换到 `my/first_light` 工程目录。
-3. 执行下面命令写 SPI Flash：
+桥接文件是 Efinity 自带的 Flash loader，使用本机同版本软件自动匹配，不把它替换成项目应用 bit。通过专用 SPI 下载连接时，按板卡连接方式使用 SPI Active 模式。
 
-   ```powershell
-   python tools/build.py flash
-   ```
+## 临时运行与重新构建
 
-   此命令使用 Efinity 的 `--flow program --pgm_opts mode=jtag_bridge`，通过 JTAG bridge 将 Active 配置写入 SPI Flash。它会更改板卡的 Flash 内容，运行时保持供电并等待 Programmer 报告成功。日志保存在 `reports/flash_program.log`。
+临时运行选择 JTAG 模式和 BIT，当前上电期间运行；HEX 写入 Flash 后可掉电保留。compile 只在电脑生成文件，不连接或烧写板卡。
 
-4. Programmer 显示成功后，板卡配置已写入 SPI Flash。以后正常使用时给板卡上电即可，不用每次重新下载；若需要确认启动模式，可另行断电重上电观察首页。
+```powershell
+python tools/build.py firmware --efinity C:/Efinity/efinity-riscv-ide-2026.1
+& C:/Efinity/2026.1/bin/efx_run.bat first_light.xml --flow compile
+```
 
-## 使用 Efinity 图形界面
+路径按本机安装位置调整。需要命令行写 Flash 时可执行 `python tools/build.py flash --efinity C:/Efinity/2026.1`；该步骤会改写板卡 Flash，仅在准备下载且连接、供电正常时运行。
 
-也可以在 Efinity Programmer 中手动编程：先运行 `python tools/build.py compile`，再打开 Efinity Programmer，选择 Ti60 下载器和本工程的 `outflow/first_light.hex`，将配置模式设为 Active/JTAG bridge（SPI Flash），启动 Program 并等待成功提示。不要选仅把 `.bit` 临时装入 FPGA 的 volatile/JTAG 配置模式，那种方式断电会丢失。
-
-## 区分临时下载与掉电配置
-
-- `python tools/build.py compile`：综合并生成 `outflow/first_light.bit`，不连接板卡、不写 Flash。
-- Efinity Programmer 的临时 JTAG 配置：当前上电期间可运行，断电后配置丢失。
-- `python tools/build.py flash`：连接板卡并写 SPI Flash，成功后才具备掉电保留条件。
-
-若 Programmer 找不到下载器，先检查 USB/JTAG 线、板卡供电和设备管理器里的易灵思下载器驱动，再重试 `python tools/build.py flash`。若只想临时运行，直接在 Efinity Programmer 选 FPGA 的 JTAG 配置方式并载入 `outflow/first_light.bit`；该方式断电后需要重新配置。
+官方设置参考：[Efinity Programmer User Guide](https://www.efinixinc.com/docs/efinity-pgm-v4.3.pdf)。
