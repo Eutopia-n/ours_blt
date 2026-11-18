@@ -1,0 +1,29 @@
+{
+  "previous_capacity": 256,
+  "capacity": 512,
+  "previous_record_bytes": 20,
+  "record_bytes": 12,
+  "previous_pool_bytes": 5120,
+  "pool_bytes": 6144,
+  "additional_static_bytes": 1024,
+  "source_sha256": {
+    "software/survivor_game.h": "8ea283b9c90bf7dc32eaba9715445474ee2c1181a1a04f3e542e7109c0722399",
+    "software/survivor_game.c": "377491fdfd38453e2ef6df58831be9e9cf2e79f8c11570946ed587a32f75335a",
+    "software/game_view.h": "2141aa108c0d4d60eec2fea685527e849c191a7e9c265ff1ea9840022762f117",
+    "sim/test_survivor_game.c": "5cc0c61ea21a7bbc250d4c3a801fe450e1876defe7aff61797aa36b3ba606f2d",
+    "tools/check_bolt_capacity.py": "2c4a31e819b09f1de680d3fb4cf19186452ed0126e7fe10006222ab68f563b05"
+  },
+  "enemy_capacity": 384,
+  "crown_attackers": 2,
+  "checks": [
+    "full pool rejects without replacing a live bolt",
+    "last slot 511 can be reused",
+    "last-slot collision",
+    "unsigned coordinate crosses bit 15",
+    "signed 32-bit edge checks before narrowing",
+    "512 independent Q5 trajectories",
+    "diagonal separation, steering decay, coincident pair and full pools at a world corner",
+    "30000 deterministic gameplay ticks"
+  ],
+  "board_performance_measured": false
+}

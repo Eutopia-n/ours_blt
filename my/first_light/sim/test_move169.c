@@ -64,6 +64,17 @@ int main(void) {
         assert(magnitude(vx*dy-vy*dx)<=magnitude(dx)+magnitude(dy));
         assert(magnitude(4*magnitude(vx)+3*magnitude(vy)-4*speed)<7);
     }
+    uint32_t seed=1;
+    for(unsigned i=0;i<100000u;++i) {
+        seed=1664525u*seed+1013904223u;int dx=(int)(seed>>15)-65536;
+        seed=1664525u*seed+1013904223u;int dy=(int)(seed>>15)-65536;
+        int speed=1+(int)(i%68u),vx,vy;
+        if(!dx)continue;
+        int norm=magnitude(dx)*GAME_MOTION_Y_NUM+magnitude(dy)*GAME_MOTION_Y_DEN;
+        enemy_direction_step(dx,dy,speed,i,&vx,&vy);
+        assert(vx==dx*speed*(int)GAME_MOTION_Y_NUM/norm);
+        assert(vy==dy*speed*(int)GAME_MOTION_Y_NUM/norm);
+    }
     // Three-tick fractions do not leak between frames, pauses or games.
     for(int speed=-768;speed<=768;speed++) {
         int sum=0;for(unsigned t=0;t<3;t++)sum+=motion_vertical_step(speed,t);
@@ -76,6 +87,6 @@ int main(void) {
     assert(g.y==(GAME_WORLD_Y_MIN+16)*256);
     int vx,vy;direction_step(0,1000,224,&vx,&vy);assert(!vx && vy==224);
     direction_step(1000,0,224,&vx,&vy);assert(vx==224 && !vy);
-    puts("MOVE169 TESTS PASSED: player/5 enemy physical axis equality, base/upgraded/dash/diagonal/opposite keys, weighted pursuit heading, exact three-tick fractions, camera/boundary/pause, original projectile direction");
+    puts("MOVE169 TESTS PASSED: player/5 enemy physical axis equality, weighted pursuit, 100000 exact one-division comparisons, and original projectile direction");
     return 0;
 }

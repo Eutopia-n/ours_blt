@@ -1,0 +1,496 @@
+--- a/software/survivor_game.h
++++ b/software/survivor_game.h
+@@ -2,14 +2,16 @@
+ #define SURVIVOR_GAME_H
+ #include <stdint.h>
+ 
+-#define GAME_MAX_ENEMIES 256
+-#define GAME_MAX_BOLTS 256
++#define GAME_MAX_ENEMIES 384
++#define GAME_MAX_BOLTS 512
+ #define GAME_SPAWN_SLOW_ENTER 512u
+ #define GAME_SPAWN_SLOW_EXIT 448u
+ #define GAME_SPAWN_SLOW_FACTOR 2u
+ #define GAME_MAX_GEMS 96
+ #define GAME_MAX_ORBITS 4u
+-#define GAME_MAX_SPRITES (1u+GAME_MAX_ENEMIES+GAME_MAX_BOLTS+GAME_MAX_GEMS+GAME_MAX_ORBITS)
++#define GAME_CROWN_ATTACKERS 2u
++#define GAME_CROWN_WARN_TICKS 24u
++#define GAME_MAX_SPRITES (1u+GAME_MAX_ENEMIES+GAME_MAX_BOLTS+GAME_MAX_GEMS+GAME_MAX_ORBITS+2u*GAME_CROWN_ATTACKERS)
+ // 640x480 (4:3) stretched to a full 16:9 monitor: vertical motion x4/3.
+ // Set both to 1 for an aspect-preserving 4:3 display.
+ #define GAME_MOTION_Y_NUM 4u
+@@ -28,17 +30,41 @@
+ #define GAME_WORLD_X_MAX (GAME_WORLD_WIDTH-16)
+ #define GAME_WORLD_Y_MIN 16
+ #define GAME_WORLD_Y_MAX (GAME_WORLD_HEIGHT-16)
+-enum { GAME_READY, GAME_PLAY, GAME_UPGRADE, GAME_PAUSED, GAME_OVER, GAME_WON, GAME_EXIT };
+-enum { UPGRADE_POWER, UPGRADE_RATE, UPGRADE_ORBIT, UPGRADE_SPEED, UPGRADE_MAGNET, UPGRADE_HEAL };
++enum { GAME_READY, GAME_PLAY, GAME_UPGRADE, GAME_PAUSED, GAME_OVER, GAME_WON, GAME_EXIT, GAME_ALTAR };
++enum { UPGRADE_POWER, UPGRADE_RATE, UPGRADE_ORBIT, UPGRADE_SPEED, UPGRADE_MAGNET, UPGRADE_HEAL, GAME_UPGRADE_COUNT };
++enum { RELIC_NONE, RELIC_ICE, RELIC_SHIELD, RELIC_DECOY };
++enum { CHEST_LOCKED, CHEST_KEY_DROPPED, CHEST_KEY_HELD, CHEST_OFFER, CHEST_OPEN };
++#define GAME_ALTAR_X (GAME_WORLD_WIDTH/2)
++#define GAME_ALTAR_Y (GAME_WORLD_HEIGHT/2)
++#define GAME_CHEST_X (GAME_WORLD_WIDTH/2+216)
++#define GAME_CHEST_Y (GAME_WORLD_HEIGHT/2)
++#define GAME_SHIELD_PICKUPS 8u
++#define GAME_DECOY_KILLS 12u
+ 
+ /* flash is a short hit flash followed by a longer health-bar display window. */
+-typedef struct { int32_t x,y; uint8_t hp,max_hp,kind,flash; } GameEnemy;
+-typedef struct { int32_t x,y,vx,vy; uint16_t life; uint8_t damage,pierce; } GameBolt;
++typedef struct { uint16_t x,y; uint8_t hp,max_hp,kind,flash; } GameEnemy;
++typedef char GameEnemyStorageSize[(sizeof(GameEnemy)==8u)?1:-1];
++/* Q5 world positions fit unsigned 16 bits (the 2048-pixel world needs bit 15).
++ * Velocity remains signed Q5. Tick arithmetic uses int32_t before bounds checks,
++ * so crossing a world edge cannot wrap a live bolt to the opposite edge. */
++typedef struct { uint16_t x,y; int16_t vx,vy; uint16_t life; uint8_t damage,pierce; } GameBolt;
++typedef struct { GameBolt bolt; uint16_t slot,fire_at; } GameCrownAttack;
++typedef char GameBoltStorageSize[(sizeof(GameBolt)==12u)?1:-1];
++typedef char GameBoltWorldBounds[(GAME_WORLD_X_MIN>=0 && GAME_WORLD_Y_MIN>=0 &&
++    GAME_WORLD_X_MAX*32<=65535 && GAME_WORLD_Y_MAX*32<=65535)?1:-1];
+ /* kind 0 is XP; kind 1 is a healing rune. World coordinates fit signed 16-bit. */
+ typedef struct { int16_t x,y; uint16_t value; uint8_t kind,pad; } GameGem;
++typedef struct { int16_t x,y; uint16_t until; } GameRelicZone;
++/* The pressure demo and gameplay run in separate scene loops. */
++typedef union {
++    uint16_t enemy_used_cells[GAME_MAX_ENEMIES];
++    uint32_t bench_tile_cursor[180];
++} SceneScratch;
++extern SceneScratch scene_scratch;
+ typedef struct {
+     GameEnemy enemies[GAME_MAX_ENEMIES];
+     GameBolt bolts[GAME_MAX_BOLTS];
++    GameCrownAttack crown[GAME_CROWN_ATTACKERS];
+     GameGem gems[GAME_MAX_GEMS];
+     int32_t x,y; // Q8 fixed point centres. No FPU, dynamic allocation or sqrt.
+     uint32_t ticks,rng,kills,spawned,damage_taken,shots,pickups;
+@@ -46,8 +72,13 @@
+     uint16_t speed,damage,attack_period,magnet;
+     uint16_t enemy_count,bolt_count,gem_count,peak_enemies,peak_sprites;
+     uint8_t state,resume_state,direction,walk_frame,orbit_count,choice,options[3],moving;
+-    uint8_t upgrade_level[6],bolt_pierce,orbit_damage,regeneration,magnet_all,dash,rapid_burst;
++    uint8_t upgrade_level[GAME_UPGRADE_COUNT],bolt_pierce,orbit_damage,regeneration,magnet_all,dash,rapid_burst;
+     uint8_t spawn_slow; // Spawn-rate hysteresis, independent of drawing.
++    uint8_t chest_state,relic,relic_charge,relic_slot;
++    int16_t key_x,key_y;
++    uint16_t relic_at;
++    uint32_t decoy_next_kills;
++    GameRelicZone relic_zones[2];
+     // Cached Q5 separation steering, recomputed in four interleaved groups.
+     int8_t enemy_steer[GAME_MAX_ENEMIES][2];
+ } SurvivorGame;
+@@ -58,6 +89,7 @@
+ void game_orbit_position(const SurvivorGame *g,uint32_t index,int32_t *x,int32_t *y);
+ int32_t game_camera_x(const SurvivorGame *g);
+ int32_t game_camera_y(const SurvivorGame *g);
++int game_near_altar(const SurvivorGame *g);
+ uint32_t game_sprite_count(const SurvivorGame *g);
+ const char *game_upgrade_name(uint32_t upgrade);
+ const char *game_upgrade_detail(uint32_t upgrade);
+--- a/software/survivor_game.c
++++ b/software/survivor_game.c
+@@ -28,6 +28,9 @@
+ static int overlap(int32_t ax,int32_t ay,int32_t bx,int32_t by,int32_t radius) {
+     return magnitude(ax-bx)<radius && magnitude(ay-by)<radius;
+ }
++int game_near_altar(const SurvivorGame *g) {
++    return overlap(g->x/256,g->y/256,GAME_ALTAR_X,GAME_ALTAR_Y,72);
++}
+ static void direction_step(int32_t dx,int32_t dy,int32_t speed,int32_t *vx,int32_t *vy) {
+     int32_t norm=magnitude(dx)+magnitude(dy);
+     *vx=norm ? dx*speed/norm : 0; *vy=norm ? dy*speed/norm : 0;
+@@ -49,10 +52,21 @@
+     // Weight the target displacement by the displayed pixel aspect. Both
+     // components share a denominator, so tracking still points at the player.
+     // The projectile direction_step remains the existing unmodified rule.
+-    int32_t norm=magnitude(dx)*(int32_t)GAME_MOTION_Y_NUM+
+-                 magnitude(dy)*(int32_t)GAME_MOTION_Y_DEN;
+-    *vx=dx*speed*(int32_t)GAME_MOTION_Y_NUM/norm;
+-    *vy=dy*speed*(int32_t)GAME_MOTION_Y_NUM/norm;
++    int32_t ax=magnitude(dx)*(int32_t)GAME_MOTION_Y_NUM,ay=magnitude(dy);
++    int32_t norm=ax+ay*(int32_t)GAME_MOTION_Y_DEN;
++    int32_t sx=ax*speed/norm;
++    // The rounded-down X step gives an upper bound for Y. The 4:3 ratio
++    // needs at most two corrections to retain the exact old result.
++#if GAME_MOTION_Y_NUM == 4u && GAME_MOTION_Y_DEN == 3u
++    // Exact floor of 4*n/3 for the small nonnegative chase speeds.
++    int32_t sy=(int32_t)(((uint32_t)(speed-sx)*0xaaabu)>>15);
++#else
++    int32_t sy=(speed-sx)*(int32_t)GAME_MOTION_Y_NUM/(int32_t)GAME_MOTION_Y_DEN;
++#endif
++    int32_t target=ay*speed*(int32_t)GAME_MOTION_Y_NUM,scaled=sy*norm;
++    while(scaled>target) {--sy;scaled-=norm;}
++    *vx=dx<0 ? -sx:sx;
++    *vy=dy<0 ? -sy:sy;
+ }
+ static void recount(SurvivorGame *g) {
+     g->enemy_count=g->bolt_count=g->gem_count=0;
+@@ -77,37 +91,47 @@
+     unsigned char *p=(unsigned char *)g;
+     for(uint32_t i=0;i<sizeof(*g);++i) p[i]=0;
+     g->rng=seed ? seed : 0x6d2b79f5u;
+-    g->x=(GAME_WORLD_WIDTH/2)*256; g->y=(GAME_WORLD_HEIGHT/2)*256; g->hp=g->max_hp=100;
++    g->x=GAME_ALTAR_X*256; g->y=GAME_ALTAR_Y*256; g->hp=g->max_hp=100;
+     /* A larger first threshold prevents a single nearby gem from opening the
+      * upgrade screen immediately; the threshold grows with each level below. */
+     g->level=1; g->xp_target=GAME_INITIAL_XP_TARGET; g->speed=512; g->damage=2;
+     g->attack_period=24; g->magnet=48; g->orbit_count=1; g->peak_sprites=2; g->state=GAME_READY;
+ }
+ const char *game_upgrade_name(uint32_t n) {
+-    static const char *const names[]={"奥术强化","快速施法","冰霜法环","迅捷战靴","宝石磁力","治疗符文"};
+-    return names[n%6];
++    static const char *const names[]={"奥术强化","快速施法","冰霜法环","迅捷战靴","宝石磁力","治疗符文",
++                                     "霜晶冰径","破冰护盾","冰霜诱饵"};
++    return names[n<9u ? n:0u];
+ }
+ const char *game_upgrade_detail(uint32_t n) {
+-    static const char *const details[]={"伤害+1 / 3级穿透 / 上限+2","更快 / 上限2发","法环更多 / 上限冰霜","速度+ / 上限冲刺","范围+ / 上限全图","生命上限+ / 3级再生"};
+-    return details[n%6];
++    static const char *const details[]={"伤害+1 / 3级穿透 / 上限+2","更快 / 上限2发","法环更多 / 上限冰霜","速度+ / 上限冲刺","范围+ / 上限全图","生命上限+ / 3级再生",
++                                       "移动留下减速冰径","8颗水晶充盾 / 防伤一次","击杀12只召出诱饵"};
++    return details[n<9u ? n:0u];
+ }
+ uint32_t game_upgrade_max(uint32_t n) {
+     static const uint8_t maximum[]={5,5,4,5,5,3};
+-    return maximum[n%6];
++    return maximum[n%GAME_UPGRADE_COUNT];
+ }
+ uint32_t game_upgrade_icon(uint32_t n) {
+     static const uint8_t icons[]={GAME_ART_POWER,GAME_ART_CAST,GAME_ART_ORBIT,
+-                                 GAME_ART_BOOTS,GAME_ART_MAGNET,GAME_ART_HEAL};
+-    return icons[n%6];
+-}
+-static uint32_t next_upgrade(const SurvivorGame *g,uint32_t start) {
+-    for(uint32_t i=0;i<6;++i) {
+-        uint32_t n=(start+i)%6;
++                                 GAME_ART_BOOTS,GAME_ART_MAGNET,GAME_ART_HEAL,
++                                 GAME_ART_RELIC_RUNE,GAME_ART_RELIC_SHIELD,GAME_ART_RELIC_CIRCLE};
++    return icons[n<9u ? n:0u];
++}
++static uint32_t __attribute__((noinline)) next_upgrade(const SurvivorGame *g,uint32_t start) {
++    for(uint32_t i=0;i<GAME_UPGRADE_COUNT;++i) {
++        uint32_t n=(start+i)%GAME_UPGRADE_COUNT;
+         if(g->upgrade_level[n]<game_upgrade_max(n)) return n;
+     }
+-    return start%6;
++    return GAME_UPGRADE_COUNT;
+ }
+ static void upgrade(SurvivorGame *g) {
++    if(g->chest_state==CHEST_OFFER) {
++        g->relic=(uint8_t)(RELIC_ICE+g->choice);
++        g->decoy_next_kills=g->kills+GAME_DECOY_KILLS;
++        g->chest_state=CHEST_OPEN;
++        g->state=GAME_PLAY;
++        return;
++    }
+     uint32_t skill=g->options[g->choice],level=g->upgrade_level[skill];
+     if(level>=game_upgrade_max(skill)) { g->state=GAME_PLAY; return; }
+     level++; g->upgrade_level[skill]=(uint8_t)level;
+@@ -157,6 +181,10 @@
+         else if(pressed&4u) g->state=GAME_EXIT;
+         return;
+     }
++    if(g->state==GAME_ALTAR) {
++        if(pressed&16u) g->state=GAME_PLAY;
++        return;
++    }
+     if(g->state==GAME_UPGRADE) {
+         if(pressed==1) g->choice=(g->choice+2)%3;
+         if(pressed==2) g->choice=(g->choice+1)%3;
+@@ -167,7 +195,8 @@
+     // The fifth external key is a dedicated action key, so gameplay pause is
+     // deterministic and does not depend on holding a movement chord.
+     if(g->state==GAME_PLAY && (pressed&16u)) {
+-        g->resume_state=GAME_PLAY; g->state=GAME_PAUSED;
++        g->resume_state=GAME_PLAY;
++        g->state=game_near_altar(g) ? GAME_ALTAR:GAME_PAUSED;
+     }
+ }
+ static void spawn_enemy(SurvivorGame *g,uint32_t wave) {
+@@ -187,7 +216,7 @@
+             x=g->x/256<GAME_WORLD_WIDTH/2 ? GAME_WORLD_X_MAX-16 : GAME_WORLD_X_MIN+16;
+             y=g->y/256<GAME_WORLD_HEIGHT/2 ? GAME_WORLD_Y_MAX-16 : GAME_WORLD_Y_MIN+16;
+         }
+-        e->x=x*32; e->y=y*32; // Enemy centres use Q5 world coordinates.
++        e->x=(uint16_t)(x*32); e->y=(uint16_t)(y*32);
+         e->kind=(wave>=8 && (v&15u)==0) ? 4 : wave>=4 ? (uint8_t)((v>>8)%4) : wave>=3 ? (uint8_t)((v>>8)%3) : wave>=1 ? (uint8_t)((v>>8)%2) : 0;
+         e->max_hp=(uint8_t)(e->kind==4 ? 20+wave : e->kind==3 ? 8+wave : e->kind==1 ? 5+wave/2 : 2+wave/3);
+         e->hp=e->max_hp; e->flash=0;
+@@ -212,8 +241,74 @@
+     g->gems[best].kind|=kind;
+ }
+ static void hurt_enemy(SurvivorGame *g,GameEnemy *e,uint32_t damage) {
+-    if(damage>=e->hp) { drop_gem(g,e); e->hp=0; e->flash=0; g->kills++; }
++    if(damage>=e->hp) {
++        if(e->kind==4u && g->chest_state==CHEST_LOCKED) {
++            g->key_x=(int16_t)(e->x/32);g->key_y=(int16_t)(e->y/32);
++            g->chest_state=CHEST_KEY_DROPPED;
++        }
++        drop_gem(g,e); e->hp=0; e->flash=0; g->kills++;
++    }
+     else { e->hp-=(uint8_t)damage; e->flash=90; }
++}
++
++static void hurt_player(SurvivorGame *g,uint32_t loss) {
++    if(g->invincible)return;
++    if(g->relic==RELIC_SHIELD && g->relic_charge==GAME_SHIELD_PICKUPS) {
++        g->relic_charge=0;
++        g->relic_at=(uint16_t)(g->ticks+18u);
++    } else {
++        g->hp=g->hp>loss ? g->hp-loss : 0;
++        g->damage_taken+=loss;
++    }
++    g->invincible=GAME_INVINCIBLE_TICKS;
++}
++
++static int crown_on_screen(int32_t x,int32_t y,int32_t camera_x,int32_t camera_y) {
++    x-=camera_x;y-=camera_y;
++    return x>=0 && x<GAME_X_MAX-GAME_X_MIN && y>=0 && y<GAME_Y_MAX-GAME_Y_MIN;
++}
++
++static uint32_t crown_can_attack(SurvivorGame *g,uint32_t index,int32_t camera_x,int32_t camera_y) {
++    GameCrownAttack *free=0;
++    for(uint32_t i=0;i<GAME_CROWN_ATTACKERS;++i) {
++        GameCrownAttack *attack=&g->crown[i];
++        if(attack->slot==index+1u)return 1;
++        if(!attack->slot && !attack->bolt.life && !free)free=attack;
++    }
++    const GameEnemy *enemy=&g->enemies[index];
++    if(!free || !crown_on_screen(enemy->x/32,enemy->y/32,camera_x,camera_y))return 0;
++    free->slot=(uint16_t)(index+1u);
++    free->fire_at=(uint16_t)(g->ticks+GAME_CROWN_WARN_TICKS);
++    return 1;
++}
++
++static void crown_projectiles(SurvivorGame *g,int32_t camera_x,int32_t camera_y,int32_t px,int32_t py) {
++    for(uint32_t i=0;i<GAME_CROWN_ATTACKERS;++i) {
++        GameCrownAttack *attack=&g->crown[i];
++        GameBolt *bolt=&attack->bolt;
++        const GameEnemy *enemy=0;
++        if(attack->slot) {
++            enemy=&g->enemies[attack->slot-1u];
++            if(!enemy->hp || enemy->kind!=4u || !crown_on_screen(enemy->x/32,enemy->y/32,camera_x,camera_y))
++                attack->slot=0;
++        }
++        if(bolt->life) {
++            int32_t x=(int32_t)bolt->x+bolt->vx,y=(int32_t)bolt->y+bolt->vy;
++            int32_t bx=x>>5,by=y>>5;
++            if(!crown_on_screen(bx,by,camera_x,camera_y))bolt->life=0;
++            else if(overlap(bx,by,px,py,10)) {
++                bolt->life=0;
++                hurt_player(g,bolt->damage);
++            } else {
++                bolt->x=(uint16_t)x;bolt->y=(uint16_t)y;
++            }
++        } else if(attack->slot && g->ticks>=attack->fire_at) {
++            int32_t vx,vy;
++            direction_step(g->x/8-enemy->x,g->y/8-enemy->y,192,&vx,&vy);
++            *bolt=(GameBolt){enemy->x,enemy->y,(int16_t)vx,(int16_t)vy,1,12,0};
++            attack->fire_at=(uint16_t)(g->ticks+132u);
++        }
++    }
+ }
+ void game_orbit_position(const SurvivorGame *g,uint32_t index,int32_t *x,int32_t *y) {
+     // Sixteen positions around a circle; interpolation keeps motion continuous.
+@@ -257,12 +352,25 @@
+ #define ENEMY_NEIGHBOR_BUDGET 16u
+ #define ENEMY_BODY_SPACING (20*32)
+ #define ENEMY_PUSH_LIMIT 32
++#define ENEMY_PUSH_SHIFT 11
++#define ENEMY_PUSH_SCALE (1<<ENEMY_PUSH_SHIFT)
++#define ENEMY_COINCIDENT_PUSH (8*ENEMY_PUSH_SCALE)
+ static uint16_t enemy_cell_heads[ENEMY_GRID_COLS*ENEMY_GRID_ROWS];
+-static uint16_t enemy_cell_next[GAME_MAX_ENEMIES],enemy_used_cells[GAME_MAX_ENEMIES];
++static uint16_t enemy_cell_next[GAME_MAX_ENEMIES];
++SceneScratch scene_scratch;
++#define enemy_used_cells scene_scratch.enemy_used_cells
+ static uint32_t enemy_body_group(uint32_t kind) {
+     // Slimes separate only from slimes; bats only from bats. B/D/E share
+     // the original solid group. Cross-group pairs pass through each other.
+     return kind==0u ? 0u : kind==2u ? 1u : 2u;
++}
++static int8_t enemy_blend_push(int32_t previous,int32_t force) {
++    int32_t scaled=force<0 ? force+ENEMY_PUSH_SCALE-1:force;
++    int32_t target=clamp(scaled>>ENEMY_PUSH_SHIFT,-ENEMY_PUSH_LIMIT,ENEMY_PUSH_LIMIT);
++    // Move halfway toward the latest force, rounding toward the target so
++    // the last Q5 unit clears when contact ends.
++    int32_t delta=target-previous;
++    return (int8_t)(target-((delta+(delta<0))>>1));
+ }
+ static void separate_enemies(SurvivorGame *g) {
+     static const int8_t offsets[8][2]={{-1,0},{-1,-1},{0,-1},{1,-1},{1,0},{1,1},{0,1},{-1,1}};
+@@ -271,8 +379,7 @@
+     for(uint32_t body_group=0;body_group<3u;++body_group) {
+         uint32_t start=(g->ticks*13u)%GAME_MAX_ENEMIES;
+         uint32_t used=0;
+-        for(uint32_t n=0;n<GAME_MAX_ENEMIES;++n) {
+-            uint32_t i=(start+n)%GAME_MAX_ENEMIES;
++        for(uint32_t n=0,i=start;n<GAME_MAX_ENEMIES;++n,i=i+1u==GAME_MAX_ENEMIES ? 0u:i+1u) {
+             if(!g->enemies[i].hp || enemy_body_group(g->enemies[i].kind)!=body_group) continue;
+             const GameEnemy *e=&g->enemies[i];
+             int32_t cx=clamp(e->x/1024,0,ENEMY_GRID_COLS-1);
+@@ -302,23 +409,28 @@
+                     ++checked;
+                     int32_t dx=e->x-g->enemies[j].x,dy=e->y-g->enemies[j].y;
+                     int32_t ax=magnitude(dx),ay=magnitude(dy);
+-                    if(ax>=ENEMY_BODY_SPACING || ay>=ENEMY_BODY_SPACING) continue;
+-                    int32_t push=(ENEMY_BODY_SPACING-(ax>ay ? ax : ay)+7)/8;
+-                    if(push>ENEMY_PUSH_LIMIT) push=ENEMY_PUSH_LIMIT;
+-                    if(!ax && !ay) {
++                    int32_t distance=ax>ay ? ax : ay;
++                    if(distance>=ENEMY_BODY_SPACING) continue;
++                    if(distance) {
++                        // Keep the same overlap range. Both components share a
++                        // taper so approaching a diagonal cannot flip the axis.
++                        // Accumulate before rescaling to keep shallow contacts.
++                        int32_t overlap_q5=ENEMY_BODY_SPACING-distance;
++                        fx+=dx*overlap_q5;
++                        fy+=dy*overlap_q5;
++                    } else {
+                         // Equal centres need a deterministic, antisymmetric escape
+                         // direction. It does not consume the spawn/drop RNG.
+                         uint32_t lo=i<j ? i : j,hi=i<j ? j : i;
+                         uint32_t axis=(lo*13u+hi*7u)&3u;
+-                        int32_t sign=i<j ? 1 : -1;
+-                        if(axis&2u) sign=-sign;
+-                        if(axis&1u) fx+=sign*push; else fy+=sign*push;
+-                    } else if(ax>ay || (ax==ay && ((i^j)&1u))) fx+=dx<0 ? -push : push;
+-                    else fy+=dy<0 ? -push : push;
++                        int32_t push=i<j ? ENEMY_COINCIDENT_PUSH : -ENEMY_COINCIDENT_PUSH;
++                        if(axis&2u) push=-push;
++                        if(axis&1u) fx+=push; else fy+=push;
++                    }
+                 }
+             }
+-            g->enemy_steer[i][0]=(int8_t)clamp(fx,-ENEMY_PUSH_LIMIT,ENEMY_PUSH_LIMIT);
+-            g->enemy_steer[i][1]=(int8_t)clamp(fy,-ENEMY_PUSH_LIMIT,ENEMY_PUSH_LIMIT);
++            g->enemy_steer[i][0]=enemy_blend_push(g->enemy_steer[i][0],fx);
++            g->enemy_steer[i][1]=enemy_blend_push(g->enemy_steer[i][1],fy);
+         }
+         for(uint32_t i=0;i<used;++i) enemy_cell_heads[enemy_used_cells[i]]=0;
+     }
+@@ -388,9 +500,15 @@
+     int32_t dx=((held&8u)!=0)-((held&4u)!=0),dy=((held&2u)!=0)-((held&1u)!=0);
+     int32_t speed=(dx && dy) ? g->speed*181/256 : g->speed;
+     if(g->dash && (g->ticks%180u)<12u) speed*=2;
++    int32_t old_x=g->x,old_y=g->y;
+     g->x=clamp(g->x+dx*speed,(GAME_WORLD_X_MIN+16)*256,(GAME_WORLD_X_MAX-16)*256);
+     g->y=clamp(g->y+dy*motion_vertical_step(speed,g->ticks),(GAME_WORLD_Y_MIN+16)*256,(GAME_WORLD_Y_MAX-16)*256);
+     g->moving=(uint8_t)(dx || dy);
++    if(g->relic==RELIC_ICE && (g->x!=old_x || g->y!=old_y) && g->ticks>=g->relic_at) {
++        GameRelicZone *zone=&g->relic_zones[g->relic_slot];
++        *zone=(GameRelicZone){(int16_t)(old_x/256),(int16_t)(old_y/256),(uint16_t)(g->ticks+90u)};
++        g->relic_slot^=1u;g->relic_at=(uint16_t)(g->ticks+45u);
++    }
+     if(dx) g->direction=dx<0 ? 1 : 2; else if(dy) g->direction=dy<0 ? 3 : 0;
+     g->walk_frame=g->moving ? (uint8_t)((g->ticks/8)%4) : 0;
+     if(g->invincible) g->invincible--;
+@@ -409,17 +527,36 @@
+         else shoot(g,0);
+         g->attack_wait=g->attack_period;
+     }
++    int32_t px=g->x/256,py=g->y/256;
++    int32_t player_q5_x=g->x/8,player_q5_y=g->y/8;
++    int32_t camera_x=game_camera_x(g),camera_y=game_camera_y(g);
+     for(uint32_t i=0;i<GAME_MAX_ENEMIES;++i) if(g->enemies[i].hp) {
+         GameEnemy *e=&g->enemies[i]; int32_t vx,vy;
+         int32_t speed_q5=e->kind==4 ? 10 : e->kind==3 ? 15 : e->kind==2 ? 44 : e->kind==1 ? 20 : 28;
+-        enemy_direction_step(g->x/8-e->x,g->y/8-e->y,speed_q5+(int32_t)wave,g->ticks,&vx,&vy);
+-        e->x+=vx; e->y+=vy;
++        int32_t tx=player_q5_x,ty=player_q5_y;
++        speed_q5+=(int32_t)wave;
++        if(g->relic==RELIC_ICE) {
++            for(uint32_t n=0;n<2u;++n) {
++                const GameRelicZone *zone=&g->relic_zones[n];
++                if(g->ticks<zone->until && overlap(e->x/32,e->y/32,zone->x,zone->y,16)) {
++                    speed_q5=(speed_q5+1)/2;
++                    break;
++                }
++            }
++        } else if(g->relic==RELIC_DECOY && e->kind<3u) {
++            const GameRelicZone *zone=&g->relic_zones[0];
++            if(g->ticks<zone->until && overlap(e->x/32,e->y/32,zone->x,zone->y,112)) {
++                tx=zone->x*32;ty=zone->y*32;
++            }
++        }
++        enemy_direction_step(tx-e->x,ty-e->y,speed_q5,g->ticks,&vx,&vy);
++        // A single chase step is smaller than the 16-pixel world inset, so
++        // storing the intermediate Q5 position cannot wrap the uint16_t.
++        e->x=(uint16_t)((int32_t)e->x+vx);e->y=(uint16_t)((int32_t)e->y+vy);
+         if(e->flash) e->flash--;
+-        if(overlap(e->x/32,e->y/32,g->x/256,g->y/256,18) && !g->invincible) {
+-            uint16_t loss=e->kind==4 ? 18 : (e->kind==1 || e->kind==3) ? 12 : 8;
+-            g->hp=g->hp>loss ? g->hp-loss : 0; g->damage_taken+=loss;
+-            g->invincible=GAME_INVINCIBLE_TICKS;
+-        }
++        uint32_t can_attack=e->kind!=4u || crown_can_attack(g,i,camera_x,camera_y);
++        if(can_attack && !g->invincible && overlap(e->x/32,e->y/32,px,py,18))
++            hurt_player(g,e->kind==4 ? 18u : (e->kind==1 || e->kind==3) ? 12u : 8u);
+         if((g->ticks%15)==0) for(uint32_t n=0;n<g->orbit_count;++n) {
+             int32_t x,y; game_orbit_position(g,n,&x,&y);
+             if(e->hp && overlap(e->x/32,e->y/32,x,y,20)) hurt_enemy(g,e,1+g->damage/2+g->orbit_damage);
+@@ -428,8 +565,12 @@
+     separate_enemies(g);
+     uint32_t bolt_grid_used=0,bolt_grid_ready=0;
+     for(uint32_t i=0;i<GAME_MAX_BOLTS;++i) if(g->bolts[i].life) {
+-        GameBolt *b=&g->bolts[i]; b->x+=b->vx; b->y+=b->vy; b->life--;
+-        if(b->x<32*GAME_WORLD_X_MIN || b->x>=32*GAME_WORLD_X_MAX || b->y<32*GAME_WORLD_Y_MIN || b->y>=32*GAME_WORLD_Y_MAX) b->life=0;
++        GameBolt *b=&g->bolts[i];
++        int32_t x=(int32_t)b->x+b->vx,y=(int32_t)b->y+b->vy;
++        b->life--;
++        if(x<32*GAME_WORLD_X_MIN || x>=32*GAME_WORLD_X_MAX ||
++           y<32*GAME_WORLD_Y_MIN || y>=32*GAME_WORLD_Y_MAX) { b->life=0;continue; }
++        b->x=(uint16_t)x;b->y=(uint16_t)y;
+         if(!b->life) continue;
+         // Build lazily: no extra grid work when every bolt is empty/expired.
+         if(!bolt_grid_ready) {bolt_grid_used=bolt_grid_build(g);bolt_grid_ready=1;}
+@@ -437,6 +578,7 @@
+     }
+     // No scratch survives a tick, including interleaved independent games.
+     for(uint32_t i=0;i<bolt_grid_used;++i) enemy_cell_heads[enemy_used_cells[i]]=0;
++    crown_projectiles(g,camera_x,camera_y,px,py);
+     for(uint32_t i=0;i<GAME_MAX_GEMS;++i) if(g->gems[i].value) {
+         GameGem *gem=&g->gems[i]; int32_t gdx=g->x/256-gem->x,gdy=g->y/256-gem->y;
+         if(g->magnet_all || magnitude(gdx)+magnitude(gdy)<g->magnet) {
+@@ -445,19 +587,36 @@
+         if(overlap(gem->x,gem->y,g->x/256,g->y/256,16)) {
+             g->xp=(uint16_t)clamp(g->xp+gem->value,0,60000);
+             if(gem->kind && g->hp) g->hp=(uint16_t)clamp(g->hp+25,0,g->max_hp);
++            if(!gem->kind && g->relic==RELIC_SHIELD && g->relic_charge<GAME_SHIELD_PICKUPS)
++                ++g->relic_charge;
+             gem->value=0; g->pickups++;
+         }
+     }
+-    // Death takes precedence over victory and upgrades on the same simulation tick.
++    if(g->relic==RELIC_DECOY && g->kills>=g->decoy_next_kills && g->ticks>=g->relic_zones[0].until) {
++        g->relic_zones[0]=(GameRelicZone){(int16_t)px,(int16_t)py,(uint16_t)(g->ticks+120u)};
++        g->decoy_next_kills+=GAME_DECOY_KILLS;
++    }
++    if(g->chest_state==CHEST_KEY_DROPPED && overlap(px,py,g->key_x,g->key_y,20))
++        g->chest_state=CHEST_KEY_HELD;
++    // Death takes precedence over victory and choices on the same tick.
+     if(!g->hp) g->state=GAME_OVER;
+     else if(g->ticks>=GAME_DURATION_TICKS) g->state=GAME_WON;
++    else if(g->chest_state==CHEST_KEY_HELD && overlap(px,py,GAME_CHEST_X,GAME_CHEST_Y,24)) {
++        g->chest_state=CHEST_OFFER;
++        g->options[0]=6;g->options[1]=7;g->options[2]=8;
++        g->choice=0;g->state=GAME_UPGRADE;
++    }
+     else if(g->xp>=g->xp_target) {
+         g->xp-=g->xp_target; g->level++;
+         /* Increase the cost faster than the old fixed +5 schedule. This keeps
+          * later waves from producing an upgrade on every small movement. */
+         g->xp_target=(uint16_t)clamp((int32_t)g->xp_target+8+(int32_t)g->level*2,20,1000);
+-        for(uint32_t i=0;i<3;++i) g->options[i]=(uint8_t)next_upgrade(g,(g->level*2+i)%6);
+-        g->choice=0; g->state=GAME_UPGRADE;
++        uint32_t first=next_upgrade(g,g->level*2u);
++        if(first<GAME_UPGRADE_COUNT) {
++            g->options[0]=(uint8_t)first;
++            for(uint32_t i=1;i<3;++i) g->options[i]=(uint8_t)next_upgrade(g,g->level*2u+i);
++            g->choice=0; g->state=GAME_UPGRADE;
++        }
+     }
+     recount(g);
+ }

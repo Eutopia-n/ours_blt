@@ -74,35 +74,4 @@ static inline uint32_t basic_ratio100(uint32_t a,uint32_t b) {
     }
     return whole*100u+fraction;
 }
-// Procedural RGB565 test pictures: landscape/sun and a lit city at night.
-// Only uploaded on first entry to the Copy page, outside every measurement.
-static inline uint16_t basic_pixel(uint32_t image,uint32_t x,uint32_t y) {
-    uint32_t r,g,b;
-    if(!image) {
-        r=3u+y/20u;g=24u+y/8u;b=31u-y/14u;
-        int32_t dx=(int32_t)x-198,dy=(int32_t)y-42;
-        if(dx*dx+dy*dy<19*19) {r=31;g=56;b=8;}
-        uint32_t ridge=96u+((x<128u ? x : 255u-x)/3u);
-        if(y>ridge) {r=4u;g=30u+(x/16u)%12u;b=9u;}
-        if(y>151u) {r=7u+(x/16u)%5u;g=38u+(y/8u)%12u;b=12u;}
-        if(y>160u && x>112u-(y-160u)/2u && x<144u+(y-160u)/2u)
-            {r=22u;g=43u;b=18u;}
-    } else {
-        r=2u;g=5u+y/12u;b=12u+y/12u;
-        uint32_t building=x/32u,height=45u+(building*23u)%90u;
-        if(x%32u<27u && y>182u-height) {
-            r=5u;g=9u;b=13u;
-            if(x%8u>2u && y%12u>4u) {r=31u;g=43u;b=7u;}
-        }
-        if(y>182u) {r=10u;g=12u;b=18u;}
-    }
-    if(x<3u || x>=253u || y<3u || y>=189u)return image ? 0xf81fu : 0x07ffu;
-    if(x>=10u && x<34u && y>=10u && y<46u) {
-        uint32_t px=x-10u,py=y-10u;
-        uint32_t mark=!image ? (px>=10u && px<15u) :
-            (py<5u || (py>=16u && py<21u) || py>=31u || (py<18u ? px>=19u : px<5u));
-        return mark ? 0xffffu : 0x0843u;
-    }
-    return (uint16_t)((r<<11)|(g<<5)|b);
-}
 #endif

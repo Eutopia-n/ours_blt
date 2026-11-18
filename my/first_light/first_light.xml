@@ -14,6 +14,8 @@
         <efx:design_file name="rtl/ui_asset_rom.v" version="default" library="default" />
         <efx:design_file name="rtl/ui_compositor.v" version="default" library="default" />
         <efx:design_file name="rtl/fill_engine.v" version="default" library="default" />
+        <efx:design_file name="rtl/render_batch.v" version="default" library="default" />
+        <efx:design_file name="rtl/tile_renderer.v" version="default" library="default" />
         <efx:design_file name="rtl/framebuffer_video.v" version="default" library="default" />
         <efx:design_file name="rtl/video_mode_measure.v" version="default" library="default" />
         <efx:design_file name="vendor/soc/soc.v" version="default" library="default" />

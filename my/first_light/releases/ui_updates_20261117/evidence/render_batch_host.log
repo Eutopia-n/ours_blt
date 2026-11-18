@@ -1,0 +1,7 @@
+BATCH C DRIVER PASSED: 513 actual benchmark Sprites; same complete scalar framebuffer; submissions 513->2, APB writes 6156->8 (host IO model, not board FPS).
+BATCH BENCH CASES PASSED: 48 complete scalar-frame comparisons; four sizes, both pages, loads 0/1/7/512/513/1025 and multiple chunks.
+TILE/POSITIONS C PASSED: 72 full-frame comparisons, 28 tile and 44 compact; actual firmware dispatch, bins, drivers, both pages, chunk boundary and count preserved.
+BENCH SELECTOR PASSED: both synthetic cost orderings; 20 exact frames, no workload changes
+TILE OVERFLOW FALLBACK PASSED: 20000 objects, no tile truncation, five compact chunks
+TILE/POSITIONS GUARDS PASSED: source/list/size/count boundaries, busy/swap and capabilities
+BATCH DRIVER GUARDS PASSED: empty, alignment, range/overflow, busy/swap ownership, capability, incomplete prefix and error status.

@@ -2,6 +2,7 @@
 #include "player_asset.h"
 #include "demo_controls.h"
 #include "frame_metrics.h"
+#include "survivor_game.h"
 /* Freestanding GCC may emit memcpy for the small strip descriptors. */
 __attribute__((used,externally_visible)) void *memcpy(void *destination,const void *source,unsigned int size) {
     volatile unsigned char *dst=destination;
@@ -198,6 +199,62 @@ static void publish_pixels(void) {
     (void)*(volatile uint32_t *)(uintptr_t)draw_buffer;
     __asm__ volatile ("fence iorw, iorw" ::: "memory");
 }
+int gfx_batch_submit(uint32_t commands,uint32_t count) {
+    if(!count)return 0;
+    if(count>65535u || (commands&31u) || commands<ASSET_BASE ||
+       commands>=ASSET_BASE+ASSET_BYTES ||
+       count>(ASSET_BASE+ASSET_BYTES-commands)/sizeof(GfxBatchCommand))return -1;
+    if(mmio_read(GFX_BASE+GFX_STATUS)&(GFX_BUSY|GFX_SWAP_PENDING))return -2;
+    if(!(mmio_read(GFX_BASE+GFX_CAPABILITIES)&GFX_CAP_BATCH))return -1;
+    publish_pixels();
+    select_draw_page();
+    mmio_write(GFX_BASE+GFX_SRC,commands);
+    mmio_write(GFX_BASE+GFX_WIDTH,count);
+    mmio_write(GFX_BASE+GFX_COMMAND,2);
+    int result=wait_render();
+    if(!result && mmio_read(GFX_BASE+GFX_BATCH_COMPLETED)!=count)return -3;
+    return result;
+}
+int gfx_positions_submit(uint32_t source,uint32_t side,uint32_t list,uint32_t count,
+                         uint8_t alpha,uint16_t key,uint32_t flags) {
+    if(!(side==4 || side==16 || side==24 || side==32) || (source&3u) ||
+       source<ASSET_BASE || source>=ASSET_BASE+ASSET_BYTES ||
+       side*side*2u>ASSET_BASE+ASSET_BYTES-source || (list&3u) ||
+       list<ASSET_BASE || list>=ASSET_BASE+ASSET_BYTES || count>65535u ||
+       count*4u>ASSET_BASE+ASSET_BYTES-list ||
+       (flags&~(GFX_BLEND_ALPHA|GFX_BLEND_KEY)))return -1;
+    if(mmio_read(GFX_BASE+GFX_STATUS)&(GFX_BUSY|GFX_SWAP_PENDING))return -2;
+    if(!(mmio_read(GFX_BASE+GFX_CAPABILITIES)&GFX_CAP_POSITIONS))return -5;
+    publish_pixels();select_draw_page();
+    mmio_write(GFX_BASE+GFX_SRC,source);mmio_write(GFX_BASE+GFX_DST,list);
+    mmio_write(GFX_BASE+GFX_WIDTH,count);mmio_write(GFX_BASE+GFX_HEIGHT,side);
+    mmio_write(GFX_BASE+GFX_SRC_STRIDE,side*2u);mmio_write(GFX_BASE+GFX_BLEND_CTRL,flags);
+    mmio_write(GFX_BASE+GFX_ALPHA,alpha);mmio_write(GFX_BASE+GFX_COLOR_KEY,key);
+    mmio_write(GFX_BASE+GFX_COMMAND,3);
+    int result=wait_render();
+    if(!result && mmio_read(GFX_BASE+GFX_BATCH_COMPLETED)!=count)return -3;
+    return result;
+}
+int gfx_tile_submit(uint32_t source,uint32_t side,uint32_t list,uint32_t fragments,
+                    uint8_t alpha,uint16_t key,uint32_t flags,uint16_t clear_color) {
+    if(!(side==4 || side==16 || side==24 || side==32) || (source&3u) ||
+       source<ASSET_BASE || source>=ASSET_BASE+ASSET_BYTES ||
+       side*side*2u>ASSET_BASE+ASSET_BYTES-source || (list&31u) ||
+       list<ASSET_BASE || list>=ASSET_BASE+ASSET_BYTES || fragments>65535u ||
+       GFX_TILE_POSITIONS+fragments*4u>ASSET_BASE+ASSET_BYTES-list ||
+       (flags&~(GFX_BLEND_ALPHA|GFX_BLEND_KEY)))return -1;
+    if(mmio_read(GFX_BASE+GFX_STATUS)&(GFX_BUSY|GFX_SWAP_PENDING))return -2;
+    if(!(mmio_read(GFX_BASE+GFX_CAPABILITIES)&GFX_CAP_TILES))return -5;
+    publish_pixels();select_draw_page();
+    mmio_write(GFX_BASE+GFX_SRC,source);mmio_write(GFX_BASE+GFX_DST,list);
+    mmio_write(GFX_BASE+GFX_WIDTH,side);mmio_write(GFX_BASE+GFX_HEIGHT,fragments);
+    mmio_write(GFX_BASE+GFX_COLOR,clear_color);mmio_write(GFX_BASE+GFX_BLEND_CTRL,flags);
+    mmio_write(GFX_BASE+GFX_ALPHA,alpha);mmio_write(GFX_BASE+GFX_COLOR_KEY,key);
+    mmio_write(GFX_BASE+GFX_COMMAND,4);
+    int result=wait_render();
+    if(!result && mmio_read(GFX_BASE+GFX_BATCH_COMPLETED)!=fragments)return -3;
+    return result;
+}
 static void cpu_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c) {
     for (uint32_t row=0; row<h; ++row) {
         volatile uint16_t *p=(volatile uint16_t *)(uintptr_t)(draw_buffer+(y+row)*1280+x*2);
@@ -367,6 +424,92 @@ static void draw_bench_sprite(uint32_t x,uint32_t y) {
                     GFX_BLEND_ALPHA|GFX_BLEND_KEY))
         fail("FAIL bench sprite");
 }
+static uint32_t bench_batch_size;
+static void bench_batch_frame(uint32_t frame) {
+    uint32_t size=bench_sizes[bench_size_index];
+    volatile GfxBatchCommand *list=(volatile GfxBatchCommand *)(uintptr_t)GFX_BATCH_BASE;
+    // Source/shape/Alpha are shared by a benchmark run. Prepare them once;
+    // steady frames only update one destination word per submitted Sprite.
+    if(bench_batch_size!=size) {
+        for(uint32_t i=0;i<GFX_BATCH_CAPACITY;++i) {
+            list[i].source=bench_sources[bench_size_index];list[i].destination=0;
+            list[i].extent=size|(size<<16);list[i].source_stride=size*2u;
+            list[i].colors=0;
+            list[i].control=2u|((GFX_BLEND_ALPHA|GFX_BLEND_KEY)<<2)|(128u<<8);
+            list[i].reserved0=list[i].reserved1=0;
+        }
+        bench_batch_size=size;
+    }
+    for(uint32_t first=0;first<sprite_count;) {
+        uint32_t count=sprite_count-first;
+        if(count>GFX_BATCH_CAPACITY)count=GFX_BATCH_CAPACITY;
+        for(uint32_t i=0;i<count;++i) {
+            uint32_t seed=sprite_seed(first+i);
+            uint32_t x=8+bounce((seed&65535u)+frame*(1+((seed>>16)&7u)),632u-size);
+            uint32_t y=160+bounce((seed>>16)+frame*(1+((seed>>24)&3u)),240u-size);
+            list[i].destination=draw_buffer+y*FRAME_STRIDE+x*2u;
+        }
+        if(gfx_batch_submit(GFX_BATCH_BASE,count))fail("FAIL bench batch");
+        first+=count;
+    }
+}
+#define bench_tile_cursor scene_scratch.bench_tile_cursor
+static void bench_compact_frame(uint32_t frame) {
+    uint32_t size=bench_sizes[bench_size_index];
+    if(!(mmio_read(GFX_BASE+GFX_CAPABILITIES)&GFX_CAP_POSITIONS)) {bench_batch_frame(frame);return;}
+    bench_batch_size=0;
+    volatile uint32_t *list=(volatile uint32_t *)(uintptr_t)GFX_BATCH_BASE;
+    for(uint32_t first=0;first<sprite_count;) {
+        uint32_t count=sprite_count-first;
+        if(count>GFX_POSITION_CAPACITY)count=GFX_POSITION_CAPACITY;
+        for(uint32_t i=0;i<count;++i) {
+            uint32_t seed=sprite_seed(first+i);
+            uint32_t x=8+bounce((seed&65535u)+frame*(1+((seed>>16)&7u)),632u-size);
+            uint32_t y=160+bounce((seed>>16)+frame*(1+((seed>>24)&3u)),240u-size);
+            list[i]=draw_buffer+y*FRAME_STRIDE+x*2u;
+        }
+        if(gfx_positions_submit(bench_sources[bench_size_index],size,GFX_BATCH_BASE,count,128,0,
+                                GFX_BLEND_ALPHA|GFX_BLEND_KEY))fail("FAIL bench positions");
+        first+=count;
+    }
+}
+static void bench_tile_positions(uint32_t frame,uint32_t store) {
+    uint32_t size=bench_sizes[bench_size_index];
+    volatile uint32_t *positions=(volatile uint32_t *)(uintptr_t)(GFX_TILE_BASE+GFX_TILE_POSITIONS);
+    for(uint32_t i=0;i<sprite_count;++i) {
+        uint32_t seed=sprite_seed(i);
+        uint32_t x=8+bounce((seed&65535u)+frame*(1+((seed>>16)&7u)),632u-size);
+        uint32_t y=160+bounce((seed>>16)+frame*(1+((seed>>24)&3u)),240u-size);
+        for(uint32_t ty=y>>5;ty<=(y+size-1u)>>5;++ty)
+            for(uint32_t tx=x>>5;tx<=(x+size-1u)>>5;++tx) {
+                uint32_t bin=(ty-4u)*20u+tx;
+                if(store)positions[bench_tile_cursor[bin]++]=x|(y<<16);
+                else ++bench_tile_cursor[bin];
+            }
+    }
+}
+static uint32_t bench_tile_frame(uint32_t frame) {
+    uint32_t size=bench_sizes[bench_size_index];
+    uint32_t threshold=size==32 || size==24 ? 512u:size==16 ? 1024u:0xffffffffu;
+    if(sprite_count<threshold || sprite_count>GFX_TILE_CAPACITY ||
+       !(mmio_read(GFX_BASE+GFX_CAPABILITIES)&GFX_CAP_TILES))return 0;
+    // All three modes share DDR scratch. Rebuild generic templates on fallback.
+    bench_batch_size=0;
+    for(uint32_t b=0;b<180;++b)bench_tile_cursor[b]=0;
+    bench_tile_positions(frame,0);
+    volatile uint32_t *offsets=(volatile uint32_t *)(uintptr_t)GFX_TILE_BASE;
+    uint32_t fragments=0;
+    for(uint32_t b=0;b<180;++b) {
+        uint32_t count=bench_tile_cursor[b];offsets[b]=fragments;
+        bench_tile_cursor[b]=fragments;fragments+=count;
+    }
+    offsets[180]=fragments;
+    if(fragments>GFX_TILE_CAPACITY || fragments>65535u)return 0;
+    bench_tile_positions(frame,1);
+    if(gfx_tile_submit(bench_sources[bench_size_index],size,GFX_TILE_BASE,fragments,128,0,
+                      GFX_BLEND_ALPHA|GFX_BLEND_KEY,0x0843))fail("FAIL bench tiles");
+    return 1;
+}
 static void draw_player(uint32_t frame,uint32_t x,uint32_t y,uint32_t hw) {
     uint32_t source=PLAYER_ASSET_BASE+(frame%PLAYER_FRAME_COUNT)*PLAYER_FRAME_BYTES;
     if (hw) {
@@ -377,6 +520,32 @@ static void draw_player(uint32_t frame,uint32_t x,uint32_t y,uint32_t hw) {
 static void paint(uint32_t x,uint32_t y,uint32_t w,uint32_t h,uint16_t c,uint32_t hw) {
     if (hw) { if (fill_rect(x,y,w,h,c)) fail("FAIL fill"); }
     else cpu_fill(x,y,w,h,c);
+}
+static uint32_t bench_strategy_count,bench_strategy_size,bench_strategy_trials;
+static uint32_t bench_strategy_peak[2],bench_strategy_tile;
+static void bench_render_frame(uint32_t frame) {
+    uint32_t size=bench_sizes[bench_size_index];
+    if(bench_strategy_count!=sprite_count || bench_strategy_size!=size) {
+        bench_strategy_count=sprite_count;bench_strategy_size=size;bench_strategy_trials=0;
+        bench_strategy_peak[0]=bench_strategy_peak[1]=0;bench_strategy_tile=0;
+    }
+    uint32_t eligible=size!=4 && sprite_count>=(size==16 ? 1024u:512u) &&
+        sprite_count<=GFX_TILE_CAPACITY && (mmio_read(GFX_BASE+GFX_CAPABILITIES)&GFX_CAP_TILES);
+    uint32_t use_tile=eligible && (bench_strategy_trials<8u ? (bench_strategy_trials&1u):bench_strategy_tile);
+    uint32_t start=cycle_now();
+    if(!use_tile || !bench_tile_frame(frame)) {
+        if(use_tile) {eligible=0;bench_strategy_trials=8;bench_strategy_tile=0;}
+        paint(0,152,640,256,0x0843,1);bench_compact_frame(frame);
+    }
+    uint32_t elapsed=cycle_now()-start;
+    // Each frame draws the full original workload exactly once. Compare four
+    // complete CPU+DDR render samples per path; prefer compact within 10%.
+    // Sampling and MAX60 still include all trial frames and missed refreshes.
+    if(eligible && bench_strategy_trials<8u) {
+        if(elapsed>bench_strategy_peak[use_tile])bench_strategy_peak[use_tile]=elapsed;
+        if(++bench_strategy_trials==8u)
+            bench_strategy_tile=bench_strategy_peak[1]<bench_strategy_peak[0]-bench_strategy_peak[0]/10u;
+    }
 }
 // Same-page, non-overlapping reference copy used by the dedicated Copy page.
 static void cpu_copy_sample(uint32_t dst_y) {
@@ -427,6 +596,7 @@ static void scene(uint32_t frame,uint32_t hw,uint32_t demo,uint32_t variant) {
         }
         break;
     default: // Performance scene contains only the selected moving Sprite load.
+        if(hw) {bench_render_frame(frame);break;}
         paint(0,152,640,256,0x0843,hw);
         for(uint32_t n=0;n<sprite_count;++n) {
             uint32_t seed=sprite_seed(n);
@@ -574,6 +744,9 @@ static void bench_hud(void) {
     publish_pixels();
 }
 static void bench_prime_framebuffers(void) {
+    // Menu projection and effect demos reuse the descriptor staging memory.
+    bench_batch_size=0;
+    bench_strategy_count=0xffffffffu;
     // Keep the complete menu visible while composing the retired back page.
     // Present each finished pressure page at vblank; never blank HDMI here.
     puts_uart("BENCH INIT\r\n");

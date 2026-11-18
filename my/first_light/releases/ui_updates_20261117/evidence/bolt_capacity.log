@@ -1,0 +1,6 @@
+ENEMY SEPARATION PASSED: diagonal continuity, steering decay, coincident pair, 384 enemies and 512 bolts at a world corner
+GAME RELICS PASSED: boss key, single chest and separate choices; two ice zones, shield blocks without knockback, one decoy and expiry
+CROWN ATTACKS PASSED: two attackers, warning, aimed damage, owner-independent flight past 64 ticks, viewport exit and invulnerable hit
+ALTAR AND MAX SKILLS PASSED: final upgrade, continued XP, relic choice, proximity, frozen stats and resume
+BOLT CAPACITY PASSED: 256->512, 12-byte storage, full/reject/reuse/high-slot collision, signed edges, 512 independent Q5 trajectories
+GAME LOGIC TESTS PASSED: pressure +/-5 and hold/release/chord/saturation/timer wrap; MAX60 complete windows/render deadline/missed refresh/recovery/pause; Alpha +/-5; world/camera bounds, movement, diagonal, pause/return, nearest attack, collision/invulnerability, HP/max HP, healing/cap/lethal collision, elite spawn/drop, XP, all 6 capped upgrades and max effects, death/restart, 360s victory, full pools, 30000 deterministic ticks; upgrades=21 end_states=13 peak_enemies=56

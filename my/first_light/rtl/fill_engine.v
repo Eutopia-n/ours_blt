@@ -10,6 +10,16 @@ module fill_engine #(
 ) (
     input wire clk, input wire reset,
     input wire start, input wire memory_ready,
+    input wire cache_session,
+    // Mutually exclusive tile renderer reuses these four existing RAM banks.
+    input wire tile_mode,tile_source_write,tile_background_write,tile_span_write,
+    input wire [8:0] tile_source_address,tile_source_lo_address,tile_source_hi_address,
+    input wire [8:0] tile_background_address,tile_background_read_address,
+    input wire [31:0] tile_source_data,tile_background_data,
+    input wire [4:0] tile_span_row,
+    input wire [5:0] tile_span_left,tile_span_right,
+    output wire [31:0] tile_source_q,tile_background_q,
+    output wire [191:0] tile_left_bits,tile_right_bits,
     input wire [1:0] operation, input wire [31:0] src,
     input wire [31:0] frame_base,
     input wire [31:0] dst, input wire [15:0] width, height,
@@ -25,7 +35,7 @@ module fill_engine #(
     output wire [31:0] wdata, output wire [3:0] wstrb,
     output wire wlast, output wire wvalid, input wire wready,
     input wire [1:0] bresp, input wire bvalid, output wire bready,
-    output reg [31:0] araddr, output wire [7:0] arlen,
+    output wire [31:0] araddr, output wire [7:0] arlen,
     output wire arvalid, input wire arready,
     input wire [31:0] rdata, input wire [1:0] rresp,
     input wire rlast, input wire rvalid, output wire rready
@@ -34,7 +44,16 @@ module fill_engine #(
                C_RPREP=6, C_RADDR=7, C_RDATA=8,
                C_WPREP=9, C_WPRIME=10, C_WFIFO=11,
                C_WADDR=12, C_WDATA=13, C_WRESP=14,
-               B_RPREP=15, B_RADDR=16, B_RDATA=17;
+               B_RPREP=15, B_RADDR=16, B_RDATA=17,
+               CACHE_CHECK=18,CACHE_SPAN=19,CACHE_ROW=20,CACHE_ABORT=21,C_WALIGN=22;
+    reg [31:0] main_araddr;
+    localparam PF_IDLE=0,PF_SPAN=1,PF_ROW=2,PF_PREP=3,PF_ADDR=4,PF_DATA=5;
+    reg [2:0] pf_state;
+    reg pf_ready,pf_bad,pf_failed,cache_abort;
+    reg [4:0] pf_row,pf_count,pf_beat;
+    reg [5:0] pf_left,pf_right;
+    reg [9:0] pf_words,pf_index;
+    reg [31:0] pf_address,pf_destination;
     reg [4:0] state;
     reg copy_mode, blend_mode;
     reg [31:0] source_row_addr;
@@ -65,13 +84,71 @@ module fill_engine #(
     reg [15:0] bg_qlo, bg_qhi;
     reg [9:0] bg_read_words_left, bg_read_row_words, bg_read_word_index;
     reg [4:0] bg_read_burst_words, bg_read_beat;
-    wire [8:0] copy_lo_index = copy_prefetch_index[8:0] +
+    // Reuse the existing two 512x16 source-row banks as one <=32x32 compact
+    // tile during a batch. Session ownership excludes CPU texture changes.
+    // Ordinary commands retain the original uncached path and invalidation.
+    reg cache_use,cache_loading,cache_valid;
+    reg [31:0] cache_tag_source;
+    reg [5:0] cache_tag_side,cache_side,cache_row_words;
+    reg [15:0] cache_span_key;
+    reg [8:0] cache_row_base,cache_source_base;
+    reg [4:0] cache_row,cache_load_row,cache_load_word;
+    reg [5:0] cache_first,cache_last,cache_left,cache_right;
+    // Small row metadata stays in flops, not a new memory block.
+    wire [191:0] cache_span_left_bits,cache_span_right_bits;
+    wire cache_eligible=cache_session && operation==2 && src[1:0]==0 &&
+        src_stride==({16'd0,width}<<1) && height==width &&
+        (width==4 || width==16 || width==24 || width==32);
+    wire [9:0] cache_tile_words=width==32 ? 10'd512:width==24 ? 10'd288:width==16 ? 10'd128:10'd8;
+    wire [5:0] load_x={cache_load_word[4:0],1'b0};
+    wire load_low=rdata[15:0]!=color_key,load_high=rdata[31:16]!=color_key;
+    wire [5:0] load_first=cache_first!=63 ? cache_first:load_low ? load_x:load_high ? load_x+6'd1:6'd63;
+    wire [5:0] load_last=load_high ? load_x+6'd1:load_low ? load_x:cache_last;
+    genvar span_row;
+    generate for(span_row=0;span_row<32;span_row=span_row+1)begin:cached_span_registers
+        reg [5:0] left_value,right_value;
+        always @(posedge clk)if(tile_mode && tile_span_write && tile_span_row==span_row)begin
+            left_value<=tile_span_left;right_value<=tile_span_right;
+        end else if(state==C_RDATA && rvalid && rready && cache_loading &&
+            {1'b0,cache_load_word}==cache_row_words-1'b1 && cache_load_row==span_row)begin
+            left_value<=load_first;right_value<=load_last;
+        end
+        assign cache_span_left_bits[span_row*6+:6]=left_value;
+        assign cache_span_right_bits[span_row*6+:6]=right_value;
+    end endgenerate
+    assign tile_source_q={copy_qhi,copy_qlo};
+    assign tile_background_q={bg_qhi,bg_qlo};
+    assign tile_left_bits=cache_span_left_bits;
+    assign tile_right_bits=cache_span_right_bits;
+    wire trim_row=blend_ctrl[1] && color_key==cache_span_key;
+    wire [5:0] pf_x0=trim_row ? pf_left:6'd0;
+    wire [5:0] pf_x1=trim_row ? pf_right:cache_side-6'd1;
+    wire [5:0] pf_width=pf_x1-pf_x0+6'd1;
+    wire [31:0] pf_start=pf_destination+{25'd0,pf_x0,1'b0};
+    wire [9:0] pf_row_words=({4'd0,pf_width}+{9'd0,pf_start[1]}+10'd1)>>1;
+    wire [10:0] pf_boundary=11'd1024-{1'b0,pf_address[11:2]};
+    wire [4:0] pf_proposed=pf_words>16 ? 5'd16:pf_words[4:0];
+    wire pf_active=pf_state==PF_ADDR || pf_state==PF_DATA;
+    wire pf_consumed=state==CACHE_ROW && pf_ready && pf_row==cache_row;
+    wire pf_failure=rresp!=0 || rlast!=(pf_beat==pf_count-1'b1);
+    wire [8:0] bg_prefetch_index=copy_prefetch_index[8:0]+(cache_use && cache_row[0] ? 9'd32:9'd0);
+    wire [5:0] row_left=trim_row ? cache_left:6'd0;
+    wire [5:0] row_right=trim_row ? cache_right:cache_side-6'd1;
+    wire [5:0] row_width=row_right-row_left+6'd1;
+    wire [31:0] cached_row_destination=row_addr+{25'd0,row_left,1'b0};
+    wire [9:0] cached_write_words=({4'd0,row_width}+{9'd0,cached_row_destination[1]}+10'd1)>>1;
+    wire [8:0] source_prefetch=copy_prefetch_index[8:0]+(cache_use ? cache_source_base:9'd0);
+    wire [8:0] copy_lo_index = source_prefetch +
         ((copy_src_half && !copy_dst_half) ? 9'd1 : 9'd0);
-    wire [8:0] copy_hi_index = copy_prefetch_index[8:0] -
+    wire [8:0] copy_hi_index = source_prefetch -
         ((!copy_src_half && copy_dst_half) ? 9'd1 : 9'd0);
     wire [31:0] copy_data = copy_src_half == copy_dst_half ?
         {copy_qhi,copy_qlo} : {copy_qlo,copy_qhi};
     wire [31:0] bg_data = {bg_qhi,bg_qlo};
+    // Isolate BRAM read/halfword alignment from the multiply/normalize/FIFO
+    // path. Once primed, this extra stage still supplies one word per clock.
+    reg [31:0] aligned_source,aligned_background;
+    always @(posedge clk)begin aligned_source<=copy_data;aligned_background<=bg_data;end
     // Each component is at most 63. The weighted sum plus rounding fits
     // in 14 bits. For this range, floor(t/255) == (t+1+(t>>8))>>8.
     // Keep multipliers narrow and avoid a general-purpose divider.
@@ -114,8 +191,8 @@ module fill_engine #(
         end
     endfunction
     wire [31:0] blend_data = {
-        blend_pixel(copy_data[31:16],bg_data[31:16],blend_alpha,blend_ctrl,color_key),
-        blend_pixel(copy_data[15:0],bg_data[15:0],blend_alpha,blend_ctrl,color_key)
+        blend_pixel(aligned_source[31:16],aligned_background[31:16],blend_alpha,blend_ctrl,color_key),
+        blend_pixel(aligned_source[15:0],aligned_background[15:0],blend_alpha,blend_ctrl,color_key)
     };
     wire copy_read_beat_error = rresp != 0 || rlast != (copy_read_beat == copy_read_burst_words-1);
     wire bg_read_beat_error = rresp != 0 || rlast != (bg_read_beat == bg_read_burst_words-1);
@@ -141,7 +218,7 @@ module fill_engine #(
         (({17'd0,height}-33'd1) << 8) + ({17'd0,width} << 1);
     wire [10:0] words_to_4k = 11'd1024 - {1'b0,awaddr[11:2]};
     wire [9:0] proposed_words = words_left > 16 ? 10'd16 : words_left;
-    wire [10:0] read_words_to_4k = 11'd1024 - {1'b0,araddr[11:2]};
+    wire [10:0] read_words_to_4k = 11'd1024 - {1'b0,main_araddr[11:2]};
     wire [9:0] copy_read_proposed = copy_read_words_left > 16 ? 10'd16 : copy_read_words_left;
     wire [9:0] bg_read_proposed = bg_read_words_left > 16 ? 10'd16 : bg_read_words_left;
     wire [10:0] write_words_to_4k = 11'd1024 - {1'b0,awaddr[11:2]};
@@ -167,14 +244,14 @@ module fill_engine #(
     wire [3:0] fifo_entry_strb =
         ((fifo_word_index == 0 && first_high) ? 4'b1100 : 4'b1111) &
         ((fifo_word_index == fifo_row_words-10'd1 && last_low) ? 4'b0011 : 4'b1111) &
-        ((blend_mode && blend_ctrl[1] && copy_data[15:0] == color_key) ? 4'b1100 : 4'b1111) &
-        ((blend_mode && blend_ctrl[1] && copy_data[31:16] == color_key) ? 4'b0011 : 4'b1111);
+        ((blend_mode && blend_ctrl[1] && aligned_source[15:0] == color_key) ? 4'b1100 : 4'b1111) &
+        ((blend_mode && blend_ctrl[1] && aligned_source[31:16] == color_key) ? 4'b0011 : 4'b1111);
     // A masked neighbour may be outside the loaded row. Zero inactive lanes
     // before caching the word so simulation never exposes uninitialised data.
     wire [31:0] fifo_entry_mask =
         {{16{fifo_entry_strb[2]}},{16{fifo_entry_strb[0]}}};
     wire [31:0] fifo_entry_data = copy_mode ?
-        ((blend_mode ? blend_data : copy_data) & fifo_entry_mask) : {fill_color,fill_color};
+        ((blend_mode ? blend_data : aligned_source) & fifo_entry_mask) : {fill_color,fill_color};
     wire fifo_entry_last = fifo_load_count == fifo_burst_words-1'b1;
     assign fifo_input = {fifo_entry_last,fifo_entry_strb,fifo_entry_data};
 
@@ -190,27 +267,84 @@ module fill_engine #(
     assign awlen = {3'd0,(copy_mode ? copy_write_burst_words : burst_words)} - 8'd1;
     assign awvalid = state == F_ADDR || state == C_WADDR;
     assign wvalid = (state == F_DATA || state == C_WDATA) && !fifo_empty;
-    assign arlen = {3'd0,(state == B_RADDR ? bg_read_burst_words : copy_read_burst_words)} - 8'd1;
-    assign arvalid = state == C_RADDR || state == B_RADDR;
-    assign rready = state == C_RDATA || state == B_RDATA;
+    assign araddr=pf_active ? pf_address:main_araddr;
+    assign arlen = {3'd0,(pf_active ? pf_count:state == B_RADDR ? bg_read_burst_words : copy_read_burst_words)} - 8'd1;
+    assign arvalid = pf_state==PF_ADDR || state == C_RADDR || state == B_RADDR;
+    assign rready = pf_state==PF_DATA || state == C_RDATA || state == B_RDATA;
     assign wdata = fifo_output[31:0];
     assign wstrb = fifo_output[35:32];
     assign wlast = fifo_output[36];
     assign bready = state == F_RESP || state == C_WRESP;
 
+    // Present exactly one physical write port per bank. Separate conditional
+    // array assignments made Efinity infer multiwrite logic memories.
+    wire source_ram_write=tile_mode ? tile_source_write:(rvalid && rready && state==C_RDATA);
+    wire [8:0] source_ram_address=tile_mode ? tile_source_address:copy_read_word_index[8:0];
+    wire [31:0] source_ram_data=tile_mode ? tile_source_data:rdata;
+    wire background_ram_write=tile_mode ? tile_background_write:
+        (rvalid && rready && (state==B_RDATA || pf_state==PF_DATA));
+    wire [8:0] background_ram_address=tile_mode ? tile_background_address:
+        pf_state==PF_DATA ? pf_index[8:0]:bg_read_word_index[8:0];
+    wire [31:0] background_ram_data=tile_mode ? tile_background_data:rdata;
+
     always @(posedge clk) begin
-        copy_qlo <= copy_buf_lo[copy_lo_index];
-        copy_qhi <= copy_buf_hi[copy_hi_index];
-        bg_qlo <= bg_buf_lo[copy_prefetch_index[8:0]];
-        bg_qhi <= bg_buf_hi[copy_prefetch_index[8:0]];
-        if (rvalid && rready) begin
-            if (state == B_RDATA) begin
-                bg_buf_lo[bg_read_word_index[8:0]] <= rdata[15:0];
-                bg_buf_hi[bg_read_word_index[8:0]] <= rdata[31:16];
-            end else begin
-                copy_buf_lo[copy_read_word_index[8:0]] <= rdata[15:0];
-                copy_buf_hi[copy_read_word_index[8:0]] <= rdata[31:16];
+        copy_qlo <= copy_buf_lo[tile_mode ? tile_source_lo_address:copy_lo_index];
+        copy_qhi <= copy_buf_hi[tile_mode ? tile_source_hi_address:copy_hi_index];
+        bg_qlo <= bg_buf_lo[tile_mode ? tile_background_read_address:bg_prefetch_index];
+        bg_qhi <= bg_buf_hi[tile_mode ? tile_background_read_address:bg_prefetch_index];
+        if(source_ram_write)begin
+            copy_buf_lo[source_ram_address]<=source_ram_data[15:0];
+            copy_buf_hi[source_ram_address]<=source_ram_data[31:16];
+        end
+        if(background_ram_write)begin
+            bg_buf_lo[background_ram_address]<=background_ram_data[15:0];
+            bg_buf_hi[background_ram_address]<=background_ram_data[31:16];
+        end
+    end
+    // A next-row read overlaps the current row's write. The two rows occupy
+    // separate 32-word windows of the existing background RAM. No second AR
+    // may be issued until the first response burst has completely retired.
+    always @(posedge clk)begin
+        if(reset)begin
+            pf_state<=PF_IDLE;pf_ready<=0;pf_bad<=0;pf_failed<=0;
+            pf_row<=0;pf_count<=0;pf_beat<=0;pf_left<=0;pf_right<=0;
+            pf_words<=0;pf_index<=0;pf_address<=0;pf_destination<=0;
+        end else begin
+            if(state==IDLE && start)begin pf_ready<=0;pf_failed<=0;end
+            if(pf_consumed)pf_ready<=0;
+            case(pf_state)
+            PF_IDLE:if(state==C_WPREP && cache_use && rows_left>1 &&
+                blend_ctrl[0] && blend_alpha!=255 && !pf_ready && !pf_failed && !cache_abort)begin
+                pf_row<=cache_row+1'b1;pf_destination<=row_addr+32'd1280;pf_state<=PF_SPAN;
             end
+            PF_SPAN:begin
+                pf_left<=cache_span_left_bits[pf_row*6+:6];pf_right<=cache_span_right_bits[pf_row*6+:6];pf_state<=PF_ROW;
+            end
+            PF_ROW:if(cache_abort)pf_state<=PF_IDLE;
+                else if(trim_row && pf_left==63)begin pf_ready<=1;pf_state<=PF_IDLE;end
+                else begin
+                    pf_address<={pf_start[31:2],2'd0};pf_words<=pf_row_words;
+                    pf_index<=pf_row[0] ? 10'd32:10'd0;pf_state<=PF_PREP;
+                end
+            PF_PREP:if(cache_abort)pf_state<=PF_IDLE;
+                else begin
+                    pf_count<=pf_boundary<pf_proposed ? pf_boundary[4:0]:pf_proposed;
+                    pf_beat<=0;pf_bad<=0;pf_state<=PF_ADDR;
+                end
+            PF_ADDR:if(arready)pf_state<=PF_DATA;
+            PF_DATA:if(rvalid)begin
+                if(pf_failure)pf_bad<=1;
+                pf_index<=pf_index+1'b1;
+                if(pf_beat==pf_count-1'b1)begin
+                    if(pf_bad || pf_failure)begin pf_failed<=1;pf_state<=PF_IDLE;end
+                    else if(pf_words=={5'd0,pf_count})begin pf_ready<=1;pf_state<=PF_IDLE;end
+                    else begin
+                        pf_address<=pf_address+{25'd0,pf_count,2'd0};pf_words<=pf_words-{5'd0,pf_count};pf_state<=PF_PREP;
+                    end
+                end else pf_beat<=pf_beat+1'b1;
+            end
+            default:pf_state<=PF_IDLE;
+            endcase
         end
     end
     always @(posedge clk) begin
@@ -218,7 +352,7 @@ module fill_engine #(
             state <= IDLE; done <= 0; error <= 0; cycles <= 0;
             burst_reads <= 0; burst_writes <= 0;
             ddr_read_wait_cycles <= 0; ddr_write_wait_cycles <= 0;
-            awaddr <= 0; araddr <= 0; row_addr <= 0; source_row_addr <= 0;
+            awaddr <= 0; main_araddr <= 0; row_addr <= 0; source_row_addr <= 0;cache_abort<=0;
             source_row_step <= 1280; copy_width <= 0;
             rows_left <= 0; row_step <= 1280; copy_mode <= 0; blend_mode <= 0;
             fill_color <= 0; words_left <= 0; row_words <= 0;
@@ -232,14 +366,18 @@ module fill_engine #(
             bg_read_burst_words <= 0; bg_read_beat <= 0;
             fifo_load_count <= 0; fifo_base_word_index <= 0; copy_prefetch_index <= 0;
             copy_src_half <= 0; copy_dst_half <= 0;
+            cache_use<=0;cache_loading<=0;cache_valid<=0;cache_tag_source<=0;cache_tag_side<=0;
+            cache_side<=0;cache_row_words<=0;cache_span_key<=0;cache_row_base<=0;cache_source_base<=0;
+            cache_row<=0;cache_load_row<=0;cache_load_word<=0;
+            cache_first<=63;cache_last<=0;cache_left<=63;cache_right<=0;
         end else begin
+            if(!cache_session)cache_valid<=0;
             if (busy) cycles <= cycles + 1'b1;
             if (arvalid && arready) burst_reads <= burst_reads + 1'b1;
             if (awvalid && awready) burst_writes <= burst_writes + 1'b1;
             // Count only cycles where a valid AXI phase is waiting for the
             // memory/interconnect response, not internal raster work.
-            if (((state == C_RADDR || state == B_RADDR) && !arready) ||
-                ((state == C_RDATA || state == B_RDATA) && !rvalid))
+            if ((arvalid && !arready) || (rready && !rvalid))
                 ddr_read_wait_cycles <= ddr_read_wait_cycles + 1'b1;
             if (((state == F_ADDR || state == C_WADDR) && !awready) ||
                 ((state == F_DATA || state == C_WDATA) && wvalid && !wready) ||
@@ -247,7 +385,9 @@ module fill_engine #(
                 ddr_write_wait_cycles <= ddr_write_wait_cycles + 1'b1;
             case (state)
             IDLE: if (start) begin
-                done <= 0; error <= 0; cycles <= 0;
+                done <= 0; error <= 0; cycles <= 0;cache_abort<=0;
+                cache_use<=cache_eligible;cache_loading<=0;
+                if(!cache_eligible)cache_valid<=0;
                 if (!memory_ready || (operation > 2) || dst[0] || width == 0 || height == 0 ||
                     width > 640 || height > 480 || stride != 1280 ||
                     dst < frame_base || end_address > {1'b0,frame_base}+{1'b0,FB_BYTES} ||
@@ -276,7 +416,7 @@ module fill_engine #(
                         row_addr <= dst + (reverse_copy ? row_offset[31:0] : 32'd0);
                         source_row_addr <= src + (reverse_copy ? source_offset : 32'd0);
                         awaddr <= {dst[31:2],2'b00} + (reverse_copy ? row_offset[31:0] : 32'd0);
-                        araddr <= {src[31:2],2'b00} + (reverse_copy ? source_offset : 32'd0);
+                        main_araddr <= {src[31:2],2'b00} + (reverse_copy ? source_offset : 32'd0);
                         copy_src_half <= src[1]; copy_dst_half <= dst[1];
                         copy_read_row_words <= ({1'b0,width[9:0]} + {10'd0,src[1]} + 11'd1) >> 1;
                         copy_write_row_words <= ({1'b0,width[9:0]} + {10'd0,dst[1]} + 11'd1) >> 1;
@@ -284,8 +424,50 @@ module fill_engine #(
                         copy_read_words_left <= ({1'b0,width[9:0]} + {10'd0,src[1]} + 11'd1) >> 1;
                         copy_write_words_left <= ({1'b0,width[9:0]} + {10'd0,dst[1]} + 11'd1) >> 1;
                         copy_read_word_index <= 0; copy_write_word_index <= 0;
-                        state <= C_RPREP;
+                        cache_side<=width[5:0];cache_row_words<={1'b0,width[5:1]};
+                        cache_row_base<=0;cache_source_base<=0;cache_row<=0;
+                        state <= cache_eligible ? CACHE_CHECK:C_RPREP;
                     end
+                end
+            end
+            CACHE_CHECK:begin
+                if(cache_valid && cache_tag_source==src && cache_tag_side==cache_side)state<=CACHE_SPAN;
+                else begin
+                    cache_valid<=0;cache_loading<=1;
+                    copy_read_words_left<=cache_tile_words;copy_read_word_index<=0;
+                    cache_load_row<=0;cache_load_word<=0;cache_first<=63;cache_last<=0;
+                    state<=C_RPREP;
+                end
+            end
+            CACHE_SPAN:begin
+                cache_left<=cache_span_left_bits[cache_row*6+:6];cache_right<=cache_span_right_bits[cache_row*6+:6];
+                state<=CACHE_ROW;
+            end
+            CACHE_ROW:begin
+                if(pf_failed)begin cache_abort<=1;state<=CACHE_ABORT;end
+                else if(pf_row==cache_row && pf_state!=PF_IDLE)begin end
+                else if(trim_row && cache_left==63)begin
+                    // Empty key rows leave the destination entirely untouched.
+                    if(rows_left==1)begin done<=1;state<=IDLE;end
+                    else begin
+                        row_addr<=row_addr+row_step;rows_left<=rows_left-1'b1;
+                        cache_row<=cache_row+1'b1;cache_row_base<=cache_row_base+cache_row_words;
+                        state<=CACHE_SPAN;
+                    end
+                end else begin
+                    cache_source_base<=cache_row_base+{4'd0,row_left[5:1]};
+                    copy_src_half<=row_left[0];copy_dst_half<=cached_row_destination[1];
+                    first_high<=cached_row_destination[1];last_low<=cached_row_destination[1]^row_width[0];
+                    awaddr<={cached_row_destination[31:2],2'b00};
+                    copy_write_row_words<=cached_write_words;copy_write_words_left<=cached_write_words;
+                    copy_write_word_index<=0;bg_read_row_words<=cached_write_words;
+                    if(blend_ctrl[0] && blend_alpha!=8'hff)begin
+                        if(pf_ready && pf_row==cache_row)state<=C_WPREP;
+                        else begin
+                            main_araddr<={cached_row_destination[31:2],2'b00};bg_read_words_left<=cached_write_words;
+                            bg_read_word_index<=cache_row[0] ? 10'd32:10'd0;state<=B_RPREP;
+                        end
+                    end else state<=C_WPREP;
                 end
             end
             F_PREP: begin
@@ -335,19 +517,29 @@ module fill_engine #(
                 // would leave unread beats on the shared scanout/copy channel.
                 if (copy_read_beat_error) error <= 1;
                 copy_read_word_index <= copy_read_word_index + 1'b1;
+                if(cache_loading)begin
+                    if({1'b0,cache_load_word}==cache_row_words-1'b1)begin
+                        cache_load_row<=cache_load_row+1'b1;cache_load_word<=0;cache_first<=63;cache_last<=0;
+                    end else begin
+                        cache_load_word<=cache_load_word+1'b1;cache_first<=load_first;cache_last<=load_last;
+                    end
+                end
                 if (copy_read_beat == copy_read_burst_words-1) begin
                     if (error || copy_read_beat_error) begin
                         done <= 1; state <= IDLE;
                     end else if (copy_read_words_left == {5'd0,copy_read_burst_words}) begin
                         copy_write_word_index <= 0;
-                        if (blend_mode && blend_ctrl[0] && blend_alpha != 8'hff) begin
-                            araddr <= {row_addr[31:2],2'b00};
+                        if(cache_loading)begin
+                            cache_loading<=0;cache_valid<=1;cache_tag_source<=src;cache_tag_side<=cache_side;
+                            cache_span_key<=color_key;state<=CACHE_SPAN;
+                        end else if (blend_mode && blend_ctrl[0] && blend_alpha != 8'hff) begin
+                            main_araddr <= {row_addr[31:2],2'b00};
                             bg_read_words_left <= bg_read_row_words;
                             bg_read_word_index <= 0;
                             state <= B_RPREP;
                         end else state <= C_WPREP;
                     end else begin
-                        araddr <= araddr + ({27'd0,copy_read_burst_words} << 2);
+                        main_araddr <= main_araddr + ({27'd0,copy_read_burst_words} << 2);
                         copy_read_words_left <= copy_read_words_left - {5'd0,copy_read_burst_words};
                         state <= C_RPREP;
                     end
@@ -369,7 +561,7 @@ module fill_engine #(
                     end else if (bg_read_words_left == {5'd0,bg_read_burst_words}) begin
                         state <= C_WPREP;
                     end else begin
-                        araddr <= araddr + ({27'd0,bg_read_burst_words} << 2);
+                        main_araddr <= main_araddr + ({27'd0,bg_read_burst_words} << 2);
                         bg_read_words_left <= bg_read_words_left - {5'd0,bg_read_burst_words};
                         state <= B_RPREP;
                     end
@@ -385,6 +577,10 @@ module fill_engine #(
             // Prime the synchronous row RAM, then issue one read per cycle
             // while the corresponding previous result enters the FIFO.
             C_WPRIME: begin
+                copy_prefetch_index <= copy_prefetch_index + 1'b1;
+                state <= C_WALIGN;
+            end
+            C_WALIGN:begin
                 copy_prefetch_index <= copy_prefetch_index + 1'b1;
                 state <= C_WFIFO;
             end
@@ -415,14 +611,19 @@ module fill_engine #(
                 end
             end
             C_WRESP: if (bvalid) begin
-                if (bresp != 0) begin error <= 1; done <= 1; state <= IDLE; end
+                if (cache_use && (bresp!=0 || pf_failed))begin cache_abort<=1;state<=CACHE_ABORT;end
+                else if (bresp != 0) begin error <= 1; done <= 1; state <= IDLE; end
                 else if (copy_write_words_left == {5'd0,copy_write_burst_words}) begin
                     if (rows_left == 1) begin done <= 1; state <= IDLE; end
-                    else begin
+                    else if(cache_use)begin
+                        row_addr<=row_addr+row_step;rows_left<=rows_left-1'b1;
+                        cache_row<=cache_row+1'b1;cache_row_base<=cache_row_base+cache_row_words;
+                        state<=CACHE_SPAN;
+                    end else begin
                         row_addr <= row_addr + row_step;
                         source_row_addr <= next_source_row;
                         awaddr <= {row_addr[31:2],2'b00} + row_step;
-                        araddr <= {next_source_row[31:2],2'b00};
+                        main_araddr <= {next_source_row[31:2],2'b00};
                         // A pitch of 2 mod 4 alternates the source halfword
                         // alignment each row (e.g. tightly packed odd widths).
                         copy_src_half <= next_source_row[1];
@@ -439,6 +640,7 @@ module fill_engine #(
                     state <= C_WPREP;
                 end
             end
+            CACHE_ABORT:if(pf_state==PF_IDLE)begin error<=1;done<=1;state<=IDLE;end
             default: state <= IDLE;
             endcase
         end

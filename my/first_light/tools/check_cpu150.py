@@ -41,7 +41,7 @@ for lane in range(4):
 lib='sim/work_cpu150_game' if args.game else 'sim/work_cpu150'
 if not (ROOT/lib).exists(): run([SIM/'vlib.exe',lib],'vlib')
 run([SIM/'vlog.exe','-sv','-work',lib,'+incdir+sim',*(['+define+CPU150_GAME'] if args.game else []),
-     'rtl/button_input.v','rtl/sync_fifo.v','rtl/fill_engine.v',
+     'rtl/button_input.v','rtl/sync_fifo.v','rtl/fill_engine.v','rtl/render_batch.v','rtl/tile_renderer.v',
      'rtl/render_regs.v','rtl/framebuffer_video.v','rtl/video_mode_measure.v','rtl/render_subsystem.v',
      ROOT/'sim/soc_modelsim.v' if args.game else OUT/'soc_probe.v','sim/tb_cpu150.sv'],
      'game_vlog' if args.game else 'vlog')

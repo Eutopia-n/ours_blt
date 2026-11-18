@@ -20,7 +20,7 @@ static void game_ui_base(const char *title) {
     paint(0,0,640,480,0x1084,1);cpu_fill(0,0,640,44,0x18e6);
     cpu_fill(0,44,640,1,0x6a87);book_stamp(BOOK_ICON_GAME,16,6,1,0);
     book_text(60,9,title,0xf759,2);
-    cpu_fill(554,13,41,19,0x296a);book_text(562,19,"FPGA",0xe651,0);
+    cpu_fill(554,13,41,19,0x296a);book_text(560,15,"硬件",0xe651,1);
     cpu_fill(16,416,608,1,0x3a0c);
 }
 static void game_ui_footer(const char *left,const char *right) {
@@ -59,22 +59,23 @@ static void game_ui_number(uint32_t x,uint32_t y,uint32_t value,uint16_t color,u
     char out[11];decimal(out,value);book_text(x,y,out,color,book_text_width(out,1)>width ? 0u:1u);
 }
 static void game_ui_page(const SurvivorGame *g) {
-    game_ui_base(g->state==GAME_UPGRADE ? "选择强化":g->state==GAME_READY ? "冰霜幸存者":
+    uint32_t relic_offer=g->state==GAME_UPGRADE && g->chest_state==CHEST_OFFER;
+    game_ui_base(relic_offer ? "选择遗物":g->state==GAME_UPGRADE ? "选择强化":g->state==GAME_READY ? "冰霜幸存者":
                  g->state==GAME_WON ? "你已生存":"游戏结束");game_ui_illustration(g);
     if(g->state==GAME_UPGRADE) {
-        char level[11],heading[32]="LEVEL UP / ";if(g->level<10u){level[0]='0';level[1]=(char)('0'+g->level);level[2]=0;}else decimal(level,g->level);
-        uint32_t at=11,n=0;while(level[n])heading[at++]=level[n++];heading[at]=0;
-        book_center(320,70,heading,0xe651,1);
+        char level[11],heading[40]="等级提升 / ";if(g->level<10u){level[0]='0';level[1]=(char)('0'+g->level);level[2]=0;}else decimal(level,g->level);
+        uint32_t at=0,n=0;while(heading[at])++at;while(level[n])heading[at++]=level[n++];heading[at]=0;
+        book_center(320,70,relic_offer ? "秘库宝箱 / 三选一":heading,0xe651,1);
         book_center(166,344,game_upgrade_name(g->options[g->choice]),0x9f1c,1);
         book_center(166,374,game_upgrade_detail(g->options[g->choice]),0x63b1,book_text_width(game_upgrade_detail(g->options[g->choice]),1)>280u ? 0u:1u);
         for(uint32_t i=0;i<3u;++i) {
             uint32_t skill=g->options[i];
             game_ui_entry(126+i*88u,game_upgrade_name(skill),game_upgrade_detail(skill),game_upgrade_icon(skill),i==g->choice,1);
         }
-        game_ui_footer("W/S 选择强化","D 暂停  ENTER 选择");return;
+        game_ui_footer(relic_offer ? "W/S 选择遗物":"W/S 选择强化","D 暂停  ENTER 选择");return;
     }
     uint32_t ready=g->state==GAME_READY,won=g->state==GAME_WON;
-    book_center(320,70,ready ? "FROST SURVIVOR":won ? "VICTORY":"END OF RUN",ready||won ? 0xe651:0xab0c,1);
+    book_center(320,70,ready ? "冰霜幸存者":won ? "生存胜利":"本局结束",ready||won ? 0xe651:0xab0c,1);
     book_center(166,344,ready||won ? "生存360秒":"冰霜幸存者",0x9f1c,1);
     if(ready)book_center(166,374,"技能自动释放",0x63b1,1);
     for(uint32_t i=0;i<3u;++i) {
@@ -94,6 +95,44 @@ static void game_ui_bar(uint32_t x,uint32_t y,uint32_t w,uint32_t value,uint32_t
     uint32_t fill=maximum ? (w-4u)*value/maximum:0;if(fill>w-4u)fill=w-4u;
     if(fill){cpu_fill(x+2,y+2,fill,8,color);cpu_fill(x+2,y+2,fill,1,color==0xab0c ? 0xe651:0x9f1c);}
 }
+static void game_ui_altar(const SurvivorGame *g) {
+    static const char *const enemies[]={"霜晶史莱姆","白骨学徒","暮晶蝙蝠","寒霜守卫","鎏金统领"};
+    static const uint8_t icons[]=GAME_ART_ENEMY_IDLE;
+    uint16_t alive[5]={0};
+    for(uint32_t i=0;i<GAME_MAX_ENEMIES;++i) {
+        const GameEnemy *e=&g->enemies[i];
+        if(e->hp && e->kind<5u)++alive[e->kind];
+    }
+    game_ui_base("祭坛战况");
+    game_ui_frame(22,68,292,300,0);
+    game_ui_frame(326,68,292,300,0);
+    book_text(40,86,"技能等级",0xe651,1);
+    book_text(344,86,"存活怪物",0xe651,1);
+    for(uint32_t i=0;i<GAME_UPGRADE_COUNT;++i) {
+        uint32_t y=112+i*40u,level=g->upgrade_level[i],maximum=game_upgrade_max(i);
+        char rank[4]={(char)('0'+level),'/',(char)('0'+maximum),0};
+        game_ui_skill(game_upgrade_icon(i),38,y+2,32);
+        book_text(80,y+2,game_upgrade_name(i),0xf759,1);
+        book_text(256,y+2,rank,level>=maximum ? 0xe651:0x9f1c,1);
+        game_ui_bar(80,y+20,208,level,maximum,0x2c55);
+    }
+    for(uint32_t i=0;i<5u;++i) {
+        uint32_t y=112+i*40u;
+        game_ui_skill(icons[i],344,y+2,32);
+        book_text(388,y+9,enemies[i],0xf759,1);
+        game_ui_number(554,y+9,alive[i],0x9f1c,48);
+        cpu_fill(344,y+38,252,1,0x2a2a);
+    }
+    book_text(344,322,"全图存活",0xf759,1);
+    game_ui_number(554,322,g->enemy_count,0xe651,48);
+    book_text(32,388,"遗物",0x9f1c,1);
+    book_text(70,388,g->relic ? game_upgrade_name(GAME_UPGRADE_COUNT+g->relic-1u):"未获得",0xf759,1);
+    book_text(322,388,"击杀",0x9f1c,1);
+    game_ui_number(366,388,g->kills,0xf759,64);
+    book_text(472,388,"宝石",0x9f1c,1);
+    game_ui_number(516,388,g->gem_count,0xf759,64);
+    game_ui_footer("","ENTER 继续游戏");
+}
 static void game_ui_hud(const SurvivorGame *g,uint32_t fps,uint32_t page,uint32_t page_bit) {
     uint32_t fresh=!(game_hud_pages&page_bit);
     if(fresh) {
@@ -101,25 +140,61 @@ static void game_ui_hud(const SurvivorGame *g,uint32_t fps,uint32_t page,uint32_
         const volatile uint16_t *heart=(const volatile uint16_t *)(uintptr_t)(GAME_ASSET_BASE+GAME_ART_HEAL*2048u);
         for(uint32_t y=0;y<16;++y)for(uint32_t x=0;x<16;++x)if(heart[y*64+x*2])cpu_fill(200+x,12+y,1,1,heart[y*64+x*2]);
 
-        game_ui_footer("W/S/A/D 移动","ENTER 暂停");game_hud_pages|=page_bit;
+        cpu_fill(16,450,608,28,0x1084);cpu_fill(16,444,608,1,0x3a0c);
+        book_text(16,456,"W/S/A/D 移动",0xf759,1);
+        book_text(350,456,"击杀",0xf759,1);
+        book_text(486,456,"存活弹数",0x63b1,1);
+        book_text(80,54,"经验",0x63b1,1);
+        book_text(280,54,"60帧纪录",0xe651,1);
+        book_text(400,54,"屏内",0x9f1c,1);
+        book_text(524,54,"帧率",0x9f1c,1);
+        game_hud_pages|=page_bit;
         game_hud_number_valid[page]=0;
     }
-    uint32_t values[6]={g->hp,g->level,g->xp,g->xp_target,g->kills,fps};
-    for(uint32_t i=0;i<6;++i) {
+    uint32_t altar_nearby=game_near_altar(g);
+    if(fresh || game_hud_numbers[page][10]!=altar_nearby) {
+        cpu_fill(176,456,168,14,0x1084);
+        book_text(176,456,altar_nearby ? "ENTER 祭坛":"ENTER 暂停",0x9f1c,1);
+        game_hud_numbers[page][10]=altar_nearby;
+    }
+    (void)fps;
+    uint32_t values[2]={g->hp,g->level};
+    for(uint32_t i=0;i<2;++i) {
         if(!fresh && (game_hud_number_valid[page]&(1u<<i)) && game_hud_numbers[page][i]==values[i])continue;
         if(i==0){cpu_fill(390,14,72,14,0x18e6);game_ui_number(390,14,g->hp,0xf759,72);game_ui_bar(226,16,144,g->hp,g->max_hp,0xab0c);}
-        if(i==1){cpu_fill(16,54,88,14,0x1084);book_text(16,54,"等级",0xf759,1);char level[11];if(g->level<10u){level[0]='0';level[1]=(char)('0'+g->level);level[2]=0;}else decimal(level,g->level);book_text(44,54,level,0xf759,1);}
-        if(i==2 || i==3) {
-            char a[11],b[11],out[24];decimal(a,g->xp);decimal(b,g->xp_target);uint32_t n=0,k=0;
-            while(a[k]){out[n++]=a[k++];}out[n++]='/';k=0;while(b[k])out[n++]=b[k++];out[n]=0;
-            cpu_fill(300,54,96,14,0x1084);book_text(300,54,out,0x63b1,book_text_width(out,1)>96u ? 0u:1u);game_ui_bar(108,56,168,g->xp,g->xp_target,0x2c55);
-        }
-        if(i==4){cpu_fill(396,54,120,14,0x1084);book_text(396,54,"击杀",0xf759,1);game_ui_number(424,54,g->kills,0xf759,92);}
-        if(i==5){cpu_fill(518,54,114,14,0x1084);book_text(518,54,"FPS",0x9f1c,1);game_ui_number(566,54,fps,0x9f1c,66);}
+        if(i==1){cpu_fill(16,54,64,14,0x1084);book_text(16,54,"等级",0xf759,1);char level[11];if(g->level<10u){level[0]='0';level[1]=(char)('0'+g->level);level[2]=0;}else decimal(level,g->level);book_text(44,54,level,0xf759,1);}
         game_hud_numbers[page][i]=values[i];game_hud_number_valid[page]|=1u<<i;
+    }
+    if((game_hud_number_valid[page]&12u)!=12u || game_hud_numbers[page][2]!=g->xp ||
+       game_hud_numbers[page][3]!=g->xp_target) {
+        static char out[24];
+        decimal(out,g->xp);uint32_t n=0;
+        while(out[n])++n;
+        out[n++]='/';decimal(out+n,g->xp_target);
+        game_ui_bar(108,56,156,g->xp,g->xp_target,0x2c55);
+        book_center(186,58,out,0xf759,0);
+        game_hud_numbers[page][2]=g->xp;game_hud_numbers[page][3]=g->xp_target;
+        game_hud_number_valid[page]|=12u;
     }
     uint32_t second=g->ticks/60u;
     if(fresh || game_hud_numbers[page][6]!=second){char out[6];game_ui_time(out,second);cpu_fill(476,14,72,14,0x18e6);book_text(476,14,out,0xe651,1);game_hud_numbers[page][6]=second;}
+}
+/* Read the live counters after drawing this frame. Per-page caches avoid DDR
+ * writes when the published number is the same as that page's last value. */
+static void game_ui_metrics(uint32_t visible,uint32_t active,uint32_t maximum,
+                            uint32_t kills,uint32_t fps,uint32_t page) {
+    const uint32_t values[5]={visible,active,maximum,kills,fps};
+    static const uint16_t positions[5]={434u,550u,350u,384u,566u};
+    static const uint8_t indices[5]={7u,8u,9u,4u,5u};
+    static const uint8_t widths[5]={48u,74u,36u,84u,66u};
+    for(uint32_t n=0;n<5u;++n) {
+        uint32_t index=indices[n],bit=1u<<index,y=(n==1u || n==3u) ? 456u:54u;
+        if((game_hud_number_valid[page]&bit) && game_hud_numbers[page][index]==values[n])continue;
+        uint16_t color=n==2u ? 0xe651:n==3u ? 0xf759:0x9f1c;
+        cpu_fill(positions[n],y,widths[n],14,0x1084);
+        game_ui_number(positions[n],y,values[n],color,widths[n]);
+        game_hud_numbers[page][index]=values[n];game_hud_number_valid[page]|=bit;
+    }
 }
 static void game_ui_pause(void) {
     /* Shade through the existing scanline engine; CPU emits one solid span. */

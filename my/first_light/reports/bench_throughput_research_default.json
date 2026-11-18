@@ -1,0 +1,111 @@
+{
+  "scope": "RTL modeled DDR cycles and pixels, not real-board FPS or MAX60",
+  "cases": [
+    {
+      "side": 4,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles": 14122,
+      "AR": 643,
+      "AW": 514,
+      "source_bursts": 1,
+      "source_words": 8
+    },
+    {
+      "side": 16,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles": 49544,
+      "AR": 1677,
+      "AW": 1541,
+      "source_bursts": 8,
+      "source_words": 128
+    },
+    {
+      "side": 24,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles": 101193,
+      "AR": 2717,
+      "AW": 2571,
+      "source_bursts": 18,
+      "source_words": 288
+    },
+    {
+      "side": 32,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles": 150727,
+      "AR": 3508,
+      "AW": 3348,
+      "source_bursts": 32,
+      "source_words": 512
+    },
+    {
+      "side": 4,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles": 10785,
+      "AR": 643,
+      "AW": 514,
+      "source_bursts": 1,
+      "source_words": 8
+    },
+    {
+      "side": 16,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles": 35535,
+      "AR": 1677,
+      "AW": 1541,
+      "source_bursts": 8,
+      "source_words": 128
+    },
+    {
+      "side": 24,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles": 67535,
+      "AR": 2717,
+      "AW": 2571,
+      "source_bursts": 18,
+      "source_words": 288
+    },
+    {
+      "side": 32,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles": 97596,
+      "AR": 3508,
+      "AW": 3348,
+      "source_bursts": 32,
+      "source_words": 512
+    },
+    {
+      "side": 32,
+      "count": 8,
+      "ready": 0,
+      "key": 0,
+      "cycles": 22946,
+      "AR": 426,
+      "AW": 386,
+      "source_bursts": 32,
+      "source_words": 512
+    }
+  ],
+  "source_sha256": {
+    "rtl/fill_engine.v": "2aba669810b457cfa32e6d668a4484aae6eaa532f4e1ed7031d73ceacf07b4b1",
+    "rtl/render_subsystem.v": "ced1b3aa121b4ce390f4e50a8b8cc4f22f4507e425ad54793cae5744ff23fcdc",
+    "rtl/render_batch.v": "15221d22594730579bd3980b360e808d087770b69a4795c705d5b062c0474cae",
+    "sim/tb_render.sv": "fe35a4bd73faeae76164c0dc719726055eeccd56ab2037ae36e28cc235e6bbd3"
+  },
+  "positions": "fixed overlapping test positions"
+}

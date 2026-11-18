@@ -1,6 +1,6 @@
 {
   "reference_html_sha256": "444292a0a343000889916b5dd7ab3b8f91f2bdc44c596dd918c9996ac36c5bad",
-  "rom_bytes": 28908,
+  "rom_bytes": 32640,
   "resources": [
     {
       "name": "front",
@@ -1672,6 +1672,18 @@
       "bits": 3,
       "sha256": "4c59649f701259b5936caa0c8543e8da1d9d230920793936a5891fa5cbfeb8fe",
       "palette_offset": 1298
+    }
+  ],
+  "copy_assets": [
+    {
+      "name": "supertuxkart",
+      "offset": 28907,
+      "compressed": 1901
+    },
+    {
+      "name": "0ad",
+      "offset": 30808,
+      "compressed": 1832
     }
   ],
   "desk_palette": [

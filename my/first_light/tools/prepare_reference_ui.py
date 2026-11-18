@@ -50,11 +50,14 @@ def add(name,data,w,h,base=0,delta=False):
     stream.extend(compressed);desc.append(d);(OUT/(name+'.rgb565')).write_bytes(data)
     return len(desc)-1
 half=lambda im:im.resize((im.width//2,im.height//2),Image.Resampling.NEAREST)
-front=art['cover_art'](False,False,False).crop((174,32,452,428))
+# These are lossless exports of the shipped reference textures. Re-rasterizing
+# cover_art() can move ellipse-edge pixels across Pillow versions, even though
+# the immutable HTML and the intended cover have not changed.
+front=Image.open(ROOT/'assets/ui/magic_book_v5/source/reference_front.png').convert('RGBA')
 book=art['open_base'](False)
 leaf=half(_page_texture(book,'right'))
 unlatched=half(art['cover_art'](True,False,True))
-cover=half(art['cover_art'](False,False,True).crop((170,32,480,448)))
+cover=Image.open(ROOT/'assets/ui/magic_book_v5/source/reference_cover.png').convert('RGBA')
 images=[front,half(book),leaf,cover]
 texture_palette=sorted(set(v for im in images for v in struct.unpack('<'+'H'*(im.width*im.height),raw(im))))
 assert len(texture_palette)<=64
@@ -88,6 +91,20 @@ exec(compile(ast.Module(body=[node],type_ignores=[]),str(source),'exec'),art)
 orn=Image.new('RGBA',(640,480));saved=art['hero'];art['hero']=lambda *a,**k:None
 art['game_illustration'](orn);art['hero']=saved
 add('game_ornament',raw(half(orn.crop((66,144,266,340)))),100,98,0x23000)
+# Store the game screenshots as 4-bit indices followed by their RGB565 palette.
+copy_assets=[]
+copy_w,copy_h=72,54
+for name in ('supertuxkart','0ad'):
+    im=Image.open(ROOT/'assets/basic_copy'/f'{name}.png').convert('RGB')
+    assert im.size==(copy_w,copy_h)
+    indexed=im.quantize(colors=16,dither=Image.Dither.NONE)
+    indices=indexed.tobytes()
+    palette=opaque_raw(Image.frombytes('RGB',(16,1),bytes(indexed.getpalette()[:48])))
+    packed=bytes(a|(b<<4) for a,b in zip(indices[::2],indices[1::2]))+palette
+    compressed=codec['lz4'](packed)
+    assert codec['un_lz4'](compressed)==packed
+    copy_assets.append(dict(name=name,offset=len(stream),compressed=len(compressed)))
+    stream.extend(compressed)
 stream.extend(bytes((-len(stream))%4))
 (OUT/'ui_stream.bin').write_bytes(stream)
 (OUT/'ui_stream.hex').write_text(''.join(f'{v:08x}\n' for v in struct.unpack('<'+'I'*(len(stream)//4),stream)),encoding='ascii')
@@ -112,7 +129,10 @@ for x,y in ((5,5),(234,5),(5,55),(234,55)):
     corner_values += [sum(corner.getpixel((x+col,y+row))<<col for col in range(15)) for row in range(15)]
 header+=['};','static const uint16_t book_corner_masks[]={'+','.join(hex(c) for c in corner_values)+'};']
 header+=['static const uint16_t book_front_palette[]={'+','.join(hex(c) for c in front_palette)+'};','static const uint16_t book_resource_palette[]={'+','.join(hex(c) for c in palettes)+'};','static const uint16_t book_desk_palette[16]={'+','.join(hex(c) for c in colors+[0]*(16-len(colors)))+'};',
- 'static const int16_t book_sine[1025]={'+','.join(str(round(math.sin(n*math.pi/512)*16384)) for n in range(1025))+'};','#endif','']
+ 'static const int16_t book_sine_quarter[257]={'+','.join(str(round(math.sin(n*math.pi/512)*16384)) for n in range(257))+'};',
+ f'#define BASIC_COPY_ASSET_W {copy_w}u',f'#define BASIC_COPY_ASSET_H {copy_h}u',
+ 'static const uint16_t basic_copy_stream[2][2]={'+','.join(
+     '{'+f"{entry['offset']}u,{entry['compressed']}u"+'}' for entry in copy_assets)+'};','#endif','']
 (ROOT/'software/reference_ui_assets.h').write_text('\n'.join(header),encoding='utf-8')
 (ROOT/'rtl/ui_front_palette.vh').write_text(''.join(f'6\'d{i}:front_color=16\'h{c:04x};\n' for i,c in enumerate(front_palette)),encoding='ascii')
 rom=['module ui_asset_rom(input wire clk,input wire [12:0] address,output reg [31:0] data);','reg [3:0] bank;always @(posedge clk)bank<=address[12:9];']
@@ -128,6 +148,6 @@ rom+=['always @* case(bank)']+[f"4'd{i}:data=q{i};" for i in range((len(words)+5
 (ROOT/'rtl/ui_asset_rom.v').write_text('\n'.join(rom),encoding='ascii')
 (ROOT/'rtl/ui_rom_size.vh').write_text(f'`define UI_ROM_WORDS {len(stream)//4}\n',encoding='ascii')
 manifest=dict(reference_html_sha256=hashlib.sha256(s.encode()).hexdigest(),rom_bytes=len(stream),
- resources=desc,desk_palette=colors,resource_pool_bytes=1048576,game_background_textures=False,board_tested=False)
+ resources=desc,copy_assets=copy_assets,desk_palette=colors,resource_pool_bytes=1048576,game_background_textures=False,board_tested=False)
 (OUT/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 print(json.dumps(dict(rom_bytes=len(stream),resources=[(d['name'],d['compressed'],d['rle']) for d in desc])))

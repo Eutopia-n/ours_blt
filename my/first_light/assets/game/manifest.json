@@ -1,5 +1,5 @@
 {
-  "frames": 36,
+  "frames": 46,
   "player": "direction*4+walk_frame",
   "slime": 16,
   "skeleton": 17,
@@ -17,7 +17,28 @@
   "format": "RGB565 little endian",
   "key": 0,
   "ddr_base": "0x01204000",
-  "compressed_bytes": 25686,
+  "compressed_bytes": 23667,
+  "relic_frames": {
+    "chest_0": 36,
+    "chest_1": 37,
+    "key_0": 38,
+    "flower_0": 39,
+    "vial_0": 40,
+    "summon_0": 41,
+    "summon_1": 42,
+    "ice_patch": 43,
+    "shield_ring": 44,
+    "hit_0": 45
+  },
+  "altar": {
+    "source": "assets/scenery/frame_0.png",
+    "source_side": 64,
+    "display_side": 96,
+    "world_center": [
+      1024,
+      704
+    ]
+  },
   "kenney_source_sha256": "d24e60a41e4ac7a745c0304dfde121143688557f40215f23221c29cfe683825f",
   "art_style": "frost_pixel_v1",
   "enemy_animation_frames": [
@@ -72,10 +93,10 @@
     "34": "xp_crown",
     "35": "orbit_crystal_1"
   },
-  "ddr_bytes": 73728,
-  "added_ddr_bytes": 22528,
+  "ddr_bytes": 94208,
+  "added_ddr_bytes": 43008,
   "background_texture_bytes": 0,
-  "reserve_loaded": false,
+  "reserve_loaded": true,
   "player_preserved": true,
   "healing_heart_preserved": false
 }

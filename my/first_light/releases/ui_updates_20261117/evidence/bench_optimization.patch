@@ -1,0 +1,1123 @@
+--- a/rtl/fill_engine.v
++++ b/rtl/fill_engine.v
+@@ -11,6 +11,15 @@
+     input wire clk, input wire reset,
+     input wire start, input wire memory_ready,
+     input wire cache_session,
++    // Mutually exclusive tile renderer reuses these four existing RAM banks.
++    input wire tile_mode,tile_source_write,tile_background_write,tile_span_write,
++    input wire [8:0] tile_source_address,tile_source_lo_address,tile_source_hi_address,
++    input wire [8:0] tile_background_address,tile_background_read_address,
++    input wire [31:0] tile_source_data,tile_background_data,
++    input wire [4:0] tile_span_row,
++    input wire [5:0] tile_span_left,tile_span_right,
++    output wire [31:0] tile_source_q,tile_background_q,
++    output wire [191:0] tile_left_bits,tile_right_bits,
+     input wire [1:0] operation, input wire [31:0] src,
+     input wire [31:0] frame_base,
+     input wire [31:0] dst, input wire [15:0] width, height,
+@@ -26,7 +35,7 @@
+     output wire [31:0] wdata, output wire [3:0] wstrb,
+     output wire wlast, output wire wvalid, input wire wready,
+     input wire [1:0] bresp, input wire bvalid, output wire bready,
+-    output reg [31:0] araddr, output wire [7:0] arlen,
++    output wire [31:0] araddr, output wire [7:0] arlen,
+     output wire arvalid, input wire arready,
+     input wire [31:0] rdata, input wire [1:0] rresp,
+     input wire rlast, input wire rvalid, output wire rready
+@@ -36,7 +45,15 @@
+                C_WPREP=9, C_WPRIME=10, C_WFIFO=11,
+                C_WADDR=12, C_WDATA=13, C_WRESP=14,
+                B_RPREP=15, B_RADDR=16, B_RDATA=17,
+-               CACHE_CHECK=18,CACHE_SPAN=19,CACHE_ROW=20;
++               CACHE_CHECK=18,CACHE_SPAN=19,CACHE_ROW=20,CACHE_ABORT=21,C_WALIGN=22;
++    reg [31:0] main_araddr;
++    localparam PF_IDLE=0,PF_SPAN=1,PF_ROW=2,PF_PREP=3,PF_ADDR=4,PF_DATA=5;
++    reg [2:0] pf_state;
++    reg pf_ready,pf_bad,pf_failed,cache_abort;
++    reg [4:0] pf_row,pf_count,pf_beat;
++    reg [5:0] pf_left,pf_right;
++    reg [9:0] pf_words,pf_index;
++    reg [31:0] pf_address,pf_destination;
+     reg [4:0] state;
+     reg copy_mode, blend_mode;
+     reg [31:0] source_row_addr;
+@@ -90,14 +107,31 @@
+     genvar span_row;
+     generate for(span_row=0;span_row<32;span_row=span_row+1)begin:cached_span_registers
+         reg [5:0] left_value,right_value;
+-        always @(posedge clk)if(state==C_RDATA && rvalid && rready && cache_loading &&
++        always @(posedge clk)if(tile_mode && tile_span_write && tile_span_row==span_row)begin
++            left_value<=tile_span_left;right_value<=tile_span_right;
++        end else if(state==C_RDATA && rvalid && rready && cache_loading &&
+             {1'b0,cache_load_word}==cache_row_words-1'b1 && cache_load_row==span_row)begin
+             left_value<=load_first;right_value<=load_last;
+         end
+         assign cache_span_left_bits[span_row*6+:6]=left_value;
+         assign cache_span_right_bits[span_row*6+:6]=right_value;
+     end endgenerate
++    assign tile_source_q={copy_qhi,copy_qlo};
++    assign tile_background_q={bg_qhi,bg_qlo};
++    assign tile_left_bits=cache_span_left_bits;
++    assign tile_right_bits=cache_span_right_bits;
+     wire trim_row=blend_ctrl[1] && color_key==cache_span_key;
++    wire [5:0] pf_x0=trim_row ? pf_left:6'd0;
++    wire [5:0] pf_x1=trim_row ? pf_right:cache_side-6'd1;
++    wire [5:0] pf_width=pf_x1-pf_x0+6'd1;
++    wire [31:0] pf_start=pf_destination+{25'd0,pf_x0,1'b0};
++    wire [9:0] pf_row_words=({4'd0,pf_width}+{9'd0,pf_start[1]}+10'd1)>>1;
++    wire [10:0] pf_boundary=11'd1024-{1'b0,pf_address[11:2]};
++    wire [4:0] pf_proposed=pf_words>16 ? 5'd16:pf_words[4:0];
++    wire pf_active=pf_state==PF_ADDR || pf_state==PF_DATA;
++    wire pf_consumed=state==CACHE_ROW && pf_ready && pf_row==cache_row;
++    wire pf_failure=rresp!=0 || rlast!=(pf_beat==pf_count-1'b1);
++    wire [8:0] bg_prefetch_index=copy_prefetch_index[8:0]+(cache_use && cache_row[0] ? 9'd32:9'd0);
+     wire [5:0] row_left=trim_row ? cache_left:6'd0;
+     wire [5:0] row_right=trim_row ? cache_right:cache_side-6'd1;
+     wire [5:0] row_width=row_right-row_left+6'd1;
+@@ -111,6 +145,10 @@
+     wire [31:0] copy_data = copy_src_half == copy_dst_half ?
+         {copy_qhi,copy_qlo} : {copy_qlo,copy_qhi};
+     wire [31:0] bg_data = {bg_qhi,bg_qlo};
++    // Isolate BRAM read/halfword alignment from the multiply/normalize/FIFO
++    // path. Once primed, this extra stage still supplies one word per clock.
++    reg [31:0] aligned_source,aligned_background;
++    always @(posedge clk)begin aligned_source<=copy_data;aligned_background<=bg_data;end
+     // Each component is at most 63. The weighted sum plus rounding fits
+     // in 14 bits. For this range, floor(t/255) == (t+1+(t>>8))>>8.
+     // Keep multipliers narrow and avoid a general-purpose divider.
+@@ -153,8 +191,8 @@
+         end
+     endfunction
+     wire [31:0] blend_data = {
+-        blend_pixel(copy_data[31:16],bg_data[31:16],blend_alpha,blend_ctrl,color_key),
+-        blend_pixel(copy_data[15:0],bg_data[15:0],blend_alpha,blend_ctrl,color_key)
++        blend_pixel(aligned_source[31:16],aligned_background[31:16],blend_alpha,blend_ctrl,color_key),
++        blend_pixel(aligned_source[15:0],aligned_background[15:0],blend_alpha,blend_ctrl,color_key)
+     };
+     wire copy_read_beat_error = rresp != 0 || rlast != (copy_read_beat == copy_read_burst_words-1);
+     wire bg_read_beat_error = rresp != 0 || rlast != (bg_read_beat == bg_read_burst_words-1);
+@@ -180,7 +218,7 @@
+         (({17'd0,height}-33'd1) << 8) + ({17'd0,width} << 1);
+     wire [10:0] words_to_4k = 11'd1024 - {1'b0,awaddr[11:2]};
+     wire [9:0] proposed_words = words_left > 16 ? 10'd16 : words_left;
+-    wire [10:0] read_words_to_4k = 11'd1024 - {1'b0,araddr[11:2]};
++    wire [10:0] read_words_to_4k = 11'd1024 - {1'b0,main_araddr[11:2]};
+     wire [9:0] copy_read_proposed = copy_read_words_left > 16 ? 10'd16 : copy_read_words_left;
+     wire [9:0] bg_read_proposed = bg_read_words_left > 16 ? 10'd16 : bg_read_words_left;
+     wire [10:0] write_words_to_4k = 11'd1024 - {1'b0,awaddr[11:2]};
+@@ -206,14 +244,14 @@
+     wire [3:0] fifo_entry_strb =
+         ((fifo_word_index == 0 && first_high) ? 4'b1100 : 4'b1111) &
+         ((fifo_word_index == fifo_row_words-10'd1 && last_low) ? 4'b0011 : 4'b1111) &
+-        ((blend_mode && blend_ctrl[1] && copy_data[15:0] == color_key) ? 4'b1100 : 4'b1111) &
+-        ((blend_mode && blend_ctrl[1] && copy_data[31:16] == color_key) ? 4'b0011 : 4'b1111);
++        ((blend_mode && blend_ctrl[1] && aligned_source[15:0] == color_key) ? 4'b1100 : 4'b1111) &
++        ((blend_mode && blend_ctrl[1] && aligned_source[31:16] == color_key) ? 4'b0011 : 4'b1111);
+     // A masked neighbour may be outside the loaded row. Zero inactive lanes
+     // before caching the word so simulation never exposes uninitialised data.
+     wire [31:0] fifo_entry_mask =
+         {{16{fifo_entry_strb[2]}},{16{fifo_entry_strb[0]}}};
+     wire [31:0] fifo_entry_data = copy_mode ?
+-        ((blend_mode ? blend_data : copy_data) & fifo_entry_mask) : {fill_color,fill_color};
++        ((blend_mode ? blend_data : aligned_source) & fifo_entry_mask) : {fill_color,fill_color};
+     wire fifo_entry_last = fifo_load_count == fifo_burst_words-1'b1;
+     assign fifo_input = {fifo_entry_last,fifo_entry_strb,fifo_entry_data};
+ 
+@@ -229,27 +267,84 @@
+     assign awlen = {3'd0,(copy_mode ? copy_write_burst_words : burst_words)} - 8'd1;
+     assign awvalid = state == F_ADDR || state == C_WADDR;
+     assign wvalid = (state == F_DATA || state == C_WDATA) && !fifo_empty;
+-    assign arlen = {3'd0,(state == B_RADDR ? bg_read_burst_words : copy_read_burst_words)} - 8'd1;
+-    assign arvalid = state == C_RADDR || state == B_RADDR;
+-    assign rready = state == C_RDATA || state == B_RDATA;
++    assign araddr=pf_active ? pf_address:main_araddr;
++    assign arlen = {3'd0,(pf_active ? pf_count:state == B_RADDR ? bg_read_burst_words : copy_read_burst_words)} - 8'd1;
++    assign arvalid = pf_state==PF_ADDR || state == C_RADDR || state == B_RADDR;
++    assign rready = pf_state==PF_DATA || state == C_RDATA || state == B_RDATA;
+     assign wdata = fifo_output[31:0];
+     assign wstrb = fifo_output[35:32];
+     assign wlast = fifo_output[36];
+     assign bready = state == F_RESP || state == C_WRESP;
+ 
++    // Present exactly one physical write port per bank. Separate conditional
++    // array assignments made Efinity infer multiwrite logic memories.
++    wire source_ram_write=tile_mode ? tile_source_write:(rvalid && rready && state==C_RDATA);
++    wire [8:0] source_ram_address=tile_mode ? tile_source_address:copy_read_word_index[8:0];
++    wire [31:0] source_ram_data=tile_mode ? tile_source_data:rdata;
++    wire background_ram_write=tile_mode ? tile_background_write:
++        (rvalid && rready && (state==B_RDATA || pf_state==PF_DATA));
++    wire [8:0] background_ram_address=tile_mode ? tile_background_address:
++        pf_state==PF_DATA ? pf_index[8:0]:bg_read_word_index[8:0];
++    wire [31:0] background_ram_data=tile_mode ? tile_background_data:rdata;
++
+     always @(posedge clk) begin
+-        copy_qlo <= copy_buf_lo[copy_lo_index];
+-        copy_qhi <= copy_buf_hi[copy_hi_index];
+-        bg_qlo <= bg_buf_lo[copy_prefetch_index[8:0]];
+-        bg_qhi <= bg_buf_hi[copy_prefetch_index[8:0]];
+-        if (rvalid && rready) begin
+-            if (state == B_RDATA) begin
+-                bg_buf_lo[bg_read_word_index[8:0]] <= rdata[15:0];
+-                bg_buf_hi[bg_read_word_index[8:0]] <= rdata[31:16];
+-            end else begin
+-                copy_buf_lo[copy_read_word_index[8:0]] <= rdata[15:0];
+-                copy_buf_hi[copy_read_word_index[8:0]] <= rdata[31:16];
+-            end
++        copy_qlo <= copy_buf_lo[tile_mode ? tile_source_lo_address:copy_lo_index];
++        copy_qhi <= copy_buf_hi[tile_mode ? tile_source_hi_address:copy_hi_index];
++        bg_qlo <= bg_buf_lo[tile_mode ? tile_background_read_address:bg_prefetch_index];
++        bg_qhi <= bg_buf_hi[tile_mode ? tile_background_read_address:bg_prefetch_index];
++        if(source_ram_write)begin
++            copy_buf_lo[source_ram_address]<=source_ram_data[15:0];
++            copy_buf_hi[source_ram_address]<=source_ram_data[31:16];
++        end
++        if(background_ram_write)begin
++            bg_buf_lo[background_ram_address]<=background_ram_data[15:0];
++            bg_buf_hi[background_ram_address]<=background_ram_data[31:16];
++        end
++    end
++    // A next-row read overlaps the current row's write. The two rows occupy
++    // separate 32-word windows of the existing background RAM. No second AR
++    // may be issued until the first response burst has completely retired.
++    always @(posedge clk)begin
++        if(reset)begin
++            pf_state<=PF_IDLE;pf_ready<=0;pf_bad<=0;pf_failed<=0;
++            pf_row<=0;pf_count<=0;pf_beat<=0;pf_left<=0;pf_right<=0;
++            pf_words<=0;pf_index<=0;pf_address<=0;pf_destination<=0;
++        end else begin
++            if(state==IDLE && start)begin pf_ready<=0;pf_failed<=0;end
++            if(pf_consumed)pf_ready<=0;
++            case(pf_state)
++            PF_IDLE:if(state==C_WPREP && cache_use && rows_left>1 &&
++                blend_ctrl[0] && blend_alpha!=255 && !pf_ready && !pf_failed && !cache_abort)begin
++                pf_row<=cache_row+1'b1;pf_destination<=row_addr+32'd1280;pf_state<=PF_SPAN;
++            end
++            PF_SPAN:begin
++                pf_left<=cache_span_left_bits[pf_row*6+:6];pf_right<=cache_span_right_bits[pf_row*6+:6];pf_state<=PF_ROW;
++            end
++            PF_ROW:if(cache_abort)pf_state<=PF_IDLE;
++                else if(trim_row && pf_left==63)begin pf_ready<=1;pf_state<=PF_IDLE;end
++                else begin
++                    pf_address<={pf_start[31:2],2'd0};pf_words<=pf_row_words;
++                    pf_index<=pf_row[0] ? 10'd32:10'd0;pf_state<=PF_PREP;
++                end
++            PF_PREP:if(cache_abort)pf_state<=PF_IDLE;
++                else begin
++                    pf_count<=pf_boundary<pf_proposed ? pf_boundary[4:0]:pf_proposed;
++                    pf_beat<=0;pf_bad<=0;pf_state<=PF_ADDR;
++                end
++            PF_ADDR:if(arready)pf_state<=PF_DATA;
++            PF_DATA:if(rvalid)begin
++                if(pf_failure)pf_bad<=1;
++                pf_index<=pf_index+1'b1;
++                if(pf_beat==pf_count-1'b1)begin
++                    if(pf_bad || pf_failure)begin pf_failed<=1;pf_state<=PF_IDLE;end
++                    else if(pf_words=={5'd0,pf_count})begin pf_ready<=1;pf_state<=PF_IDLE;end
++                    else begin
++                        pf_address<=pf_address+{25'd0,pf_count,2'd0};pf_words<=pf_words-{5'd0,pf_count};pf_state<=PF_PREP;
++                    end
++                end else pf_beat<=pf_beat+1'b1;
++            end
++            default:pf_state<=PF_IDLE;
++            endcase
+         end
+     end
+     always @(posedge clk) begin
+@@ -257,7 +352,7 @@
+             state <= IDLE; done <= 0; error <= 0; cycles <= 0;
+             burst_reads <= 0; burst_writes <= 0;
+             ddr_read_wait_cycles <= 0; ddr_write_wait_cycles <= 0;
+-            awaddr <= 0; araddr <= 0; row_addr <= 0; source_row_addr <= 0;
++            awaddr <= 0; main_araddr <= 0; row_addr <= 0; source_row_addr <= 0;cache_abort<=0;
+             source_row_step <= 1280; copy_width <= 0;
+             rows_left <= 0; row_step <= 1280; copy_mode <= 0; blend_mode <= 0;
+             fill_color <= 0; words_left <= 0; row_words <= 0;
+@@ -282,8 +377,7 @@
+             if (awvalid && awready) burst_writes <= burst_writes + 1'b1;
+             // Count only cycles where a valid AXI phase is waiting for the
+             // memory/interconnect response, not internal raster work.
+-            if (((state == C_RADDR || state == B_RADDR) && !arready) ||
+-                ((state == C_RDATA || state == B_RDATA) && !rvalid))
++            if ((arvalid && !arready) || (rready && !rvalid))
+                 ddr_read_wait_cycles <= ddr_read_wait_cycles + 1'b1;
+             if (((state == F_ADDR || state == C_WADDR) && !awready) ||
+                 ((state == F_DATA || state == C_WDATA) && wvalid && !wready) ||
+@@ -291,7 +385,7 @@
+                 ddr_write_wait_cycles <= ddr_write_wait_cycles + 1'b1;
+             case (state)
+             IDLE: if (start) begin
+-                done <= 0; error <= 0; cycles <= 0;
++                done <= 0; error <= 0; cycles <= 0;cache_abort<=0;
+                 cache_use<=cache_eligible;cache_loading<=0;
+                 if(!cache_eligible)cache_valid<=0;
+                 if (!memory_ready || (operation > 2) || dst[0] || width == 0 || height == 0 ||
+@@ -322,7 +416,7 @@
+                         row_addr <= dst + (reverse_copy ? row_offset[31:0] : 32'd0);
+                         source_row_addr <= src + (reverse_copy ? source_offset : 32'd0);
+                         awaddr <= {dst[31:2],2'b00} + (reverse_copy ? row_offset[31:0] : 32'd0);
+-                        araddr <= {src[31:2],2'b00} + (reverse_copy ? source_offset : 32'd0);
++                        main_araddr <= {src[31:2],2'b00} + (reverse_copy ? source_offset : 32'd0);
+                         copy_src_half <= src[1]; copy_dst_half <= dst[1];
+                         copy_read_row_words <= ({1'b0,width[9:0]} + {10'd0,src[1]} + 11'd1) >> 1;
+                         copy_write_row_words <= ({1'b0,width[9:0]} + {10'd0,dst[1]} + 11'd1) >> 1;
+@@ -350,7 +444,9 @@
+                 state<=CACHE_ROW;
+             end
+             CACHE_ROW:begin
+-                if(trim_row && cache_left==63)begin
++                if(pf_failed)begin cache_abort<=1;state<=CACHE_ABORT;end
++                else if(pf_row==cache_row && pf_state!=PF_IDLE)begin end
++                else if(trim_row && cache_left==63)begin
+                     // Empty key rows leave the destination entirely untouched.
+                     if(rows_left==1)begin done<=1;state<=IDLE;end
+                     else begin
+@@ -366,8 +462,11 @@
+                     copy_write_row_words<=cached_write_words;copy_write_words_left<=cached_write_words;
+                     copy_write_word_index<=0;bg_read_row_words<=cached_write_words;
+                     if(blend_ctrl[0] && blend_alpha!=8'hff)begin
+-                        araddr<={cached_row_destination[31:2],2'b00};bg_read_words_left<=cached_write_words;
+-                        bg_read_word_index<=0;state<=B_RPREP;
++                        if(pf_ready && pf_row==cache_row)state<=C_WPREP;
++                        else begin
++                            main_araddr<={cached_row_destination[31:2],2'b00};bg_read_words_left<=cached_write_words;
++                            bg_read_word_index<=cache_row[0] ? 10'd32:10'd0;state<=B_RPREP;
++                        end
+                     end else state<=C_WPREP;
+                 end
+             end
+@@ -434,13 +533,13 @@
+                             cache_loading<=0;cache_valid<=1;cache_tag_source<=src;cache_tag_side<=cache_side;
+                             cache_span_key<=color_key;state<=CACHE_SPAN;
+                         end else if (blend_mode && blend_ctrl[0] && blend_alpha != 8'hff) begin
+-                            araddr <= {row_addr[31:2],2'b00};
++                            main_araddr <= {row_addr[31:2],2'b00};
+                             bg_read_words_left <= bg_read_row_words;
+                             bg_read_word_index <= 0;
+                             state <= B_RPREP;
+                         end else state <= C_WPREP;
+                     end else begin
+-                        araddr <= araddr + ({27'd0,copy_read_burst_words} << 2);
++                        main_araddr <= main_araddr + ({27'd0,copy_read_burst_words} << 2);
+                         copy_read_words_left <= copy_read_words_left - {5'd0,copy_read_burst_words};
+                         state <= C_RPREP;
+                     end
+@@ -462,7 +561,7 @@
+                     end else if (bg_read_words_left == {5'd0,bg_read_burst_words}) begin
+                         state <= C_WPREP;
+                     end else begin
+-                        araddr <= araddr + ({27'd0,bg_read_burst_words} << 2);
++                        main_araddr <= main_araddr + ({27'd0,bg_read_burst_words} << 2);
+                         bg_read_words_left <= bg_read_words_left - {5'd0,bg_read_burst_words};
+                         state <= B_RPREP;
+                     end
+@@ -479,6 +578,10 @@
+             // while the corresponding previous result enters the FIFO.
+             C_WPRIME: begin
+                 copy_prefetch_index <= copy_prefetch_index + 1'b1;
++                state <= C_WALIGN;
++            end
++            C_WALIGN:begin
++                copy_prefetch_index <= copy_prefetch_index + 1'b1;
+                 state <= C_WFIFO;
+             end
+             C_WFIFO: if (fifo_push) begin
+@@ -508,7 +611,8 @@
+                 end
+             end
+             C_WRESP: if (bvalid) begin
+-                if (bresp != 0) begin error <= 1; done <= 1; state <= IDLE; end
++                if (cache_use && (bresp!=0 || pf_failed))begin cache_abort<=1;state<=CACHE_ABORT;end
++                else if (bresp != 0) begin error <= 1; done <= 1; state <= IDLE; end
+                 else if (copy_write_words_left == {5'd0,copy_write_burst_words}) begin
+                     if (rows_left == 1) begin done <= 1; state <= IDLE; end
+                     else if(cache_use)begin
+@@ -519,7 +623,7 @@
+                         row_addr <= row_addr + row_step;
+                         source_row_addr <= next_source_row;
+                         awaddr <= {row_addr[31:2],2'b00} + row_step;
+-                        araddr <= {next_source_row[31:2],2'b00};
++                        main_araddr <= {next_source_row[31:2],2'b00};
+                         // A pitch of 2 mod 4 alternates the source halfword
+                         // alignment each row (e.g. tightly packed odd widths).
+                         copy_src_half <= next_source_row[1];
+@@ -536,6 +640,7 @@
+                     state <= C_WPREP;
+                 end
+             end
++            CACHE_ABORT:if(pf_state==PF_IDLE)begin error<=1;done<=1;state<=IDLE;end
+             default: state <= IDLE;
+             endcase
+         end
+--- a/rtl/render_subsystem.v
++++ b/rtl/render_subsystem.v
+@@ -19,7 +19,7 @@
+     input wire rlast, rvalid, output wire rready,
+     output wire [15:0] pixel, output wire hs, vs, de
+ );
+-    wire start, batch_selected, display_enable, busy, done, error, underflow, read_error;
++    wire start, batch_selected,tile_selected,packed_selected, display_enable, busy, done, error, underflow, read_error;
+     wire [15:0] batch_completed;
+     wire display_page_active, draw_page, swap_page, swap_toggle, swap_ack_pixel;
+     wire [15:0] video_width_pixel, video_height_pixel;
+@@ -132,12 +132,27 @@
+         .video_underflow(underflow),.video_error(read_error),.display_page_active(display_page_sync[1]),
+         .swap_ack(swap_ack_sync[2]),
+         .video_width(video_width),.video_height(video_height),.video_mode_valid(video_mode_valid),
+-        .start(start),.batch_selected(batch_selected),.display_enable(display_enable),
++        .start(start),.batch_selected(batch_selected),.tile_selected(tile_selected),.packed_selected(packed_selected),.display_enable(display_enable),
+         .dst(dst),.stride(stride),.src_stride(src_stride),.width(width),.height(height),.color(color),
+         .operation(operation),.src(src),.draw_page(draw_page),.swap_page(swap_page),.swap_toggle(swap_toggle),
+         .blend_ctrl(blend_ctrl),.blend_alpha(blend_alpha),.color_key(color_key)
+     );
+-    wire ui_selected=operation==3 && !batch_selected;
++    wire ui_selected=operation==3 && !batch_selected && !tile_selected;
++    wire tile_busy,tile_done,tile_error;
++    wire [15:0] tile_completed,command_completed;
++    wire [31:0] tile_cycles,tile_reads,tile_writes,tile_rwait,tile_wwait;
++    wire [31:0] tile_araddr,tile_awaddr,tile_wdata;
++    wire [7:0] tile_arlen,tile_awlen;
++    wire [3:0] tile_wstrb;
++    wire tile_arvalid,tile_rready,tile_awvalid,tile_wvalid,tile_wlast,tile_bready;
++    wire tile_source_write,tile_background_write,tile_span_write;
++    wire [8:0] tile_source_address,tile_source_lo_address,tile_source_hi_address;
++    wire [8:0] tile_background_address,tile_background_read_address;
++    wire [31:0] tile_source_data,tile_background_data,tile_source_q,tile_background_q;
++    wire [4:0] tile_span_row;
++    wire [5:0] tile_span_left,tile_span_right;
++    wire [191:0] tile_left_bits,tile_right_bits;
++    assign batch_completed=tile_selected ? tile_completed:command_completed;
+     wire legacy_busy,ui_busy;
+     wire legacy_done,ui_done;
+     wire legacy_error,ui_error;
+@@ -167,7 +182,7 @@
+     // Register selected raster parameters before the original multiply/range
+     // checks. Otherwise batch_selected -> height mux -> source extent multiply
+     // extends the old 150 MHz command-validation critical path.
+-    wire raster_request=(start && !ui_selected && !batch_selected)||batch_engine_start;
++    wire raster_request=(start && !ui_selected && !batch_selected && !tile_selected)||batch_engine_start;
+     reg raster_start;
+     reg [31:0] raster_source,raster_destination,raster_stride,raster_source_stride;
+     reg [15:0] raster_width,raster_height,raster_color,raster_key;
+@@ -192,34 +207,36 @@
+             end
+         end
+     end
+-    assign busy=batch_selected ? batch_busy:ui_selected ? ui_busy:(legacy_busy || raster_start);
+-    assign done=batch_selected ? batch_done:ui_selected ? ui_done:(legacy_done && !raster_start);
++    assign busy=tile_selected ? tile_busy:batch_selected ? batch_busy:ui_selected ? ui_busy:(legacy_busy || raster_start);
++    assign done=tile_selected ? tile_done:batch_selected ? batch_done:ui_selected ? ui_done:(legacy_done && !raster_start);
+     // Pending parameter capture belongs to the new job; suppress the old
+     // engine's sticky ERROR until it accepts that job, just like DONE above.
+-    assign error=batch_selected ? batch_error:ui_selected ? ui_error:(legacy_error && !raster_start);
+-    assign cycles=batch_selected ? batch_cycles:ui_selected ? ui_cycles:legacy_cycles;
+-    assign burst_reads=legacy_burst_reads+ui_burst_reads+batch_burst_reads;
+-    assign burst_writes=legacy_burst_writes+ui_burst_writes;
+-    assign ddr_read_wait_cycles=legacy_ddr_read_wait_cycles+ui_ddr_read_wait_cycles+batch_read_wait;
+-    assign ddr_write_wait_cycles=legacy_ddr_write_wait_cycles+ui_ddr_write_wait_cycles;
+-    assign awaddr=ui_selected ? ui_awaddr:legacy_awaddr;
+-    assign awlen=ui_selected ? ui_awlen:legacy_awlen;
+-    assign awvalid=ui_selected ? ui_awvalid:legacy_awvalid;
+-    assign wdata=ui_selected ? ui_wdata:legacy_wdata;
+-    assign wstrb=ui_selected ? ui_wstrb:legacy_wstrb;
+-    assign wlast=ui_selected ? ui_wlast:legacy_wlast;
+-    assign wvalid=ui_selected ? ui_wvalid:legacy_wvalid;
+-    assign bready=ui_selected ? ui_bready:legacy_bready;
++    assign error=tile_selected ? tile_error:batch_selected ? batch_error:ui_selected ? ui_error:(legacy_error && !raster_start);
++    assign cycles=tile_selected ? tile_cycles:batch_selected ? batch_cycles:ui_selected ? ui_cycles:legacy_cycles;
++    assign burst_reads=legacy_burst_reads+ui_burst_reads+batch_burst_reads+tile_reads;
++    assign burst_writes=legacy_burst_writes+ui_burst_writes+tile_writes;
++    assign ddr_read_wait_cycles=legacy_ddr_read_wait_cycles+ui_ddr_read_wait_cycles+batch_read_wait+tile_rwait;
++    assign ddr_write_wait_cycles=legacy_ddr_write_wait_cycles+ui_ddr_write_wait_cycles+tile_wwait;
++    assign awaddr=tile_selected ? tile_awaddr:ui_selected ? ui_awaddr:legacy_awaddr;
++    assign awlen=tile_selected ? tile_awlen:ui_selected ? ui_awlen:legacy_awlen;
++    assign awvalid=tile_selected ? tile_awvalid:ui_selected ? ui_awvalid:legacy_awvalid;
++    assign wdata=tile_selected ? tile_wdata:ui_selected ? ui_wdata:legacy_wdata;
++    assign wstrb=tile_selected ? tile_wstrb:ui_selected ? ui_wstrb:legacy_wstrb;
++    assign wlast=tile_selected ? tile_wlast:ui_selected ? ui_wlast:legacy_wlast;
++    assign wvalid=tile_selected ? tile_wvalid:ui_selected ? ui_wvalid:legacy_wvalid;
++    assign bready=tile_selected ? tile_bready:ui_selected ? ui_bready:legacy_bready;
+     // Descriptor DMA and raster reads are strictly sequential. The frontend
+     // does not switch back to the raster port until all eight R beats retire.
+-    assign fill_araddr=ui_selected ? ui_fill_araddr:batch_read_active ? batch_araddr:legacy_fill_araddr;
+-    assign fill_arlen=ui_selected ? ui_fill_arlen:batch_read_active ? batch_arlen:legacy_fill_arlen;
+-    assign fill_arvalid=ui_selected ? ui_fill_arvalid:batch_read_active ? batch_arvalid:legacy_fill_arvalid;
+-    assign fill_rready=ui_selected ? ui_fill_rready:batch_read_active ? batch_rready:legacy_fill_rready;
++    assign fill_araddr=tile_selected ? tile_araddr:ui_selected ? ui_fill_araddr:batch_read_active ? batch_araddr:legacy_fill_araddr;
++    assign fill_arlen=tile_selected ? tile_arlen:ui_selected ? ui_fill_arlen:batch_read_active ? batch_arlen:legacy_fill_arlen;
++    assign fill_arvalid=tile_selected ? tile_arvalid:ui_selected ? ui_fill_arvalid:batch_read_active ? batch_arvalid:legacy_fill_arvalid;
++    assign fill_rready=tile_selected ? tile_rready:ui_selected ? ui_fill_rready:batch_read_active ? batch_rready:legacy_fill_rready;
+     render_batch batch (
+         .clk(clk),.reset(reset),.start(start && batch_selected),.memory_ready(memory_ready),
+-        .list_address(src),.command_count(width),
+-        .busy(batch_busy),.done(batch_done),.error(batch_error),.completed(batch_completed),
++        .list_address(packed_selected ? dst:src),.command_count(width),
++        .packed_positions(packed_selected),.common_source(src),.common_stride(src_stride),.common_side(height),
++        .common_key(color_key),.common_blend(blend_ctrl),.common_alpha(blend_alpha),
++        .busy(batch_busy),.done(batch_done),.error(batch_error),.completed(command_completed),
+         .cycles(batch_cycles),.burst_reads(batch_burst_reads),.read_wait(batch_read_wait),
+         .engine_start(batch_engine_start),.engine_busy(legacy_busy || raster_start),.engine_done(legacy_done),.engine_error(legacy_error),
+         .source(batch_source),.destination(batch_destination),.extent(batch_extent),
+@@ -232,6 +249,14 @@
+     fill_engine fill (
+         .clk(clk),.reset(reset),.start(raster_start),.memory_ready(memory_ready),
+         .cache_session(batch_selected && batch_busy),
++        .tile_mode(tile_selected),.tile_source_write(tile_source_write),.tile_background_write(tile_background_write),
++        .tile_span_write(tile_span_write),.tile_source_address(tile_source_address),
++        .tile_source_lo_address(tile_source_lo_address),.tile_source_hi_address(tile_source_hi_address),
++        .tile_background_address(tile_background_address),.tile_background_read_address(tile_background_read_address),
++        .tile_source_data(tile_source_data),.tile_background_data(tile_background_data),
++        .tile_span_row(tile_span_row),.tile_span_left(tile_span_left),.tile_span_right(tile_span_right),
++        .tile_source_q(tile_source_q),.tile_background_q(tile_background_q),
++        .tile_left_bits(tile_left_bits),.tile_right_bits(tile_right_bits),
+         .operation(raster_operation),.src(raster_source),.frame_base(draw_frame_base),
+         .dst(raster_destination),.stride(raster_stride),.src_stride(raster_source_stride),
+         .width(raster_width),.height(raster_height),.color(raster_color),
+@@ -245,6 +270,24 @@
+         .araddr(legacy_fill_araddr),.arlen(legacy_fill_arlen),.arvalid(legacy_fill_arvalid),.arready(fill_arready && !ui_selected && !batch_read_active),
+         .rdata(fill_rdata),.rresp(fill_rresp),.rlast(fill_rlast),.rvalid(fill_rvalid && !ui_selected && !batch_read_active),.rready(legacy_fill_rready)
+     );
++    tile_renderer tiles(
++        .clk(clk),.reset(reset),.start(start && tile_selected),.memory_ready(memory_ready),
++        .source(src),.list_address(dst),.frame_base(draw_frame_base),.side(width),.fragment_count(height),
++        .clear_color(color),.color_key(color_key),.blend_ctrl(blend_ctrl),.alpha(blend_alpha),
++        .busy(tile_busy),.done(tile_done),.error(tile_error),.completed(tile_completed),
++        .cycles(tile_cycles),.burst_reads(tile_reads),.burst_writes(tile_writes),.read_wait(tile_rwait),.write_wait(tile_wwait),
++        .araddr(tile_araddr),.arlen(tile_arlen),.arvalid(tile_arvalid),.arready(fill_arready && tile_selected),
++        .rdata(fill_rdata),.rresp(fill_rresp),.rlast(fill_rlast),.rvalid(fill_rvalid && tile_selected),.rready(tile_rready),
++        .awaddr(tile_awaddr),.awlen(tile_awlen),.awvalid(tile_awvalid),.awready(awready && tile_selected),
++        .wdata(tile_wdata),.wstrb(tile_wstrb),.wlast(tile_wlast),.wvalid(tile_wvalid),.wready(wready && tile_selected),
++        .bresp(bresp),.bvalid(bvalid && tile_selected),.bready(tile_bready),
++        .source_write(tile_source_write),.background_write(tile_background_write),.span_write(tile_span_write),
++        .source_address(tile_source_address),.source_lo_address(tile_source_lo_address),.source_hi_address(tile_source_hi_address),
++        .background_address(tile_background_address),.background_read_address(tile_background_read_address),
++        .source_data(tile_source_data),.background_data(tile_background_data),
++        .span_row(tile_span_row),.span_left(tile_span_left),.span_right(tile_span_right),
++        .source_q(tile_source_q),.background_q(tile_background_q),.left_bits(tile_left_bits),.right_bits(tile_right_bits)
++    );
+     ui_compositor ui (
+         .clk(clk),.reset(reset),.start(start && ui_selected),.memory_ready(memory_ready),
+         .frame_base(draw_frame_base),.dst(dst),.src(src),.background(src_stride),.stride(stride),
+--- a/rtl/render_regs.v
++++ b/rtl/render_regs.v
+@@ -18,7 +18,7 @@
+     input wire video_underflow, video_error, display_page_active, swap_ack,
+     input wire [15:0] video_width, video_height,
+     input wire video_mode_valid,
+-    output reg start, output reg batch_selected, output reg display_enable,
++    output reg start, output reg batch_selected,tile_selected,packed_selected, output reg display_enable,
+     output reg [1:0] operation, output reg [31:0] src, dst, stride, src_stride,
+     output reg [1:0] blend_ctrl, output reg [7:0] blend_alpha,
+     output reg [15:0] color_key,
+@@ -47,7 +47,7 @@
+     assign pslverror = transfer && (!known || paddr[1:0] != 0 ||
+         (pwrite && (!writable || busy || start ||
+          (swap_pending && (paddr == 60 || paddr == 64 || paddr == 8)) ||
+-         (paddr == 8 && pwdata != 1 && pwdata != 2) || (paddr == 32 && pwdata > 1) ||
++         (paddr == 8 && pwdata != 1 && pwdata != 2 && pwdata != 3 && pwdata != 4) || (paddr == 32 && pwdata > 1) ||
+          (paddr == 48 && pwdata > 3) || (paddr == 56 && pwdata > 1) ||
+          (paddr == 60 && pwdata > 1) || (paddr == 64 && pwdata != 1) ||
+          (paddr == 128 && pwdata >= `UI_ROM_WORDS) ||
+@@ -85,8 +85,8 @@
+         108: prdata = video_frame_count; // Display refresh epochs, not rendered FPS.
+         112: prdata = ddr_read_wait_cycles;
+         116: prdata = ddr_write_wait_cycles;
+-        120: prdata = batch_selected ? {16'd0,batch_completed}:32'd0;
+-        124: prdata = 32'd1; // bit0: immutable DDR command-list frontend.
++        120: prdata = (batch_selected || tile_selected) ? {16'd0,batch_completed}:32'd0;
++        124: prdata = 32'd7; // bit0: command list; bit1: positions; bit2: tiles.
+         128: prdata = ui_rom_address;
+         132: prdata = ui_rom_q;
+         default: prdata = 0;
+@@ -94,7 +94,7 @@
+     end
+     always @(posedge clk) begin
+         if (reset) begin
+-            start <= 0; batch_selected<=0;display_enable <= 0;ui_rom_address<=0;
++            start <= 0; batch_selected<=0;tile_selected<=0;packed_selected<=0;display_enable <= 0;ui_rom_address<=0;
+             operation <= 0; src <= 32'h01000000; dst <= 32'h01000000; stride <= 1280;
+             src_stride <= 1280; // Preserve old framebuffer-only firmware.
+             blend_ctrl <= 0; blend_alpha <= 8'd255; color_key <= 0;
+@@ -104,7 +104,7 @@
+             start <= 0;
+             if (wr && !pslverror) case (paddr)
+             128: ui_rom_address <= pwdata[12:0];
+-            8: begin start <= 1;batch_selected <= pwdata==2;end
++            8: begin start <= 1;batch_selected <= pwdata==2 || pwdata==3;packed_selected<=pwdata==3;tile_selected<=pwdata==4;end
+             12: dst <= pwdata;
+             16: width <= pwdata[15:0];
+             20: height <= pwdata[15:0];
+--- a/rtl/render_batch.v
++++ b/rtl/render_batch.v
+@@ -10,6 +10,10 @@
+     input wire clk,reset,start,memory_ready,
+     input wire [31:0] list_address,
+     input wire [15:0] command_count,
++    input wire packed_positions,
++    input wire [31:0] common_source,common_stride,
++    input wire [15:0] common_side,common_key,
++    input wire [1:0] common_blend,input wire [7:0] common_alpha,
+     output wire busy,output reg done,error,
+     output reg [31:0] cycles,burst_reads,read_wait,
+     output reg [15:0] completed,
+@@ -27,10 +31,10 @@
+     reg [2:0] state,beat;
+     reg [15:0] remaining;
+     reg bad;
+-    wire [32:0] list_end={1'b0,list_address}+{12'd0,command_count,5'd0};
++    wire [32:0] list_end={1'b0,list_address}+(packed_positions ? {15'd0,command_count,2'd0}:{12'd0,command_count,5'd0});
+     assign busy=state!=IDLE;
+     assign read_active=state==ADDRESS || state==DATA;
+-    assign arlen=8'd7; // 32-byte aligned records never cross a 4 KiB boundary.
++    assign arlen=packed_positions ? 8'd0:8'd7;
+     assign arvalid=state==ADDRESS;
+     assign rready=state==DATA;
+     always @(posedge clk) begin
+@@ -48,8 +52,12 @@
+             IDLE: if(start)begin
+                 done<=0;error<=0;cycles<=0;completed<=0;bad<=0;beat<=0;
+                 araddr<=list_address;remaining<=command_count;
++                if(packed_positions)begin
++                    source<=common_source;extent<={common_side,common_side};source_stride<=common_stride;
++                    colors<={common_key,16'd0};control<={16'd0,common_alpha,4'd0,common_blend,2'd2};
++                end
+                 if(command_count==0)done<=1;
+-                else if(!memory_ready || list_address[4:0]!=0 ||
++                else if(!memory_ready || (packed_positions ? list_address[1:0]!=0:list_address[4:0]!=0) ||
+                         list_address<ASSET_BASE ||
+                         list_end>{1'b0,ASSET_BASE}+{1'b0,ASSET_BYTES})begin
+                     done<=1;error<=1;
+@@ -57,6 +65,11 @@
+             end
+             ADDRESS: if(arready)begin beat<=0;bad<=0;state<=DATA;end
+             DATA: if(rvalid)begin
++                if(packed_positions)begin
++                    destination<=rdata;
++                    if(rresp!=0 || !rlast)begin done<=1;error<=1;state<=IDLE;end
++                    else state<=CHECK;
++                end else begin
+                 if(rresp!=0 || rlast!=(beat==7))bad<=1;
+                 case(beat)
+                 0:source<=rdata;
+@@ -74,6 +87,7 @@
+                         done<=1;error<=1;state<=IDLE;
+                     end else state<=CHECK;
+                 end else beat<=beat+1'b1;
++                end
+             end
+             CHECK:begin
+                 // op[1:0], blend flags[3:2], alpha[15:8]; all other bits zero.
+@@ -92,7 +106,7 @@
+                     completed<=completed+1'b1;
+                     if(remaining==1)begin done<=1;state<=IDLE;end
+                     else begin
+-                        remaining<=remaining-1'b1;araddr<=araddr+32;state<=ADDRESS;
++                        remaining<=remaining-1'b1;araddr<=araddr+(packed_positions ? 32'd4:32'd32);state<=ADDRESS;
+                     end
+                 end
+             end
+--- a/software/main.c
++++ b/software/main.c
+@@ -214,6 +214,46 @@
+     if(!result && mmio_read(GFX_BASE+GFX_BATCH_COMPLETED)!=count)return -3;
+     return result;
+ }
++int gfx_positions_submit(uint32_t source,uint32_t side,uint32_t list,uint32_t count,
++                         uint8_t alpha,uint16_t key,uint32_t flags) {
++    if(!(side==4 || side==16 || side==24 || side==32) || (source&3u) ||
++       source<ASSET_BASE || source>=ASSET_BASE+ASSET_BYTES ||
++       side*side*2u>ASSET_BASE+ASSET_BYTES-source || (list&3u) ||
++       list<ASSET_BASE || list>=ASSET_BASE+ASSET_BYTES || count>65535u ||
++       count*4u>ASSET_BASE+ASSET_BYTES-list ||
++       (flags&~(GFX_BLEND_ALPHA|GFX_BLEND_KEY)))return -1;
++    if(mmio_read(GFX_BASE+GFX_STATUS)&(GFX_BUSY|GFX_SWAP_PENDING))return -2;
++    if(!(mmio_read(GFX_BASE+GFX_CAPABILITIES)&GFX_CAP_POSITIONS))return -5;
++    publish_pixels();select_draw_page();
++    mmio_write(GFX_BASE+GFX_SRC,source);mmio_write(GFX_BASE+GFX_DST,list);
++    mmio_write(GFX_BASE+GFX_WIDTH,count);mmio_write(GFX_BASE+GFX_HEIGHT,side);
++    mmio_write(GFX_BASE+GFX_SRC_STRIDE,side*2u);mmio_write(GFX_BASE+GFX_BLEND_CTRL,flags);
++    mmio_write(GFX_BASE+GFX_ALPHA,alpha);mmio_write(GFX_BASE+GFX_COLOR_KEY,key);
++    mmio_write(GFX_BASE+GFX_COMMAND,3);
++    int result=wait_render();
++    if(!result && mmio_read(GFX_BASE+GFX_BATCH_COMPLETED)!=count)return -3;
++    return result;
++}
++int gfx_tile_submit(uint32_t source,uint32_t side,uint32_t list,uint32_t fragments,
++                    uint8_t alpha,uint16_t key,uint32_t flags,uint16_t clear_color) {
++    if(!(side==4 || side==16 || side==24 || side==32) || (source&3u) ||
++       source<ASSET_BASE || source>=ASSET_BASE+ASSET_BYTES ||
++       side*side*2u>ASSET_BASE+ASSET_BYTES-source || (list&31u) ||
++       list<ASSET_BASE || list>=ASSET_BASE+ASSET_BYTES || fragments>65535u ||
++       GFX_TILE_POSITIONS+fragments*4u>ASSET_BASE+ASSET_BYTES-list ||
++       (flags&~(GFX_BLEND_ALPHA|GFX_BLEND_KEY)))return -1;
++    if(mmio_read(GFX_BASE+GFX_STATUS)&(GFX_BUSY|GFX_SWAP_PENDING))return -2;
++    if(!(mmio_read(GFX_BASE+GFX_CAPABILITIES)&GFX_CAP_TILES))return -5;
++    publish_pixels();select_draw_page();
++    mmio_write(GFX_BASE+GFX_SRC,source);mmio_write(GFX_BASE+GFX_DST,list);
++    mmio_write(GFX_BASE+GFX_WIDTH,side);mmio_write(GFX_BASE+GFX_HEIGHT,fragments);
++    mmio_write(GFX_BASE+GFX_COLOR,clear_color);mmio_write(GFX_BASE+GFX_BLEND_CTRL,flags);
++    mmio_write(GFX_BASE+GFX_ALPHA,alpha);mmio_write(GFX_BASE+GFX_COLOR_KEY,key);
++    mmio_write(GFX_BASE+GFX_COMMAND,4);
++    int result=wait_render();
++    if(!result && mmio_read(GFX_BASE+GFX_BATCH_COMPLETED)!=fragments)return -3;
++    return result;
++}
+ static void cpu_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c) {
+     for (uint32_t row=0; row<h; ++row) {
+         volatile uint16_t *p=(volatile uint16_t *)(uintptr_t)(draw_buffer+(y+row)*1280+x*2);
+@@ -412,6 +452,63 @@
+         first+=count;
+     }
+ }
++static uint32_t bench_tile_cursor[180];
++static void bench_compact_frame(uint32_t frame) {
++    uint32_t size=bench_sizes[bench_size_index];
++    if(!(mmio_read(GFX_BASE+GFX_CAPABILITIES)&GFX_CAP_POSITIONS)) {bench_batch_frame(frame);return;}
++    bench_batch_size=0;
++    volatile uint32_t *list=(volatile uint32_t *)(uintptr_t)GFX_BATCH_BASE;
++    for(uint32_t first=0;first<sprite_count;) {
++        uint32_t count=sprite_count-first;
++        if(count>GFX_POSITION_CAPACITY)count=GFX_POSITION_CAPACITY;
++        for(uint32_t i=0;i<count;++i) {
++            uint32_t seed=sprite_seed(first+i);
++            uint32_t x=8+bounce((seed&65535u)+frame*(1+((seed>>16)&7u)),632u-size);
++            uint32_t y=160+bounce((seed>>16)+frame*(1+((seed>>24)&3u)),240u-size);
++            list[i]=draw_buffer+y*FRAME_STRIDE+x*2u;
++        }
++        if(gfx_positions_submit(bench_sources[bench_size_index],size,GFX_BATCH_BASE,count,128,0,
++                                GFX_BLEND_ALPHA|GFX_BLEND_KEY))fail("FAIL bench positions");
++        first+=count;
++    }
++}
++static void bench_tile_positions(uint32_t frame,uint32_t store) {
++    uint32_t size=bench_sizes[bench_size_index];
++    volatile uint32_t *positions=(volatile uint32_t *)(uintptr_t)(GFX_TILE_BASE+GFX_TILE_POSITIONS);
++    for(uint32_t i=0;i<sprite_count;++i) {
++        uint32_t seed=sprite_seed(i);
++        uint32_t x=8+bounce((seed&65535u)+frame*(1+((seed>>16)&7u)),632u-size);
++        uint32_t y=160+bounce((seed>>16)+frame*(1+((seed>>24)&3u)),240u-size);
++        for(uint32_t ty=y>>5;ty<=(y+size-1u)>>5;++ty)
++            for(uint32_t tx=x>>5;tx<=(x+size-1u)>>5;++tx) {
++                uint32_t bin=(ty-4u)*20u+tx;
++                if(store)positions[bench_tile_cursor[bin]++]=x|(y<<16);
++                else ++bench_tile_cursor[bin];
++            }
++    }
++}
++static uint32_t bench_tile_frame(uint32_t frame) {
++    uint32_t size=bench_sizes[bench_size_index];
++    uint32_t threshold=size==32 || size==24 ? 512u:size==16 ? 1024u:0xffffffffu;
++    if(sprite_count<threshold || sprite_count>GFX_TILE_CAPACITY ||
++       !(mmio_read(GFX_BASE+GFX_CAPABILITIES)&GFX_CAP_TILES))return 0;
++    // All three modes share DDR scratch. Rebuild generic templates on fallback.
++    bench_batch_size=0;
++    for(uint32_t b=0;b<180;++b)bench_tile_cursor[b]=0;
++    bench_tile_positions(frame,0);
++    volatile uint32_t *offsets=(volatile uint32_t *)(uintptr_t)GFX_TILE_BASE;
++    uint32_t fragments=0;
++    for(uint32_t b=0;b<180;++b) {
++        uint32_t count=bench_tile_cursor[b];offsets[b]=fragments;
++        bench_tile_cursor[b]=fragments;fragments+=count;
++    }
++    offsets[180]=fragments;
++    if(fragments>GFX_TILE_CAPACITY || fragments>65535u)return 0;
++    bench_tile_positions(frame,1);
++    if(gfx_tile_submit(bench_sources[bench_size_index],size,GFX_TILE_BASE,fragments,128,0,
++                      GFX_BLEND_ALPHA|GFX_BLEND_KEY,0x0843))fail("FAIL bench tiles");
++    return 1;
++}
+ static void draw_player(uint32_t frame,uint32_t x,uint32_t y,uint32_t hw) {
+     uint32_t source=PLAYER_ASSET_BASE+(frame%PLAYER_FRAME_COUNT)*PLAYER_FRAME_BYTES;
+     if (hw) {
+@@ -422,6 +519,32 @@
+ static void paint(uint32_t x,uint32_t y,uint32_t w,uint32_t h,uint16_t c,uint32_t hw) {
+     if (hw) { if (fill_rect(x,y,w,h,c)) fail("FAIL fill"); }
+     else cpu_fill(x,y,w,h,c);
++}
++static uint32_t bench_strategy_count,bench_strategy_size,bench_strategy_trials;
++static uint32_t bench_strategy_peak[2],bench_strategy_tile;
++static void bench_render_frame(uint32_t frame) {
++    uint32_t size=bench_sizes[bench_size_index];
++    if(bench_strategy_count!=sprite_count || bench_strategy_size!=size) {
++        bench_strategy_count=sprite_count;bench_strategy_size=size;bench_strategy_trials=0;
++        bench_strategy_peak[0]=bench_strategy_peak[1]=0;bench_strategy_tile=0;
++    }
++    uint32_t eligible=size!=4 && sprite_count>=(size==16 ? 1024u:512u) &&
++        sprite_count<=GFX_TILE_CAPACITY && (mmio_read(GFX_BASE+GFX_CAPABILITIES)&GFX_CAP_TILES);
++    uint32_t use_tile=eligible && (bench_strategy_trials<8u ? (bench_strategy_trials&1u):bench_strategy_tile);
++    uint32_t start=cycle_now();
++    if(!use_tile || !bench_tile_frame(frame)) {
++        if(use_tile) {eligible=0;bench_strategy_trials=8;bench_strategy_tile=0;}
++        paint(0,152,640,256,0x0843,1);bench_compact_frame(frame);
++    }
++    uint32_t elapsed=cycle_now()-start;
++    // Each frame draws the full original workload exactly once. Compare four
++    // complete CPU+DDR render samples per path; prefer compact within 10%.
++    // Sampling and MAX60 still include all trial frames and missed refreshes.
++    if(eligible && bench_strategy_trials<8u) {
++        if(elapsed>bench_strategy_peak[use_tile])bench_strategy_peak[use_tile]=elapsed;
++        if(++bench_strategy_trials==8u)
++            bench_strategy_tile=bench_strategy_peak[1]<bench_strategy_peak[0]-bench_strategy_peak[0]/10u;
++    }
+ }
+ // Same-page, non-overlapping reference copy used by the dedicated Copy page.
+ static void cpu_copy_sample(uint32_t dst_y) {
+@@ -472,9 +595,9 @@
+         }
+         break;
+     default: // Performance scene contains only the selected moving Sprite load.
++        if(hw) {bench_render_frame(frame);break;}
+         paint(0,152,640,256,0x0843,hw);
+-        if(hw)bench_batch_frame(frame);
+-        else for(uint32_t n=0;n<sprite_count;++n) {
++        for(uint32_t n=0;n<sprite_count;++n) {
+             uint32_t seed=sprite_seed(n);
+             uint32_t size=bench_sizes[bench_size_index];
+             uint32_t x=8+bounce((seed&65535u)+frame*(1+((seed>>16)&7u)),632u-size);
+@@ -622,6 +745,7 @@
+ static void bench_prime_framebuffers(void) {
+     // Menu projection and effect demos reuse the descriptor staging memory.
+     bench_batch_size=0;
++    bench_strategy_count=0xffffffffu;
+     // Keep the complete menu visible while composing the retired back page.
+     // Present each finished pressure page at vblank; never blank HDMI here.
+     puts_uart("BENCH INIT\r\n");
+--- a/software/render.h
++++ b/software/render.h
+@@ -36,6 +36,8 @@
+ #define GFX_BATCH_COMPLETED 0x78u
+ #define GFX_CAPABILITIES 0x7cu
+ #define GFX_CAP_BATCH 1u
++#define GFX_CAP_POSITIONS 2u
++#define GFX_CAP_TILES 4u
+ #define GFX_BLEND_ALPHA  1u
+ #define GFX_BLEND_KEY    2u
+ #define GFX_VIDEO_VALID  1u
+@@ -60,6 +62,13 @@
+  * use this staging area. A list is immutable until gfx_batch_submit returns. */
+ #define GFX_BATCH_BASE (ASSET_BASE+0x000b0000u)
+ #define GFX_BATCH_CAPACITY 512u
++#define GFX_POSITION_CAPACITY 4096u
++/* Benchmark-only scratch, mutually exclusive with menu/effect/basic images.
++ * 181 cumulative offsets at +0; XY words at +768. Immutable until completion. */
++#define GFX_TILE_BASE GFX_BATCH_BASE
++#define GFX_TILE_BYTES 0x40000u
++#define GFX_TILE_POSITIONS 768u
++#define GFX_TILE_CAPACITY ((GFX_TILE_BYTES-GFX_TILE_POSITIONS)/4u)
+ typedef struct {
+     uint32_t source,destination,extent,source_stride,colors,control;
+     uint32_t reserved0,reserved1;
+@@ -71,6 +80,10 @@
+  * On failure, prior completed commands remain committed; do not replay a
+  * partially executed Alpha list. Read GFX_BATCH_COMPLETED for the prefix. */
+ int gfx_batch_submit(uint32_t commands,uint32_t count);
++int gfx_positions_submit(uint32_t source,uint32_t side,uint32_t list,uint32_t count,
++                         uint8_t alpha,uint16_t key,uint32_t flags);
++int gfx_tile_submit(uint32_t source,uint32_t side,uint32_t list,uint32_t fragments,
++                    uint8_t alpha,uint16_t key,uint32_t flags,uint16_t clear_color);
+ #define SPRITE_STRIDE 64u
+ #define PLAYER_ASSET_BASE (ASSET_BASE + 2048u)
+ #define PLAYER_FRAME_BYTES 2048u
+--- a/first_light.xml
++++ b/first_light.xml
+@@ -15,6 +15,7 @@
+         <efx:design_file name="rtl/ui_compositor.v" version="default" library="default" />
+         <efx:design_file name="rtl/fill_engine.v" version="default" library="default" />
+         <efx:design_file name="rtl/render_batch.v" version="default" library="default" />
++        <efx:design_file name="rtl/tile_renderer.v" version="default" library="default" />
+         <efx:design_file name="rtl/framebuffer_video.v" version="default" library="default" />
+         <efx:design_file name="rtl/video_mode_measure.v" version="default" library="default" />
+         <efx:design_file name="vendor/soc/soc.v" version="default" library="default" />
+--- /dev/null
++++ b/rtl/tile_renderer.v
+@@ -0,0 +1,290 @@
++// Benchmark-only stable 32x32 composition, fused with the original viewport
++// clear. No private pixel RAM: source/background ports borrow fill_engine's
++// existing banks. One outstanding AXI read, max 16 beats, complete error drain.
++`default_nettype none
++module tile_renderer #(
++    parameter [31:0] ASSET_BASE=32'h01200000,ASSET_BYTES=32'h00100000
++)(
++    input wire clk,reset,start,memory_ready,
++    input wire [31:0] source,list_address,frame_base,
++    input wire [15:0] side,fragment_count,clear_color,color_key,
++    input wire [1:0] blend_ctrl,input wire [7:0] alpha,
++    output wire busy,output reg done,error,
++    output reg [15:0] completed,
++    output reg [31:0] cycles,burst_reads,burst_writes,read_wait,write_wait,
++    output reg [31:0] araddr,output wire [7:0] arlen,
++    output wire arvalid,input wire arready,
++    input wire [31:0] rdata,input wire [1:0] rresp,
++    input wire rlast,rvalid,output wire rready,
++    output reg [31:0] awaddr,output wire [7:0] awlen,
++    output wire awvalid,input wire awready,
++    output wire [31:0] wdata,output wire [3:0] wstrb,
++    output wire wlast,wvalid,input wire wready,
++    input wire [1:0] bresp,input wire bvalid,output wire bready,
++    output wire source_write,background_write,span_write,
++    output wire [8:0] source_address,source_lo_address,source_hi_address,
++    output wire [8:0] background_address,background_read_address,
++    output wire [31:0] source_data,background_data,
++    output wire [4:0] span_row,
++    output wire [5:0] span_left,span_right,
++    input wire [31:0] source_q,background_q,
++    input wire [191:0] left_bits,right_bits
++);
++    localparam IDLE=0,RPLAN=1,RADDR=2,RDATA=3,OFFCHECK=4,CLEAR=5,
++        POSPLAN=6,POSCHECK=7,ROWSPAN=8,ROWSET=9,PIXELS=10,NEXTROW=11,
++        SPRITEEND=12,DRAIN=13,WSET=14,WPRIME=15,WLOAD=16,WADDR=17,WDATA=18,WRESP=19;
++    localparam TEXTURE=0,OFFSETS=1,POSITIONS=2;
++    reg [4:0] state;
++    reg [1:0] read_kind;
++    reg [15:0] read_left;
++    reg [4:0] read_count,read_beat;
++    reg read_bad;
++    reg [9:0] texture_index;
++    reg [4:0] texture_row,texture_column;
++    reg [5:0] first_pixel,last_pixel;
++    reg [7:0] tile_number;
++    reg [9:0] tile_x,tile_y;
++    reg [15:0] bin_start,bin_end,position_next;
++    reg [511:0] position_buffer;
++    reg [4:0] positions_left;
++    reg [3:0] position_word;
++    reg [9:0] sprite_x,sprite_y,pixel_y,row_end,pixel_x,word_end;
++    reg [5:0] row_left,row_right;
++    reg [8:0] source_word,background_word,clear_word,write_read_word;
++    reg [9:0] write_y,write_end;
++    reg [4:0] load_count;
++    reg [3:0] write_beat;
++    reg pipe0,pipe1;
++    reg [8:0] pipe_address0,pipe_address1;
++    reg [1:0] pipe_mask0;
++    reg [31:0] pipe_data1;
++    wire [9:0] texture_words=side==32 ? 512:side==24 ? 288:side==16 ? 128:8;
++    wire [32:0] list_end={1'b0,list_address}+33'd768+{15'd0,fragment_count,2'd0};
++    wire [32:0] texture_end={1'b0,source}+{21'd0,texture_words,2'd0};
++    wire [10:0] to_boundary=11'd1024-{1'b0,araddr[11:2]};
++    wire [4:0] proposed=read_left>16 ? 5'd16:read_left[4:0];
++    wire read_failure=rresp!=0 || rlast!=(read_beat==read_count-1'b1);
++    wire [5:0] texture_x={texture_column,1'b0};
++    wire [5:0] load_first=first_pixel!=63 ? first_pixel:rdata[15:0]!=color_key ? texture_x:
++        rdata[31:16]!=color_key ? texture_x+6'd1:6'd63;
++    wire [5:0] load_last=rdata[31:16]!=color_key ? texture_x+6'd1:
++        rdata[15:0]!=color_key ? texture_x:last_pixel;
++    wire [31:0] position_value=position_buffer[position_word*32+:32];
++    wire [15:0] position_x=position_value[15:0],position_y=position_value[31:16];
++    wire [9:0] sprite_bottom=sprite_y+side[9:0];
++    wire [4:0] source_row=pixel_y[4:0]-sprite_y[4:0];
++    wire [9:0] span_x0=sprite_x+(blend_ctrl[1] ? {4'd0,row_left}:10'd0);
++    wire [9:0] span_x1=sprite_x+(blend_ctrl[1] ? {4'd0,row_right}+10'd1:side[9:0]);
++    wire [9:0] clipped_left=span_x0>tile_x ? span_x0:tile_x;
++    wire [9:0] clipped_end=span_x1<tile_x+10'd32 ? span_x1:tile_x+10'd32;
++    wire [9:0] aligned_left={clipped_left[9:1],1'b0};
++    wire [9:0] source_delta=aligned_left-sprite_x;
++    wire [8:0] source_row_word=side==32 ? {source_row,4'd0}:side==16 ? {1'd0,source_row,3'd0}:
++        side==24 ? ({1'd0,source_row,3'd0}+{2'd0,source_row,2'd0}):{3'd0,source_row,1'd0};
++    wire pixel_issue=state==PIXELS;
++    wire [31:0] foreground=sprite_x[0] ? {source_q[15:0],source_q[31:16]}:source_q;
++    function [5:0] channel;
++        input [5:0] f,b;input [7:0] a;
++        reg [13:0] t;reg [14:0] normalized;
++        begin t=f*a+b*(8'd255-a)+14'd127;
++            normalized={1'b0,t}+15'd1+{9'd0,t[13:8]};channel=normalized[13:8];end
++    endfunction
++    function [15:0] pixel_blend;
++        input [15:0] f,b;input lane;
++        reg [5:0] r,g,blue;
++        begin
++            if(!lane || (blend_ctrl[1] && f==color_key))pixel_blend=b;
++            else if(!blend_ctrl[0] || alpha==255)pixel_blend=f;
++            else begin
++                r=channel({1'b0,f[15:11]},{1'b0,b[15:11]},alpha);
++                g=channel(f[10:5],b[10:5],alpha);
++                blue=channel({1'b0,f[4:0]},{1'b0,b[4:0]},alpha);
++                pixel_blend={r[4:0],g[5:0],blue[4:0]};
++            end
++        end
++    endfunction
++    assign busy=state!=IDLE;
++    assign arvalid=state==RADDR;
++    assign arlen={3'd0,read_count}-8'd1;
++    assign rready=state==RDATA;
++    assign awvalid=state==WADDR;
++    assign awlen=8'd15;
++    assign wstrb=4'hf;
++    assign wlast=write_beat==15;
++    assign bready=state==WRESP;
++    assign source_write=state==RDATA && read_kind==TEXTURE && rvalid;
++    assign source_address=texture_index[8:0];
++    assign source_data=rdata;
++    assign source_lo_address=source_word+{8'd0,sprite_x[0]};
++    assign source_hi_address=source_word;
++    assign span_write=source_write && texture_column==side[5:1]-1'b1;
++    assign span_row=texture_row;assign span_left=load_first;assign span_right=load_last;
++    assign background_write=state==CLEAR || pipe1;
++    assign background_address=state==CLEAR ? clear_word:pipe_address1;
++    assign background_data=state==CLEAR ? {clear_color,clear_color}:pipe_data1;
++    assign background_read_address=state>=WSET ? write_read_word:background_word;
++    // A full 16-word row is staged before AW. Packed flops avoid spending two
++    // scarce BRAMs on a tiny asynchronous-read FIFO.
++    reg [511:0] write_row;
++    wire fifo_pop=state==WDATA && wready;
++    always @(posedge clk)if(state==WLOAD)write_row[load_count*32+:32]<=background_q;
++    assign wdata=write_row[write_beat*32+:32];
++    assign wvalid=state==WDATA;
++    always @(posedge clk)begin
++        if(reset)begin pipe0<=0;pipe1<=0;pipe_address0<=0;pipe_address1<=0;pipe_mask0<=0;pipe_data1<=0;end
++        else begin
++            pipe0<=pixel_issue;pipe1<=pipe0;
++            if(pixel_issue)begin
++                pipe_address0<=background_word;
++                pipe_mask0<={pixel_x+10'd1<sprite_x+side[9:0],pixel_x>=sprite_x};
++            end
++            if(pipe0)begin
++                pipe_address1<=pipe_address0;
++                pipe_data1<={pixel_blend(foreground[31:16],background_q[31:16],pipe_mask0[1]),
++                             pixel_blend(foreground[15:0],background_q[15:0],pipe_mask0[0])};
++            end
++        end
++    end
++    always @(posedge clk)begin
++        if(reset)begin
++            state<=IDLE;done<=0;error<=0;completed<=0;cycles<=0;
++            burst_reads<=0;burst_writes<=0;read_wait<=0;write_wait<=0;
++            araddr<=0;awaddr<=0;read_kind<=0;read_left<=0;read_count<=0;read_beat<=0;read_bad<=0;
++            texture_index<=0;texture_row<=0;texture_column<=0;first_pixel<=63;last_pixel<=0;
++            tile_number<=0;tile_x<=0;tile_y<=128;bin_start<=0;bin_end<=0;position_next<=0;
++            positions_left<=0;position_word<=0;sprite_x<=0;sprite_y<=0;pixel_y<=0;row_end<=0;
++            pixel_x<=0;word_end<=0;row_left<=0;row_right<=0;source_word<=0;background_word<=0;
++            clear_word<=0;write_read_word<=0;write_y<=0;write_end<=0;load_count<=0;write_beat<=0;
++        end else begin
++            if(busy)cycles<=cycles+1'b1;
++            if(arvalid && arready)burst_reads<=burst_reads+1'b1;
++            if(awvalid && awready)burst_writes<=burst_writes+1'b1;
++            if((arvalid && !arready)||(rready && !rvalid))read_wait<=read_wait+1'b1;
++            if((awvalid && !awready)||(wvalid && !wready)||(bready && !bvalid))write_wait<=write_wait+1'b1;
++            case(state)
++            IDLE:if(start)begin
++                done<=0;error<=0;completed<=0;cycles<=0;
++                tile_number<=0;tile_x<=0;tile_y<=128;bin_start<=0;bin_end<=0;
++                texture_index<=0;texture_row<=0;texture_column<=0;first_pixel<=63;last_pixel<=0;
++                if(!memory_ready || !(side==4 || side==16 || side==24 || side==32) ||
++                    source[1:0]!=0 || source<ASSET_BASE || texture_end>{1'b0,ASSET_BASE}+{1'b0,ASSET_BYTES} ||
++                    list_address[4:0]!=0 || list_address<ASSET_BASE || list_end>{1'b0,ASSET_BASE}+{1'b0,ASSET_BYTES})begin
++                    error<=1;done<=1;
++                end else if(fragment_count==0)begin
++                    araddr<=list_address;read_left<=2;read_kind<=OFFSETS;state<=RPLAN;
++                end else begin araddr<=source;read_left<=texture_words;read_kind<=TEXTURE;state<=RPLAN;end
++            end
++            RPLAN:begin
++                read_count<=to_boundary<proposed ? to_boundary[4:0]:proposed;
++                read_beat<=0;read_bad<=0;state<=RADDR;
++            end
++            RADDR:if(arready)state<=RDATA;
++            RDATA:if(rvalid)begin
++                if(read_failure)read_bad<=1;
++                if(read_kind==TEXTURE)begin
++                    texture_index<=texture_index+1'b1;
++                    if(texture_column==side[5:1]-1'b1)begin
++                        texture_column<=0;texture_row<=texture_row+1'b1;first_pixel<=63;last_pixel<=0;
++                    end else begin texture_column<=texture_column+1'b1;first_pixel<=load_first;last_pixel<=load_last;end
++                end else if(read_kind==OFFSETS)begin
++                    if(tile_number==0 && read_beat==0)begin if(rdata!=0)read_bad<=1;end
++                    else begin
++                        bin_end<=rdata[15:0];
++                        if(rdata[31:16]!=0 || rdata<bin_start || rdata>fragment_count)read_bad<=1;
++                    end
++                end else position_buffer[read_beat*32+:32]<=rdata;
++                if(read_beat==read_count-1'b1)begin
++                    if(read_bad || read_failure || (read_kind==OFFSETS &&
++                        (rdata[31:16]!=0 || rdata<bin_start || rdata>fragment_count)))begin
++                        error<=1;done<=1;state<=IDLE;
++                    end else if(read_kind==TEXTURE && read_left!={11'd0,read_count})begin
++                        read_left<=read_left-{11'd0,read_count};araddr<=araddr+{25'd0,read_count,2'd0};state<=RPLAN;
++                    end else if(read_kind==TEXTURE)begin
++                        araddr<=list_address;read_kind<=OFFSETS;read_left<=2;state<=RPLAN;
++                    end else if(read_kind==OFFSETS)state<=OFFCHECK;
++                    else begin
++                        positions_left<=read_count;position_word<=0;
++                        position_next<=position_next+{11'd0,read_count};state<=POSCHECK;
++                    end
++                end else read_beat<=read_beat+1'b1;
++            end
++            OFFCHECK:begin
++                if(tile_number==179 && bin_end!=fragment_count)begin error<=1;done<=1;state<=IDLE;end
++                else begin clear_word<=0;position_next<=bin_start;state<=CLEAR;end
++            end
++            CLEAR:if(clear_word==511)begin
++                if(bin_start==bin_end)state<=DRAIN;else state<=POSPLAN;
++            end else clear_word<=clear_word+1'b1;
++            POSPLAN:begin
++                araddr<=list_address+32'd768+{14'd0,position_next,2'd0};
++                read_left<=bin_end-position_next;read_kind<=POSITIONS;state<=RPLAN;
++            end
++            POSCHECK:begin
++                if(position_x>16'd640-side || position_y<152 || position_y>16'd408-side ||
++                    position_x>={6'd0,tile_x}+16'd32 || position_x+side<={6'd0,tile_x} ||
++                    position_y>={6'd0,tile_y}+16'd32 || position_y+side<={6'd0,tile_y})begin
++                    error<=1;done<=1;state<=IDLE;
++                end else begin
++                    sprite_x<=position_x[9:0];sprite_y<=position_y[9:0];
++                    pixel_y<=position_y>tile_y ? position_y[9:0]:(tile_y<152 ? 10'd152:tile_y);
++                    row_end<=position_y+side<tile_y+32 ? position_y[9:0]+side[9:0]:(tile_y+32>408 ? 10'd408:tile_y+10'd32);
++                    state<=ROWSPAN;
++                end
++            end
++            ROWSPAN:begin
++                row_left<=left_bits[source_row*6+:6];row_right<=right_bits[source_row*6+:6];state<=ROWSET;
++            end
++            ROWSET:if((blend_ctrl[1] && row_left==63) || clipped_left>=clipped_end)state<=NEXTROW;
++                else begin
++                    pixel_x<=aligned_left;word_end<=clipped_end;
++                    source_word<=source_row_word+source_delta[9:1];
++                    background_word<={pixel_y[4:0],clipped_left[4:1]};state<=PIXELS;
++                end
++            PIXELS:begin
++                source_word<=source_word+1'b1;background_word<=background_word+1'b1;pixel_x<=pixel_x+10'd2;
++                if(pixel_x+10'd2>=word_end)state<=NEXTROW;
++            end
++            NEXTROW:if(pixel_y+10'd1>=row_end)state<=SPRITEEND;
++                else begin pixel_y<=pixel_y+1'b1;state<=ROWSPAN;end
++            SPRITEEND:begin
++                positions_left<=positions_left-1'b1;
++                if(positions_left==1)state<=position_next==bin_end ? DRAIN:POSPLAN;
++                else begin position_word<=position_word+1'b1;state<=POSCHECK;end
++            end
++            DRAIN:if(!pipe0 && !pipe1)begin
++                write_y<=tile_y<152 ? 10'd152:tile_y;
++                write_end<=tile_y+10'd32>408 ? 10'd408:tile_y+10'd32;state<=WSET;
++            end
++            WSET:begin
++                awaddr<=frame_base+({22'd0,write_y}<<10)+({22'd0,write_y}<<8)+{21'd0,tile_x,1'b0};
++                write_read_word<={write_y[4:0],4'd0};load_count<=0;write_beat<=0;state<=WPRIME;
++            end
++            WPRIME:begin write_read_word<=write_read_word+1'b1;state<=WLOAD;end
++            WLOAD:begin
++                load_count<=load_count+1'b1;
++                if(load_count<14)write_read_word<=write_read_word+1'b1;
++                if(load_count==15)state<=WADDR;
++            end
++            WADDR:if(awready)state<=WDATA;
++            WDATA:if(fifo_pop)begin write_beat<=write_beat+1'b1;if(wlast)state<=WRESP;end
++            WRESP:if(bvalid)begin
++                if(bresp!=0)begin error<=1;done<=1;state<=IDLE;end
++                else if(write_y+10'd1<write_end)begin write_y<=write_y+1'b1;state<=WSET;end
++                else begin
++                    completed<=bin_end;
++                    if(tile_number==179)begin done<=1;state<=IDLE;end
++                    else begin
++                        tile_number<=tile_number+1'b1;bin_start<=bin_end;
++                        if(tile_x==608)begin tile_x<=0;tile_y<=tile_y+10'd32;end
++                        else tile_x<=tile_x+10'd32;
++                        araddr<=list_address+{22'd0,tile_number,2'd0}+32'd8;
++                        read_kind<=OFFSETS;read_left<=1;state<=RPLAN;
++                    end
++                end
++            end
++            default:begin error<=1;done<=1;state<=IDLE;end
++            endcase
++        end
++    end
++endmodule
++`default_nettype wire

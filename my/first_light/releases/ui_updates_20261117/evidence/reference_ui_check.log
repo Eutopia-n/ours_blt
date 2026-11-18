@@ -1,0 +1,3 @@
+COMMANDS 454
+ALTAR UI PASSED: field and HUD on both pages, Enter inspection, resume after max level, and no trails after moving away
+PASS native reference UI: all 119 interior poses; black pupils retained in poses 88..110; 9 menus; cover; 6 demo routes; total visible sprites / active projectile HUD on both pages, digit erasure, empty/full and late/missed-window MAX60 rejection; both chapter directions; 48 state/choice transitions; pause/resume atlas and hero preserved; pool guards

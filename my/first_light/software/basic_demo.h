@@ -13,15 +13,39 @@ static void basic_reset_sample(BasicSample *s) {
     for(uint32_t n=0;n<sizeof(*s)/sizeof(*p);++n)p[n]=0;
 }
 
+#define BASIC_COPY_INDEX_BYTES (BASIC_COPY_ASSET_W*BASIC_COPY_ASSET_H/2u)
+static uint32_t basic_copy_texel(const volatile uint8_t *row,uint32_t x,
+                                 const volatile uint16_t *palette) {
+    return palette[(row[x/2u]>>((x&1u)*4u))&15u];
+}
+static uint32_t basic_copy_lerp(uint32_t a,uint32_t b,uint32_t fraction) {
+    // Red and blue have enough space between them for 5-bit weights.
+    uint32_t rb=(a&0xf81fu)*(32u-fraction)+(b&0xf81fu)*fraction;
+    uint32_t g=(a&0x07e0u)*(32u-fraction)+(b&0x07e0u)*fraction;
+    return ((rb>>5)&0xf81fu)|((g>>5)&0x07e0u);
+}
 static void basic_init_images(void) {
     if(basic_assets_ready)return;
+    const volatile uint8_t *indices=(const volatile uint8_t *)(uintptr_t)BOOK_SCRATCH_BASE;
+    const volatile uint16_t *palette=(const volatile uint16_t *)(indices+BASIC_COPY_INDEX_BYTES);
     for(uint32_t image=0;image<2u;++image) {
-        volatile uint32_t *dst=(volatile uint32_t *)(uintptr_t)basic_source(image);
-        for(uint32_t y=0;y<BASIC_IMAGE_H;++y)for(uint32_t x=0;x<BASIC_IMAGE_W;x+=2u)
-            dst[y*(BASIC_IMAGE_W/2u)+x/2u]=(uint32_t)basic_pixel(image,x,y)|
-                ((uint32_t)basic_pixel(image,x+1u,y)<<16);
+        book_unpack(basic_copy_stream[image][0],basic_copy_stream[image][1],BASIC_COPY_INDEX_BYTES+32u);
+        volatile uint16_t *dst=(volatile uint16_t *)(uintptr_t)basic_source(image);
+        for(uint32_t y=0;y<BASIC_IMAGE_H;++y) {
+            uint32_t sy=y*(BASIC_COPY_ASSET_H*32u)/BASIC_IMAGE_H,y0=sy>>5;
+            uint32_t y1=y0+1u<BASIC_COPY_ASSET_H ? y0+1u:y0;
+            const volatile uint8_t *row0=indices+y0*(BASIC_COPY_ASSET_W/2u);
+            const volatile uint8_t *row1=indices+y1*(BASIC_COPY_ASSET_W/2u);
+            for(uint32_t x=0;x<BASIC_IMAGE_W;++x) {
+                uint32_t sx=x*(BASIC_COPY_ASSET_W*32u)/BASIC_IMAGE_W,x0=sx>>5;
+                uint32_t x1=x0+1u<BASIC_COPY_ASSET_W ? x0+1u:x0;
+                uint32_t top=basic_copy_lerp(basic_copy_texel(row0,x0,palette),basic_copy_texel(row0,x1,palette),sx&31u);
+                uint32_t bottom=basic_copy_lerp(basic_copy_texel(row1,x0,palette),basic_copy_texel(row1,x1,palette),sx&31u);
+                *dst++=(uint16_t)basic_copy_lerp(top,bottom,sy&31u);
+            }
+        }
     }
-    publish_pixels();basic_assets_ready=1;
+    publish_pixels();book_cache_valid=0;basic_assets_ready=1;
 }
 static void basic_cpu_copy(uint32_t source) {
     for(uint32_t y=0;y<BASIC_IMAGE_H;++y) {
@@ -153,6 +177,7 @@ static void basic_labels(uint32_t demo) {
         }
         if(demo==DEMO_COPY) {
             book_text(32,390,"图像",UI_STONE,1);demo_number(72,390,24,basic_config.image+1u,1,1,UI_STONE,UI_BG);
+            book_text(106,390,basic_config.image ? "0 A.D.":"SUPERTUXKART",UI_STONE,1);
             book_text(352,390,"256 X 192 RGB565",UI_STONE,1);
         }
         book_text(16,430,demo==DEMO_COPY ? (basic_config.view ? "W复制次数  D换图  ENTER图像":"W复制次数  D换图  ENTER详情"):

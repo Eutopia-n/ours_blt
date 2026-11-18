@@ -1,0 +1,62 @@
+
+Elitestek FPGA Placement and Routing.
+Version: 2026.1.132 
+Date: Wed Nov 18 19:17:25 2026
+
+Copyright (C) 2013 - 2026 Efinix, Inc. All rights reserved.
+ 
+Family: Titanium 
+Device: Ti60F225
+Top-level Entity Name: first_light
+
+---------- IO Interface Summary (begin) ----------
+
++------------------------+--------------+
+| Missing Interface Pins | Input/Output |
++------------------------+--------------+
+|    jtag_inst1_DRCK     |    Input     |
+|     jtag_inst1_TMS     |    Input     |
+|    jtag_inst1_RESET    |    Input     |
+|   jtag_inst1_RUNTEST   |    Input     |
+|   jtag_inst1_UPDATE    |    Input     |
+|        hdmi_fb         |    Input     |
+|      io_jtag_tdi       |    Input     |
+|      io_jtag_tdo       |    Output    |
+|      io_jtag_tck       |    Input     |
+|      io_jtag_tms       |    Input     |
++------------------------+--------------+
+
+----------- IO Interface Summary (end) ----------
+
+
+---------- Module Resource Usage Distribution Estimates (begin) ----------
+
+'Module Resource Usage Distribution Estimates' table printed in: outflow\first_light.hier_util.rpt
+
+----------- Module Resource Usage Distribution Estimates (end) ----------
+
+Elapsed time for packing: 0 hours 0 minutes 2 seconds
+---------- Resource Summary (begin) ----------
+Inputs: 62 / 1703 (3.64%)
+Outputs: 235 / 2267 (10.37%)
+Global Clocks (GBUF): 10 / 32 (31.25%)
+Regional Clocks (RBUF): 1 / 32 (3.12%)
+	RBUF: Core: 0 / 16 (0.00%)
+	RBUF: Periphery: 1 / 8 (12.50%)
+	RBUF: Multi-Region: 0 / 8 (0.00%)
+XLRs: 33069 / 60800 (54.39%)
+	XLRs needed for LUT4: 13530 / 60800 (22.25%)
+	XLRs needed for LUT4 + FF: 6869 / 60800 (11.30%)
+	XLRs needed for COMB4: 0 / 60800 (0.00%)
+	XLRs needed for COMB4 + FF: 0 / 60800 (0.00%)
+	XLRs needed for Adder: 2801 / 60800 (4.61%)
+	XLRs needed for Adder + FF: 1065 / 60800 (1.75%)
+	XLRs needed for SRL8: 725 / 14720 (4.93%)
+	XLRs needed for SRL8 + FF: 0 / 14720 (0.00%)
+	XLRs needed for FF: 8060 / 60800 (13.26%)
+	XLRs needed for Routing: 19 / 60800 (0.03%)
+Memory Blocks: 256 / 256 (100.00%)
+DSP Blocks: 44 / 160 (27.50%)
+---------- Resource Summary (end) ----------
+
+Elapsed time for placement: 0 hours 1 minutes 19 seconds

@@ -57,6 +57,9 @@ Thumbs.db
 !/my/first_light/releases/reference_ui_fix_20261116/
 !/my/first_light/releases/reference_ui_fix_20261116/**
 !/my/first_light/releases/reference_ui_fix_20261116/evidence/*.log
+!/my/first_light/releases/ui_updates_20261117/
+!/my/first_light/releases/ui_updates_20261117/**
+!/my/first_light/releases/ui_updates_20261117/evidence/*.log
 
 # Existing ours_blt local exports and installers.
 /tmp/

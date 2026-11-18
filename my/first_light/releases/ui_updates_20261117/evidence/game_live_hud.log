@@ -1,0 +1,2 @@
+GAME UART PASSED: full FIFO, partial bursts, 32-byte frame cap, ring wrap, whole-line drop, HUD pacing and ordered logs
+LIVE GAME HUD PASSED: 126 synthetic production-loop frames, 36 visible-count pixel updates, both pages; 2..514 total visible sprites; 0..512 projectiles and off-screen counts; total record 0->11->514; late window rejected; CLINT/video wrap; pause/exit; Chinese layout.

@@ -1,0 +1,3 @@
+lto-wrapper.exe: warning: using serial compilation of 2 LTRANS jobs
+lto-wrapper.exe: note: see the '-flto' option documentation for more information
+C:/Efinity/efinity-riscv-ide-2026.1/toolchain/bin/../lib/gcc/riscv-none-elf/13.4.0/../../../../riscv-none-elf/bin/ld.exe: warning: C:\Users\18123\Desktop\qiansai\ours_blt\my\first_light\software\build\first_light.elf has a LOAD segment with RWX permissions

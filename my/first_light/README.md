@@ -1,11 +1,19 @@
 # Ti60 RISC-V + FPGA 2D 图形加速引擎
 
-打开 [first_light.xml](first_light.xml)，当前构建为 [reference_ui_fix_20261116](releases/reference_ui_fix_20261116)（已编译，尚未上板）。
+打开 [first_light.xml](first_light.xml)，当前构建为 [ui_updates_20261117](releases/ui_updates_20261117)（已编译，尚未上板）。颜色键采用原版棋盘和固定位置行走动画；中文游戏 HUD 顶部为60帧纪录、屏内精灵数和帧率，底部右侧为击杀和存活弹数，暂停提示左移。当前同屏精灵数逐帧刷新，纪录按达标窗口更新，开书右眼修复保留。Sprite 压测页已接入[分块融合清屏、4字节位置列表与背景双行预取](BATCH_RENDERING.md)，复用像素RAM；负载稳定后以8帧比较完整CPU/DDR绘制耗时并选路，保持原图、Alpha/Key像素、弹幕数量及30帧达标判定。150 MHz最终建立/保持裕量+0.094/+0.027 ns，逻辑54.39%、RAM256/256、DSP44/160。
 
-- [HEX 下载](releases/reference_ui_fix_20261116/first_light.hex) / [BIT 下载](releases/reference_ui_fix_20261116/first_light.bit)
+游戏现已接入[通用批量、连续同型位置列表和预读通路](GAME_RENDER_BATCH.md)，魔法弹改用GPU颜色键绘制，原5×5/7×7发光像素保持。24×24与32×32怪物只在重叠顺序允许时合并同纹理绘制，背景沿用脏块恢复。192帧完整像素对照、4组实际C命令的RTL回放及自然游戏循环通过。板端帧率收益待验证。
+
+怪物池上限为384，玩家魔法弹上限为512。霜晶史莱姆和暮晶蝙蝠为24×24，白骨学徒和寒霜守卫为32×32，鎏金统领为40×40。同一视口最多两只统领可发起攻击。三件宝箱遗物使用静态贴图和Alpha呼吸效果，护盾抵消一次伤害。保留4KiB栈后余944字节。
+
+图像复制页使用两款游戏的截图，按 D 换图。 [图片来源与署名](assets/basic_copy/README.md)
+
+游戏地图中央设有 E1 祭坛。靠近后按 Enter 查看技能等级、各类存活怪物和本局遗物。六项技能满级后继续累计经验并跳过强化页。鎏金统领金弹在命中玩家或飞出视口时消失。 [操作说明](GAME_DEMO.md) · [祭坛战况预览](reports/book_reference_altar_panel.png)
+
+- [HEX 下载](releases/ui_updates_20261117/first_light.hex) / [BIT 下载](releases/ui_updates_20261117/first_light.bit)
 - [基础演示操作与指标](BASIC_DEMO.md)
 - [高阶效果操作](EFFECTS_DEMO.md)
-- [本版验证和上板说明](releases/reference_ui_fix_20261116/README.md)
+- [本版验证和上板说明](releases/ui_updates_20261117/README.md)
 - [旧版下载与录制资料](releases/demo_buffer_slow_20261101/README.md)
 
 双缓冲演示每次进入默认单缓冲撕裂、低速 8 像素/帧；W 切 8/16/32，S 手动切防撕裂。填充/复制默认 CPU；Alpha 初始透明度 255/255；压力初始 32×32，数量加减步长 5。
@@ -20,4 +28,4 @@
 
 动画采用预设的封扣、封面、弯曲纸页和分段缓动。新增菜单专用 FPGA 扫描线绘制模块完成纹理缩放、明暗和透明混合，CPU 只生成绘制指令；按实际时间跳过过期姿态，开书目标 2.4 秒、章节翻页 0.64 秒。最终文字在原始分辨率绘制。资源仍复用原 1 MiB DDR 区，不存整屏动画序列。CPU 时钟和 HDMI 配置保留。
 
-验证范围及最终资源、时序数据见 [发布说明](releases/reference_ui_fix_20261116/README.md)。已检查实际 C 绘制、FPGA 像素输出、连续 HDMI 扫描和压力页切换。尚未上板，预览中的 FPS 为排版填充值，GIF 时长不代表实体板卡帧率。上板后请记录串口 `BOOK FRAMES ... MS ...`；若动画仍不顺畅，优先用这两项定位实际耗时。
+验证范围及最终资源、时序数据见 [发布说明](releases/ui_updates_20261117/README.md)。已检查实际 C 绘制、FPGA 像素输出、连续 HDMI 扫描和颜色键人物帧传输。尚未上板，预览中的 FPS 为排版填充值，GIF 时长不代表实体板卡帧率。上板后请记录串口 `BOOK FRAMES ... MS ...`；若动画仍不顺畅，优先用这两项定位实际耗时。

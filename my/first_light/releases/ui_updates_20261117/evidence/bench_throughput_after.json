@@ -1,0 +1,222 @@
+{
+  "scope": "RTL modeled DDR cycles and pixels, not real-board FPS or MAX60",
+  "cases": [
+    {
+      "side": 4,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles": 11807,
+      "AR": 643,
+      "AW": 514,
+      "source_bursts": 1,
+      "source_words": 8
+    },
+    {
+      "side": 16,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles": 35175,
+      "AR": 1677,
+      "AW": 1541,
+      "source_bursts": 8,
+      "source_words": 128
+    },
+    {
+      "side": 24,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles": 65957,
+      "AR": 2717,
+      "AW": 2571,
+      "source_bursts": 18,
+      "source_words": 288
+    },
+    {
+      "side": 32,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles": 95183,
+      "AR": 3508,
+      "AW": 3348,
+      "source_bursts": 32,
+      "source_words": 512
+    },
+    {
+      "side": 4,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles": 9309,
+      "AR": 643,
+      "AW": 514,
+      "source_bursts": 1,
+      "source_words": 8
+    },
+    {
+      "side": 16,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles": 26886,
+      "AR": 1677,
+      "AW": 1541,
+      "source_bursts": 8,
+      "source_words": 128
+    },
+    {
+      "side": 24,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles": 47610,
+      "AR": 2717,
+      "AW": 2571,
+      "source_bursts": 18,
+      "source_words": 288
+    },
+    {
+      "side": 32,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles": 66523,
+      "AR": 3508,
+      "AW": 3348,
+      "source_bursts": 32,
+      "source_words": 512
+    },
+    {
+      "side": 32,
+      "count": 8,
+      "ready": 0,
+      "key": 0,
+      "cycles": 14346,
+      "AR": 426,
+      "AW": 386,
+      "source_bursts": 32,
+      "source_words": 512
+    }
+  ],
+  "source_sha256": {
+    "rtl/fill_engine.v": "9b29948ef5716846daec61973c61c3c57e1e7154ce91c0bfaca2d6e7c633b751",
+    "rtl/render_subsystem.v": "e0cb4be6615a20c072043044e66cacad2049f91861c1d84626397fc4da4c3365",
+    "rtl/render_batch.v": "72bcb1c24dac4e145e1472d58a4fe4feb274b3f960daca8f807f112711e8fd61",
+    "rtl/tile_renderer.v": "a0a4d12b5c8aaa72e955304348e3f52fc42f20482167e370a57e43750fb27969",
+    "sim/tb_render.sv": "fe35a4bd73faeae76164c0dc719726055eeccd56ab2037ae36e28cc235e6bbd3"
+  },
+  "positions": "fixed overlapping test positions",
+  "comparison": [
+    {
+      "side": 4,
+      "ready": 0,
+      "key": 1,
+      "cycle_ratio_before_over_after": 1.481,
+      "cycles_before": 17490,
+      "cycles_after": 11807,
+      "AR_before": 1155,
+      "AR_after": 643,
+      "AW_before": 515,
+      "AW_after": 514
+    },
+    {
+      "side": 16,
+      "ready": 0,
+      "key": 1,
+      "cycle_ratio_before_over_after": 3.843,
+      "cycles_before": 135171,
+      "cycles_after": 35175,
+      "AR_before": 4236,
+      "AR_after": 1677,
+      "AW_before": 2060,
+      "AW_after": 1541
+    },
+    {
+      "side": 24,
+      "ready": 0,
+      "key": 1,
+      "cycle_ratio_before_over_after": 4.168,
+      "cycles_before": 274906,
+      "cycles_after": 65957,
+      "AR_before": 6303,
+      "AR_after": 2717,
+      "AW_before": 3103,
+      "AW_after": 2571
+    },
+    {
+      "side": 32,
+      "ready": 0,
+      "key": 1,
+      "cycle_ratio_before_over_after": 5.126,
+      "cycles_before": 487905,
+      "cycles_after": 95183,
+      "AR_before": 10396,
+      "AR_after": 3508,
+      "AW_before": 6172,
+      "AW_after": 3348
+    },
+    {
+      "side": 4,
+      "ready": 1,
+      "key": 1,
+      "cycle_ratio_before_over_after": 1.365,
+      "cycles_before": 12705,
+      "cycles_after": 9309,
+      "AR_before": 1155,
+      "AR_after": 643,
+      "AW_before": 515,
+      "AW_after": 514
+    },
+    {
+      "side": 16,
+      "ready": 1,
+      "key": 1,
+      "cycle_ratio_before_over_after": 3.047,
+      "cycles_before": 81924,
+      "cycles_after": 26886,
+      "AR_before": 4236,
+      "AR_after": 1677,
+      "AW_before": 2060,
+      "AW_after": 1541
+    },
+    {
+      "side": 24,
+      "ready": 1,
+      "key": 1,
+      "cycle_ratio_before_over_after": 3.338,
+      "cycles_before": 158933,
+      "cycles_after": 47610,
+      "AR_before": 6303,
+      "AR_after": 2717,
+      "AW_before": 3103,
+      "AW_after": 2571
+    },
+    {
+      "side": 32,
+      "ready": 1,
+      "key": 1,
+      "cycle_ratio_before_over_after": 4.251,
+      "cycles_before": 282804,
+      "cycles_after": 66523,
+      "AR_before": 10396,
+      "AR_after": 3508,
+      "AW_before": 6172,
+      "AW_after": 3348
+    },
+    {
+      "side": 32,
+      "ready": 0,
+      "key": 0,
+      "cycle_ratio_before_over_after": 2.139,
+      "cycles_before": 30688,
+      "cycles_after": 14346,
+      "AR_before": 650,
+      "AR_after": 426,
+      "AW_before": 386,
+      "AW_after": 386
+    }
+  ]
+}

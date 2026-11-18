@@ -66,6 +66,10 @@ prelude = r'''
 #include "game_art_ids.h"
 #define GAME_ASSET_BASE (ASSET_BASE+0x4000u)
 #define GAME_FRAME_COUNT GAME_FRAME_BOUNDS_COUNT
+#define GAME_ASSET_BYTES (GAME_FRAME_COUNT*2048u)
+#define GAME_BACKGROUND_COLOR 0x1085u
+#define GAME_PACKED_BASE (ASSET_BASE+0x8c000u)
+#define GAME_BOLT_BASE (GAME_PACKED_BASE+GAME_FRAME_COUNT*2048u)
 #define GAME_MAX_DRAW_ENEMIES GAME_MAX_ENEMIES
 #define GAME_MAX_DRAW_GEMS 20u
 #define GAME_MAX_DRAW_BOLTS GAME_MAX_BOLTS
@@ -77,7 +81,7 @@ static uint32_t host_cycles,display_disables,pressure_presents;
 static uint32_t book_closed;
 static uint32_t menu_level,menu_group,menu_item[2],menu_repaint_pages;
 static uint32_t fps[2],render_us[2],samples[2],burst_ar[2],burst_aw[2];
-static uint32_t sprite_count=1,bench_size_index=3,bench60_pass;
+static uint32_t sprite_count=1,bench_size_index=3,bench60_pass,bench_batch_size,bench_strategy_count;
 static const uint8_t bench_sizes[]={4,16,24,32};
 static uint32_t sprite_best_60[4];
 static uint32_t game_hud_pages,game_hud_number_valid[2],game_hud_bar_valid[2];
@@ -88,6 +92,7 @@ static uint32_t game_draw_enemy_count;
 static uint32_t game_gem_selected[(GAME_MAX_GEMS+31u)/32u];
 static uint32_t game_draw_floor_cycles,game_draw_sprite_cycles,game_draw_other_cycles;
 static FrameMax60 game_max60;
+static uint32_t game_draw_bolt_count;
 typedef struct { uint32_t x,y,w,h; char label[96]; } Field;
 static Field fields[128];
 static unsigned field_count,checked;
@@ -157,8 +162,11 @@ static void host_write(uint32_t address,uint32_t value) {
 }
 static int host_blend(uint32_t source,uint32_t stride,uint32_t x,uint32_t y,
                       uint32_t w,uint32_t h,uint8_t a,uint16_t key,uint32_t flags) {
-    (void)source;(void)stride;(void)a;(void)key;(void)flags;
-    assert(x+w<=640 && y+h<=480); submitted++; return 0;
+    (void)stride;(void)a;(void)key;(void)flags;
+    assert(x+w<=640 && y+h<=480);
+    if(source<GAME_ALTAR_BASE || source>=GAME_ALTAR_BASE+GAME_ALTAR_SIDE*GAME_ALTAR_SIDE*2u)
+        submitted++;
+    return 0;
 }
 #define mmio_read host_read
 #define mmio_write host_write
@@ -201,6 +209,8 @@ for name in ('GAME_MAX_DRAW_ENEMIES','GAME_MAX_DRAW_GEMS','GAME_MAX_DRAW_BOLTS')
 prelude = prelude.replace('#include "render.h"', '#define RENDER_H\n' + '\n'.join(
     line for line in (ROOT/'software/render.h').read_text().splitlines()
     if line.startswith('#define ') and line not in ('#define RENDER_H',)))
+prelude = prelude.replace('static uint16_t screen', '\n'.join(
+    line for line in view.splitlines() if line.startswith('#define GAME_ALTAR_')) + '\nstatic uint16_t screen')
 names = main[main.index('enum { DEMO_FILL'):main.index('static uint32_t menu_level')]
 parts = [prelude, names]
 for name in ('font_column','text_at_width','text_at','decimal','number_at','decimal_field',
@@ -216,11 +226,21 @@ parts.append('static void book_stamp(uint32_t id,uint32_t x,uint32_t y,uint32_t 
 parts.append(function((ROOT/'software/book_menu.h').read_text(encoding='utf-8'),'book_text_width'))
 parts.append(function((ROOT/'software/book_menu.h').read_text(encoding='utf-8'),'book_text'))
 parts.append('#include "demo_skin.h"')
+parts.append(re.search(r'typedef struct \{[^}]+\} GfxBatchCommand;',
+                       (ROOT/'software/render.h').read_text(), re.S).group())
+# This layout-only harness intentionally advertises capability zero. Accelerated
+# lists and their real RTL pixels are checked by check_game_batch.py instead.
+parts.append('static int gfx_batch_submit(uint32_t a,uint32_t n){(void)a;(void)n;assert(0);return -1;}')
+parts.append('static int gfx_positions_submit(uint32_t s,uint32_t z,uint32_t a,uint32_t n,uint8_t x,uint16_t k,uint32_t f){(void)s;(void)z;(void)a;(void)n;(void)x;(void)k;(void)f;assert(0);return -1;}')
+parts.append('#include "game_batch.h"')
+parts.append('\n'.join(line for line in view.splitlines() if line.startswith(('#define GAME_ENEMY_','#define GAME_ZONE_'))))
+parts.append(re.search(r'typedef struct \{[^}]+\} GameEnemyDraw;\nstatic GameEnemyDraw [^;]+;',view).group())
 parts.append('static uint32_t game_sprite(uint32_t frame,int32_t x,int32_t y,uint32_t alpha);')
 # Exact new fullscreen game pages are exercised by check_reference_ui.py.
 # This older harness retains clipping, dense-workload and legacy metric checks.
-parts.append('static uint32_t game_ui_key[2]={255,255};static void game_ui_page(const SurvivorGame *g){(void)g;}static void game_ui_hud(const SurvivorGame *g,uint32_t f,uint32_t p,uint32_t b){(void)g;(void)f;(void)p;(void)b;}static void game_ui_pause(void){}')
-for name in ('game_world_sprite','game_bolt','game_sprite','game_hud_number','game_enemy_frame','game_gem_frame','game_gem_visible','game_select_gems','game_draw_gems','game_draw'):
+parts.append('static uint32_t game_ui_key[2]={255,255};static void game_ui_page(const SurvivorGame *g){(void)g;}static void game_ui_hud(const SurvivorGame *g,uint32_t f,uint32_t p,uint32_t b){(void)g;(void)f;(void)p;(void)b;}static void game_ui_metrics(uint32_t v,uint32_t a,uint32_t m,uint32_t k,uint32_t f,uint32_t p){(void)v;(void)a;(void)m;(void)k;(void)f;(void)p;}static void game_ui_pause(void){}')
+parts.append('static void game_ui_altar(const SurvivorGame *g){(void)g;}')
+for name in ('game_packed_side','game_world_sprite','game_bolt','game_blit_sprite','game_sprite','game_hud_number','game_enemy_side','game_enemy_frame','game_flush_enemy_draws','game_gem_frame','game_gem_visible','game_select_gems','game_draw_gems','game_draw_relics','game_draw'):
     body = function(view, name)
     if name == 'game_hud_number':
         body = body.replace('// Draw an opaque', 'note_field(x,y,width,14,"numeric HUD");\n    // Draw an opaque')
@@ -238,7 +258,7 @@ int main(void) {
         unsigned radius=piercing ? 3u : 2u;
         GameBolt bolt={160*32,160*32,0,0,10,1,(uint8_t)piercing};
         unsigned cx=GAME_X_MIN+160u,cy=GAME_Y_MIN+160u;
-        reset_ui(); assert(game_bolt(&bolt,0,0)==1);
+        reset_ui(); assert(game_bolt(bolt.x,bolt.y,bolt.pierce!=0,0,0)==1);
         assert(screen[1+cy*640+cx]==0xffff);
         unsigned previous=32u;
         for(unsigned d=0;d<=radius;++d) {
@@ -257,14 +277,14 @@ int main(void) {
         for(unsigned corner=0;corner<4;++corner) {
             bolt.x=(edge_x[corner&1u]-GAME_X_MIN)*32;
             bolt.y=(edge_y[corner>>1]-GAME_Y_MIN)*32;
-            reset_ui(); assert(game_bolt(&bolt,0,0)==1);
+            reset_ui(); assert(game_bolt(bolt.x,bolt.y,bolt.pierce!=0,0,0)==1);
             for(unsigned y=0;y<480;++y) for(unsigned x=0;x<640;++x)
                 if(x<GAME_X_MIN || x>=GAME_X_MAX || y<GAME_Y_MIN || y>=GAME_Y_MAX)
                     assert(screen[1+y*640+x]==0);
             assert(screen[0]==0xbeef && screen[640*480+1]==0xbeef);
         }
         bolt.x=-32; bolt.y=160*32;
-        reset_ui(); assert(game_bolt(&bolt,0,0)==0);
+        reset_ui(); assert(game_bolt(bolt.x,bolt.y,bolt.pierce!=0,0,0)==0);
         for(unsigned i=1;i<=640*480;++i) assert(screen[i]==0);
     }
     for(unsigned group=0;group<2;++group) {
@@ -317,7 +337,8 @@ int main(void) {
         reset_ui(); (void)game_draw(&g,60,16666,12345,12345);
         char name[32]; snprintf(name,sizeof(name),"upgrade_%u",set); save_ui(name);
     }
-    for(unsigned n=0;n<6;++n) g.upgrade_level[n]=(uint8_t)game_upgrade_max(n);
+    for(unsigned n=0;n<GAME_UPGRADE_COUNT;++n) g.upgrade_level[n]=(uint8_t)game_upgrade_max(n);
+    g.state=GAME_PLAY;g.xp=g.xp_target;game_tick(&g,0);assert(g.state==GAME_PLAY);
     reset_ui(); (void)game_draw(&g,60,16666,12345,12345); save_ui("upgrade_max");
     for(unsigned state=GAME_READY;state<=GAME_WON;++state) {
         if(state==GAME_PLAY || state==GAME_UPGRADE) continue;
@@ -334,8 +355,9 @@ int main(void) {
         g.gems[i]=(GameGem){g.x/256,g.y/256,1,0,0};
     g.enemy_count=GAME_MAX_ENEMIES;g.bolt_count=GAME_MAX_BOLTS;
     reset_ui(); drawn=game_draw(&g,60,10000,0,0);
-    assert(GAME_MAX_ENEMIES==256 && GAME_MAX_BOLTS==256);
+    assert(GAME_MAX_ENEMIES==384 && GAME_MAX_BOLTS==512);
     assert(game_draw_enemy_count==GAME_MAX_ENEMIES && drawn==submitted+GAME_MAX_BOLTS);
+    assert(game_draw_bolt_count==GAME_MAX_BOLTS);
     assert(submitted==GAME_MAX_ENEMIES+GAME_MAX_DRAW_GEMS+g.orbit_count+1u);
     unsigned dense=drawn;
     // A slow measured frame must not silently reduce the requested enemy limit.
@@ -345,11 +367,13 @@ int main(void) {
     for(unsigned i=0;i<GAME_MAX_BOLTS;++i) g.bolts[i].x=g.bolts[i].y=0;
     for(unsigned i=0;i<GAME_MAX_GEMS;++i) g.gems[i].x=g.gems[i].y=0;
     reset_ui(); drawn=game_draw(&g,60,10000,0,0); assert(drawn==submitted && dense>drawn+100u);
+    assert(game_draw_bolt_count==0);
     // High slots remain visible even when every earlier slot is off-screen.
     g.enemies[GAME_MAX_ENEMIES-1u].x=g.bolts[255].x=g.x/8;
     g.enemies[GAME_MAX_ENEMIES-1u].y=g.bolts[255].y=g.y/8;
     reset_ui(); drawn=game_draw(&g,60,10000,0,0);
     assert(game_draw_enemy_count==1 && drawn==submitted+1u);
+    assert(game_draw_bolt_count==1);
     g.enemies[GAME_MAX_ENEMIES-1u].hp=0; g.bolts[255].life=0;
     reset_ui(); drawn=game_draw(&g,60,10000,0,0);
     assert(game_draw_enemy_count==0 && drawn==submitted);
@@ -364,7 +388,7 @@ int main(void) {
         assert(screen[1+y*640+x]==0x10a6);
     field_count=0; game_hud_number(1,0,20,20,120,1,0xffff);
     assert((game_hud_number_valid[0]&1u) && (game_hud_number_valid[1]&1u));
-    printf("UI CHECK PASSED: %u legacy metric/clip fixtures (new game UI checked by check_reference_ui.py); all6 menu routes (book pixels checked separately), wraparound and game entry; pressure entry never disables display; collision/edge/overflow guards; actual Sprite clipping, 256 enemies + 256 bolts, high-slot/off-screen/empty guards\n",checked);
+    printf("UI CHECK PASSED: %u legacy metric/clip fixtures (new game UI checked by check_reference_ui.py); all6 menu routes (book pixels checked separately), wraparound and game entry; pressure entry never disables display; collision/edge/overflow guards; actual Sprite clipping, 384 enemies + 512 bolts, high-slot/off-screen/empty guards\n",checked);
     return 0;
 }
 ''')

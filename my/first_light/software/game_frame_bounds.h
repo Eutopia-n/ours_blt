@@ -2,8 +2,8 @@
 #define GAME_FRAME_BOUNDS_H
 #include <stdint.h>
 /* Generated Color-Key bounds: left, top, right, bottom (exclusive). */
-#define GAME_FRAME_BOUNDS_COUNT 36u
-static const uint8_t game_frame_bounds[36][4] = {
+#define GAME_FRAME_BOUNDS_COUNT 46u
+static const uint8_t game_frame_bounds[46][4] = {
     {4, 0, 27, 32},
     {5, 0, 27, 32},
     {4, 0, 27, 32},
@@ -40,5 +40,47 @@ static const uint8_t game_frame_bounds[36][4] = {
     {4, 3, 29, 28},
     {2, 2, 31, 30},
     {2, 1, 30, 31},
+    {5, 9, 28, 29},
+    {5, 3, 28, 29},
+    {6, 4, 22, 30},
+    {8, 5, 25, 28},
+    {8, 4, 25, 30},
+    {5, 8, 29, 26},
+    {5, 8, 29, 26},
+    {1, 1, 32, 32},
+    {2, 1, 30, 31},
+    {5, 7, 28, 24},
+};
+static const uint8_t game_enemy_source_frames[10] = {16, 17, 18, 24, 25, 26, 27, 28, 29, 30};
+static const uint8_t game_enemy_size_bounds[2][10][4] = {
+    {
+        {5, 2, 19, 22},
+        {6, 6, 22, 23},
+        {1, 6, 22, 20},
+        {2, 3, 23, 24},
+        {1, 0, 24, 24},
+        {5, 3, 19, 22},
+        {6, 6, 22, 23},
+        {1, 7, 22, 20},
+        {2, 3, 23, 24},
+        {1, 0, 24, 24},
+    },
+    {
+        {9, 4, 32, 37},
+        {10, 10, 36, 39},
+        {2, 10, 37, 34},
+        {4, 5, 39, 40},
+        {2, 0, 40, 40},
+        {9, 5, 32, 37},
+        {10, 10, 36, 39},
+        {2, 12, 37, 34},
+        {4, 5, 39, 40},
+        {2, 0, 40, 40},
+    },
+};
+static const uint8_t game_zone_source_frames[2] = {41, 43};
+static const uint8_t game_zone_bounds[2][4] = {
+    {7, 12, 43, 39},
+    {1, 1, 24, 24},
 };
 #endif

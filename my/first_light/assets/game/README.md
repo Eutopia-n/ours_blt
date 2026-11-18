@@ -14,14 +14,15 @@
 | 31～32 | 独立的战靴、磁力升级图标 |
 | 33～34 | 5+ / 10+ 经验晶簇 |
 | 35 | 符文法环第二帧 |
+| 36～45 | 宝箱开关帧、钥匙、三件遗物图标、第二帧召唤符文、霜地、护盾和破盾 |
 
-`game.rgb565` 当前为 36 帧、73728 字节（72 KiB）；比取消背景后的旧图集增加 22 KiB。背景纹理继续为 0 字节。`atlas_preview.png` 是最近邻预览，`software/game_assets.h` 是共享调色板 RLE，`sim/game_expected.hex` 是像素参考。启动时解压到原 DDR 地址 `0x01204000`。动画不增加敌人对象或每个对象的状态存储。
+`game.rgb565` 当前为46帧、94208字节（92KiB）。`atlas_preview.png` 是最近邻预览，`software/game_assets.h` 存放LZ4压缩的共享调色板游程，`sim/game_expected.hex` 是像素参考。进入游戏时解压到DDR地址 `0x01204000`。
 
 源素材位于 `source/frost_v1/`，`art.json` 指定帧索引；`source/base_game_v1.rgb565` 保留改图前的原始图集用于稳定再生成，原人物 0～15 帧逐字节保留。当前敌人、技能、经验和红心为项目内绘制的新像素素材，原红心源图保留用于追溯。
 
 普通构建执行 `tools/build.py firmware`，仍只需标准库来打包游戏图集。重新绘制素材时先运行 `tools/prepare_frost_game_art.py`（需要 Pillow），生成预览和资源包运行 `tools/preview_frost_game_art.py`。
 
-[美术包说明](frost_v1/README.md)、[美术总览](frost_v1/美术资源总览.png)、[本轮重点重绘](frost_v1/重点调整预览.png)、[红心对比](frost_v1/红心优化对比.png)。9 帧宝箱、药瓶等扩展资源仅在 `frost_v1/reserve/` 中，未进入固件图集，尚无对应玩法。
+[美术包说明](frost_v1/README.md)、[美术总览](frost_v1/美术资源总览.png)、[重点重绘](frost_v1/重点调整预览.png)、[红心对比](frost_v1/红心优化对比.png)。`frost_v1/reserve/` 中的宝箱、钥匙、药瓶、霜晶花、召唤符文和首帧命中星芒已用于秘库遗物玩法。霜地与护盾由现有像素素材派生。
 
 `game_enemy_frame()` 用共享时间选择两帧敌人动画；`game_gem_frame()` 根据现有经验值选择水晶档次，不修改奖励、碰撞、伤害或掉率。`game_art_ids.h` 将六种技能映射到独立图标。新版素材已接入源码及固件初始化文件，尚未上板测试。
 

@@ -33,6 +33,11 @@
 #define GFX_FRAME_COUNT 0x6cu
 #define GFX_DDR_RWAIT 0x70u
 #define GFX_DDR_WWAIT 0x74u
+#define GFX_BATCH_COMPLETED 0x78u
+#define GFX_CAPABILITIES 0x7cu
+#define GFX_CAP_BATCH 1u
+#define GFX_CAP_POSITIONS 2u
+#define GFX_CAP_TILES 4u
 #define GFX_BLEND_ALPHA  1u
 #define GFX_BLEND_KEY    2u
 #define GFX_VIDEO_VALID  1u
@@ -53,6 +58,32 @@
 #define ASSET_BASE  0x01200000u
 /* Keep the original pool for sprites and basic demos; game scenery is unused. */
 #define ASSET_BYTES 0x00100000u
+/* Shared with menu cache and effect images: only an active game/benchmark may
+ * use this staging area. A list is immutable until gfx_batch_submit returns. */
+#define GFX_BATCH_BASE (ASSET_BASE+0x000b0000u)
+#define GFX_BATCH_CAPACITY 512u
+#define GFX_POSITION_CAPACITY 4096u
+/* Benchmark-only scratch, mutually exclusive with menu/effect/basic images.
+ * 181 cumulative offsets at +0; XY words at +768. Immutable until completion. */
+#define GFX_TILE_BASE GFX_BATCH_BASE
+#define GFX_TILE_BYTES 0x40000u
+#define GFX_TILE_POSITIONS 768u
+#define GFX_TILE_CAPACITY ((GFX_TILE_BYTES-GFX_TILE_POSITIONS)/4u)
+typedef struct {
+    uint32_t source,destination,extent,source_stride,colors,control;
+    uint32_t reserved0,reserved1;
+} GfxBatchCommand;
+/* Eight little-endian words (32-byte record and list alignment):
+ * source; absolute destination; width|(height<<16); source pitch;
+ * fill color|(key<<16); op|(blend flags<<2)|(alpha<<8); zero; zero.
+ * op0/1/2 reuse fill/copy/blend. Destination pitch is fixed at 1280 bytes.
+ * On failure, prior completed commands remain committed; do not replay a
+ * partially executed Alpha list. Read GFX_BATCH_COMPLETED for the prefix. */
+int gfx_batch_submit(uint32_t commands,uint32_t count);
+int gfx_positions_submit(uint32_t source,uint32_t side,uint32_t list,uint32_t count,
+                         uint8_t alpha,uint16_t key,uint32_t flags);
+int gfx_tile_submit(uint32_t source,uint32_t side,uint32_t list,uint32_t fragments,
+                    uint8_t alpha,uint16_t key,uint32_t flags,uint16_t clear_color);
 #define SPRITE_STRIDE 64u
 #define PLAYER_ASSET_BASE (ASSET_BASE + 2048u)
 #define PLAYER_FRAME_BYTES 2048u

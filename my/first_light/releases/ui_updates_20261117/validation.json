@@ -1,0 +1,3235 @@
+{
+  "release": "ui_updates_20261117",
+  "base_commit": "9404a73c495b6d094319a37477690d8037689c06",
+  "built_at": "2026-11-18T19:19:43.216138+08:00",
+  "requested_changes": [
+    1,
+    4,
+    8
+  ],
+  "FPGA_build_stages": [
+    "map PASS",
+    "interface PASS",
+    "pnr PASS",
+    "pgm PASS"
+  ],
+  "timing": {
+    "setup_min_ns": 0.094,
+    "hold_min_ns": 0.026
+  },
+  "firmware": {
+    "text": 106224,
+    "data": 36,
+    "bss": 19772,
+    "static_total": 126032,
+    "stack_reserve": 4096,
+    "spare_after_stack": 944
+  },
+  "stack_static_frame_upper_bound": 4096,
+  "build_inputs_verified": 97,
+  "build_inputs_sha256": "be9fca326c6165f4dc7f0c18103eb82e01af468dc7ed613715c3e75dc455d404",
+  "all_eight_firmware_initialization_lanes_verified": true,
+  "clock_pin_and_timing_constraints_unchanged": true,
+  "project_source_change": "added rtl/render_batch.v and rtl/tile_renderer.v only",
+  "static_page_RGB565_differences": {
+    "cover": 0,
+    "game_ready": 0,
+    "home_0": 0,
+    "home_1": 0,
+    "home_2": 0,
+    "basic_0": 0,
+    "basic_1": 0,
+    "basic_2": 0,
+    "advanced_0": 0,
+    "advanced_1": 0,
+    "advanced_2": 0
+  },
+  "eye_reproduction": {
+    "88": {
+      "before_black_eye_pixels": 0,
+      "after_black_eye_pixels": 18
+    },
+    "96": {
+      "before_black_eye_pixels": 0,
+      "after_black_eye_pixels": 18
+    },
+    "104": {
+      "before_black_eye_pixels": 0,
+      "after_black_eye_pixels": 18
+    }
+  },
+  "localized_game_ready_regions": {
+    "game_ready": [
+      [
+        220,
+        68,
+        420,
+        86
+      ],
+      [
+        554,
+        13,
+        595,
+        33
+      ]
+    ],
+    "note": "Chinese game heading and hardware badge are intentionally changed; all remaining ready-page pixels and every menu/cover pixel are compared."
+  },
+  "same_workload_throughput": {
+    "scope": "RTL modeled DDR cycles and pixels, not real-board FPS or MAX60",
+    "cases": [
+      {
+        "side": 4,
+        "count": 128,
+        "ready": 0,
+        "key": 1,
+        "cycles": 11807,
+        "AR": 643,
+        "AW": 514,
+        "source_bursts": 1,
+        "source_words": 8
+      },
+      {
+        "side": 16,
+        "count": 128,
+        "ready": 0,
+        "key": 1,
+        "cycles": 35175,
+        "AR": 1677,
+        "AW": 1541,
+        "source_bursts": 8,
+        "source_words": 128
+      },
+      {
+        "side": 24,
+        "count": 128,
+        "ready": 0,
+        "key": 1,
+        "cycles": 65957,
+        "AR": 2717,
+        "AW": 2571,
+        "source_bursts": 18,
+        "source_words": 288
+      },
+      {
+        "side": 32,
+        "count": 128,
+        "ready": 0,
+        "key": 1,
+        "cycles": 95183,
+        "AR": 3508,
+        "AW": 3348,
+        "source_bursts": 32,
+        "source_words": 512
+      },
+      {
+        "side": 4,
+        "count": 128,
+        "ready": 1,
+        "key": 1,
+        "cycles": 9309,
+        "AR": 643,
+        "AW": 514,
+        "source_bursts": 1,
+        "source_words": 8
+      },
+      {
+        "side": 16,
+        "count": 128,
+        "ready": 1,
+        "key": 1,
+        "cycles": 26886,
+        "AR": 1677,
+        "AW": 1541,
+        "source_bursts": 8,
+        "source_words": 128
+      },
+      {
+        "side": 24,
+        "count": 128,
+        "ready": 1,
+        "key": 1,
+        "cycles": 47610,
+        "AR": 2717,
+        "AW": 2571,
+        "source_bursts": 18,
+        "source_words": 288
+      },
+      {
+        "side": 32,
+        "count": 128,
+        "ready": 1,
+        "key": 1,
+        "cycles": 66523,
+        "AR": 3508,
+        "AW": 3348,
+        "source_bursts": 32,
+        "source_words": 512
+      },
+      {
+        "side": 32,
+        "count": 8,
+        "ready": 0,
+        "key": 0,
+        "cycles": 14346,
+        "AR": 426,
+        "AW": 386,
+        "source_bursts": 32,
+        "source_words": 512
+      }
+    ],
+    "source_sha256": {
+      "rtl/fill_engine.v": "9b29948ef5716846daec61973c61c3c57e1e7154ce91c0bfaca2d6e7c633b751",
+      "rtl/render_subsystem.v": "e0cb4be6615a20c072043044e66cacad2049f91861c1d84626397fc4da4c3365",
+      "rtl/render_batch.v": "72bcb1c24dac4e145e1472d58a4fe4feb274b3f960daca8f807f112711e8fd61",
+      "rtl/tile_renderer.v": "a0a4d12b5c8aaa72e955304348e3f52fc42f20482167e370a57e43750fb27969",
+      "sim/tb_render.sv": "fe35a4bd73faeae76164c0dc719726055eeccd56ab2037ae36e28cc235e6bbd3"
+    },
+    "positions": "fixed overlapping test positions",
+    "comparison": [
+      {
+        "side": 4,
+        "ready": 0,
+        "key": 1,
+        "cycle_ratio_before_over_after": 1.481,
+        "cycles_before": 17490,
+        "cycles_after": 11807,
+        "AR_before": 1155,
+        "AR_after": 643,
+        "AW_before": 515,
+        "AW_after": 514
+      },
+      {
+        "side": 16,
+        "ready": 0,
+        "key": 1,
+        "cycle_ratio_before_over_after": 3.843,
+        "cycles_before": 135171,
+        "cycles_after": 35175,
+        "AR_before": 4236,
+        "AR_after": 1677,
+        "AW_before": 2060,
+        "AW_after": 1541
+      },
+      {
+        "side": 24,
+        "ready": 0,
+        "key": 1,
+        "cycle_ratio_before_over_after": 4.168,
+        "cycles_before": 274906,
+        "cycles_after": 65957,
+        "AR_before": 6303,
+        "AR_after": 2717,
+        "AW_before": 3103,
+        "AW_after": 2571
+      },
+      {
+        "side": 32,
+        "ready": 0,
+        "key": 1,
+        "cycle_ratio_before_over_after": 5.126,
+        "cycles_before": 487905,
+        "cycles_after": 95183,
+        "AR_before": 10396,
+        "AR_after": 3508,
+        "AW_before": 6172,
+        "AW_after": 3348
+      },
+      {
+        "side": 4,
+        "ready": 1,
+        "key": 1,
+        "cycle_ratio_before_over_after": 1.365,
+        "cycles_before": 12705,
+        "cycles_after": 9309,
+        "AR_before": 1155,
+        "AR_after": 643,
+        "AW_before": 515,
+        "AW_after": 514
+      },
+      {
+        "side": 16,
+        "ready": 1,
+        "key": 1,
+        "cycle_ratio_before_over_after": 3.047,
+        "cycles_before": 81924,
+        "cycles_after": 26886,
+        "AR_before": 4236,
+        "AR_after": 1677,
+        "AW_before": 2060,
+        "AW_after": 1541
+      },
+      {
+        "side": 24,
+        "ready": 1,
+        "key": 1,
+        "cycle_ratio_before_over_after": 3.338,
+        "cycles_before": 158933,
+        "cycles_after": 47610,
+        "AR_before": 6303,
+        "AR_after": 2717,
+        "AW_before": 3103,
+        "AW_after": 2571
+      },
+      {
+        "side": 32,
+        "ready": 1,
+        "key": 1,
+        "cycle_ratio_before_over_after": 4.251,
+        "cycles_before": 282804,
+        "cycles_after": 66523,
+        "AR_before": 10396,
+        "AR_after": 3508,
+        "AW_before": 6172,
+        "AW_after": 3348
+      },
+      {
+        "side": 32,
+        "ready": 0,
+        "key": 0,
+        "cycle_ratio_before_over_after": 2.139,
+        "cycles_before": 30688,
+        "cycles_after": 14346,
+        "AR_before": 650,
+        "AR_after": 426,
+        "AW_before": 386,
+        "AW_after": 386
+      }
+    ]
+  },
+  "bench_optimizations": {
+    "fused_tiles": true,
+    "packed_position_bytes": 4,
+    "background_row_prefetch": true,
+    "selection": "8 complete on-device CPU+DDR trial frames; tile must be 10% faster; otherwise compact",
+    "tile_scratch_bytes": 262144,
+    "CPU_tile_cursor_bytes": 720,
+    "packed_staging_objects": 4096,
+    "original_workload_and_MAX60_preserved": true,
+    "tile_RTL": {
+      "scope": "RTL modeled full viewport render including APB, excluding CPU binning, HUD and scanout; not MAX60",
+      "cases": [
+        {
+          "side": 32,
+          "count": 0,
+          "ready": 0,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 0,
+          "fragments": 0,
+          "legacy_cycles": 0,
+          "tile_cycles": 377394,
+          "AR": 180,
+          "AW": 5120
+        },
+        {
+          "side": 4,
+          "count": 1,
+          "ready": 0,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 0,
+          "fragments": 1,
+          "legacy_cycles": 0,
+          "tile_cycles": 378201,
+          "AR": 182,
+          "AW": 5120
+        },
+        {
+          "side": 16,
+          "count": 7,
+          "ready": 0,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 37,
+          "fragments": 14,
+          "legacy_cycles": 0,
+          "tile_cycles": 378810,
+          "AR": 195,
+          "AW": 5120
+        },
+        {
+          "side": 24,
+          "count": 7,
+          "ready": 0,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 37,
+          "fragments": 14,
+          "legacy_cycles": 0,
+          "tile_cycles": 380982,
+          "AR": 205,
+          "AW": 5120
+        },
+        {
+          "side": 32,
+          "count": 7,
+          "ready": 0,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 37,
+          "fragments": 20,
+          "legacy_cycles": 0,
+          "tile_cycles": 381009,
+          "AR": 221,
+          "AW": 5120
+        },
+        {
+          "side": 4,
+          "count": 1024,
+          "ready": 0,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 0,
+          "fragments": 1209,
+          "legacy_cycles": 297663,
+          "tile_cycles": 404628,
+          "AR": 341,
+          "AW": 5120
+        },
+        {
+          "side": 16,
+          "count": 1024,
+          "ready": 0,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 0,
+          "fragments": 2122,
+          "legacy_cycles": 483030,
+          "tile_cycles": 507102,
+          "AR": 396,
+          "AW": 5120
+        },
+        {
+          "side": 24,
+          "count": 1024,
+          "ready": 0,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 0,
+          "fragments": 2971,
+          "legacy_cycles": 728988,
+          "tile_cycles": 639012,
+          "AR": 466,
+          "AW": 5120
+        },
+        {
+          "side": 32,
+          "count": 1024,
+          "ready": 0,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 0,
+          "fragments": 3951,
+          "legacy_cycles": 958404,
+          "tile_cycles": 788655,
+          "AR": 531,
+          "AW": 5120
+        },
+        {
+          "side": 32,
+          "count": 512,
+          "ready": 0,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 0,
+          "fragments": 1975,
+          "legacy_cycles": 579999,
+          "tile_cycles": 583485,
+          "AR": 414,
+          "AW": 5120
+        },
+        {
+          "side": 16,
+          "count": 2048,
+          "ready": 0,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 0,
+          "fragments": 4315,
+          "legacy_cycles": 764499,
+          "tile_cycles": 637608,
+          "AR": 537,
+          "AW": 5120
+        },
+        {
+          "side": 4,
+          "count": 1024,
+          "ready": 1,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 0,
+          "fragments": 1209,
+          "legacy_cycles": 192102,
+          "tile_cycles": 318729,
+          "AR": 341,
+          "AW": 5120
+        },
+        {
+          "side": 16,
+          "count": 1024,
+          "ready": 1,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 0,
+          "fragments": 2122,
+          "legacy_cycles": 331872,
+          "tile_cycles": 420108,
+          "AR": 396,
+          "AW": 5120
+        },
+        {
+          "side": 24,
+          "count": 1024,
+          "ready": 1,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 0,
+          "fragments": 2971,
+          "legacy_cycles": 496620,
+          "tile_cycles": 551223,
+          "AR": 466,
+          "AW": 5120
+        },
+        {
+          "side": 32,
+          "count": 1024,
+          "ready": 1,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 0,
+          "fragments": 3951,
+          "legacy_cycles": 646113,
+          "tile_cycles": 699717,
+          "AR": 531,
+          "AW": 5120
+        },
+        {
+          "side": 32,
+          "count": 512,
+          "ready": 1,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 0,
+          "fragments": 1975,
+          "legacy_cycles": 381951,
+          "tile_cycles": 496329,
+          "AR": 414,
+          "AW": 5120
+        },
+        {
+          "side": 16,
+          "count": 2048,
+          "ready": 1,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 0,
+          "fragments": 4315,
+          "legacy_cycles": 546003,
+          "tile_cycles": 548643,
+          "AR": 537,
+          "AW": 5120
+        },
+        {
+          "side": 32,
+          "count": 4096,
+          "ready": 0,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 36000,
+          "fragments": 15840,
+          "legacy_cycles": 3226374,
+          "tile_cycles": 2019603,
+          "AR": 1286,
+          "AW": 5120
+        },
+        {
+          "side": 32,
+          "count": 7,
+          "ready": 0,
+          "alpha": 0,
+          "flags": 3,
+          "frame": 37,
+          "fragments": 20,
+          "legacy_cycles": 0,
+          "tile_cycles": 381249,
+          "AR": 221,
+          "AW": 5120
+        },
+        {
+          "side": 32,
+          "count": 7,
+          "ready": 0,
+          "alpha": 1,
+          "flags": 3,
+          "frame": 37,
+          "fragments": 20,
+          "legacy_cycles": 0,
+          "tile_cycles": 381081,
+          "AR": 221,
+          "AW": 5120
+        },
+        {
+          "side": 32,
+          "count": 7,
+          "ready": 0,
+          "alpha": 255,
+          "flags": 3,
+          "frame": 37,
+          "fragments": 20,
+          "legacy_cycles": 0,
+          "tile_cycles": 381123,
+          "AR": 221,
+          "AW": 5120
+        },
+        {
+          "side": 32,
+          "count": 7,
+          "ready": 0,
+          "alpha": 128,
+          "flags": 1,
+          "frame": 37,
+          "fragments": 20,
+          "legacy_cycles": 0,
+          "tile_cycles": 383052,
+          "AR": 221,
+          "AW": 5120
+        },
+        {
+          "side": 32,
+          "count": 7,
+          "ready": 0,
+          "alpha": 128,
+          "flags": 2,
+          "frame": 37,
+          "fragments": 20,
+          "legacy_cycles": 0,
+          "tile_cycles": 380892,
+          "AR": 221,
+          "AW": 5120
+        },
+        {
+          "side": 32,
+          "count": 7,
+          "ready": 0,
+          "alpha": 254,
+          "flags": 3,
+          "frame": 37,
+          "fragments": 20,
+          "legacy_cycles": 0,
+          "tile_cycles": 383967,
+          "AR": 221,
+          "AW": 5120
+        },
+        {
+          "side": 32,
+          "count": 128,
+          "ready": 0,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 37,
+          "fragments": 384,
+          "legacy_cycles": 0,
+          "tile_cycles": 424254,
+          "AR": 236,
+          "AW": 5120
+        },
+        {
+          "side": 32,
+          "count": 7,
+          "ready": 0,
+          "alpha": 128,
+          "flags": 3,
+          "frame": 37,
+          "fragments": 20,
+          "legacy_cycles": 0,
+          "tile_cycles": 381708,
+          "AR": 221,
+          "AW": 5120
+        }
+      ],
+      "source_sha256": {
+        "rtl/fill_engine.v": "9b29948ef5716846daec61973c61c3c57e1e7154ce91c0bfaca2d6e7c633b751",
+        "rtl/render_batch.v": "72bcb1c24dac4e145e1472d58a4fe4feb274b3f960daca8f807f112711e8fd61",
+        "rtl/tile_renderer.v": "a0a4d12b5c8aaa72e955304348e3f52fc42f20482167e370a57e43750fb27969",
+        "rtl/render_regs.v": "c8e5c55c7f61691c0392b3c33e08b59463e02299810dde47c79019404b64be9f",
+        "rtl/render_subsystem.v": "e0cb4be6615a20c072043044e66cacad2049f91861c1d84626397fc4da4c3365",
+        "tools/check_tile_renderer.py": "03265fbf18bb958f43df16a022eab4c0959fa26230dc4b172757e0afb83f0906"
+      },
+      "actual_C_list_SHA256": {
+        "native_tile_list.hex": "4c754f6d8239c4203aa45ba9887f2166594d7712b8669d092152dee5503d746c",
+        "native_tile_texture.hex": "40fd11568f194701faea44f31dc9c19315c10d27720eeea3e0c913faa817dd5a",
+        "native_tile_expected.hex": "58469d1a47c0be58f5457f604c902f303980e882cb9b233ba45ff4cd373ea5e7"
+      },
+      "HDMI": "3 complete frames with tile traffic, no front-page changes/underflows",
+      "pixel_and_error_checks": [
+        "26",
+        "13"
+      ]
+    },
+    "firmware_C": "72 exact frames + 20 synthetic-clock selector frames + 20000-object overflow fallback",
+    "synthetic_clock_is_performance_measurement": false
+  },
+  "game_render_integration": {
+    "enabled": true,
+    "ordered_mixed_batch": true,
+    "consecutive_position_run_min": 8,
+    "GPU_projectiles": "original 5x5/7x7 pixels, zero-key padded 16x16 storage",
+    "background": "original dirty-tile restoration; benchmark fused tile clear remains benchmark-only",
+    "packed_atlas_DDR_range": [
+      "ASSET_BASE+0x8c000",
+      "ASSET_BASE+0xa3400"
+    ],
+    "MAX60_preserved": true,
+    "projectile_capacity": 512,
+    "enemy_capacity": 384,
+    "crown_attackers": 2,
+    "projectile_capacity_validation": {
+      "previous_capacity": 256,
+      "capacity": 512,
+      "previous_record_bytes": 20,
+      "record_bytes": 12,
+      "previous_pool_bytes": 5120,
+      "pool_bytes": 6144,
+      "additional_static_bytes": 1024,
+      "source_sha256": {
+        "software/survivor_game.h": "8ea283b9c90bf7dc32eaba9715445474ee2c1181a1a04f3e542e7109c0722399",
+        "software/survivor_game.c": "377491fdfd38453e2ef6df58831be9e9cf2e79f8c11570946ed587a32f75335a",
+        "software/game_view.h": "2141aa108c0d4d60eec2fea685527e849c191a7e9c265ff1ea9840022762f117",
+        "sim/test_survivor_game.c": "5cc0c61ea21a7bbc250d4c3a801fe450e1876defe7aff61797aa36b3ba606f2d",
+        "tools/check_bolt_capacity.py": "2c4a31e819b09f1de680d3fb4cf19186452ed0126e7fe10006222ab68f563b05"
+      },
+      "enemy_capacity": 384,
+      "crown_attackers": 2,
+      "checks": [
+        "full pool rejects without replacing a live bolt",
+        "last slot 511 can be reused",
+        "last-slot collision",
+        "unsigned coordinate crosses bit 15",
+        "signed 32-bit edge checks before narrowing",
+        "512 independent Q5 trajectories",
+        "diagonal separation, steering decay, coincident pair and full pools at a world corner",
+        "30000 deterministic gameplay ticks"
+      ],
+      "board_performance_measured": false
+    },
+    "full_frame_pixel_comparisons": 192,
+    "actual_C_RTL_fixtures": 4,
+    "results": {
+      "scope": "192 real-C complete-frame comparisons to single-command rendering, full/batch-only capabilities; exact atlas and clipping tests across 24/32/40; C lists replayed in modeled RTL",
+      "source_sha256": {
+        "software/game_view.h": "2141aa108c0d4d60eec2fea685527e849c191a7e9c265ff1ea9840022762f117",
+        "software/game_frame_bounds.h": "bf46e4d014ff322f6de36f2babf22f853a0a2d9df9c4bd205911b6467d2e005f",
+        "software/game_batch.h": "62ff48ebffc0661c5bc98016394d071e20352d034638a93ea7814e2c9e798a03",
+        "software/survivor_game.h": "8ea283b9c90bf7dc32eaba9715445474ee2c1181a1a04f3e542e7109c0722399",
+        "software/survivor_game.c": "377491fdfd38453e2ef6df58831be9e9cf2e79f8c11570946ed587a32f75335a",
+        "software/render.h": "e474c1b512c610d2c03b1b008cdd661a640954e9e7911733be63989560317b39",
+        "rtl/fill_engine.v": "9b29948ef5716846daec61973c61c3c57e1e7154ce91c0bfaca2d6e7c633b751",
+        "rtl/render_batch.v": "72bcb1c24dac4e145e1472d58a4fe4feb274b3f960daca8f807f112711e8fd61",
+        "rtl/render_subsystem.v": "e0cb4be6615a20c072043044e66cacad2049f91861c1d84626397fc4da4c3365",
+        "software/game_assets.h": "28974783e3f864d3c60efb709e54c0b13e1779d201569464f72d9d33a2efdf30",
+        "software/reference_game_ui.h": "f07cd6eb5196e924d8df9cd0d9633404aab5b7f68a3f24f5c022e28610a5f805",
+        "tools/check_game_batch.py": "890203254b2ede173e8c8d89338c0f4166499268b0387b65badc59cc7fa38845"
+      },
+      "requests": [
+        [
+          {
+            "mode": 2,
+            "count": 2
+          },
+          {
+            "mode": 2,
+            "count": 512
+          },
+          {
+            "mode": 2,
+            "count": 414
+          }
+        ],
+        [
+          {
+            "mode": 2,
+            "count": 2
+          },
+          {
+            "mode": 2,
+            "count": 2
+          },
+          {
+            "mode": 3,
+            "count": 46
+          },
+          {
+            "mode": 2,
+            "count": 1
+          },
+          {
+            "mode": 3,
+            "count": 105
+          },
+          {
+            "mode": 2,
+            "count": 1
+          },
+          {
+            "mode": 3,
+            "count": 105
+          },
+          {
+            "mode": 2,
+            "count": 1
+          },
+          {
+            "mode": 3,
+            "count": 152
+          },
+          {
+            "mode": 2,
+            "count": 1
+          },
+          {
+            "mode": 3,
+            "count": 100
+          },
+          {
+            "mode": 2,
+            "count": 5
+          }
+        ],
+        [
+          {
+            "mode": 2,
+            "count": 2
+          },
+          {
+            "mode": 2,
+            "count": 2
+          },
+          {
+            "mode": 3,
+            "count": 152
+          },
+          {
+            "mode": 2,
+            "count": 1
+          },
+          {
+            "mode": 3,
+            "count": 105
+          },
+          {
+            "mode": 2,
+            "count": 1
+          },
+          {
+            "mode": 3,
+            "count": 152
+          },
+          {
+            "mode": 2,
+            "count": 1
+          },
+          {
+            "mode": 3,
+            "count": 100
+          },
+          {
+            "mode": 2,
+            "count": 5
+          }
+        ],
+        [
+          {
+            "mode": 2,
+            "count": 2
+          },
+          {
+            "mode": 2,
+            "count": 409
+          }
+        ]
+      ],
+      "full_frame_cases": 192,
+      "enemy_sizes": {
+        "sides": [
+          24,
+          32,
+          40
+        ],
+        "fixed_side_by_kind": [
+          24,
+          32,
+          24,
+          32,
+          40
+        ],
+        "frames_per_side": 10,
+        "clipped_pixel_fixtures_per_capability": 180
+      },
+      "zone_art": {
+        "ice_side": 48,
+        "decoy_side": 24,
+        "ice": "static rune",
+        "decoy": "circle",
+        "alpha_samples": [
+          80,
+          235,
+          155
+        ],
+        "complete_frames_per_capability": 30
+      },
+      "frame_fields": [
+        "scenario",
+        "frame",
+        "drawn",
+        "single_calls",
+        "batch_calls",
+        "mixed_commands",
+        "position_objects",
+        "CPU_fill_pixels"
+      ],
+      "baseline_frames": [
+        [
+          0,
+          0,
+          1,
+          4,
+          0,
+          0,
+          0,
+          69024
+        ],
+        [
+          0,
+          1,
+          1,
+          4,
+          0,
+          0,
+          0,
+          69024
+        ],
+        [
+          0,
+          2,
+          1,
+          3,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          3,
+          1,
+          3,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          1,
+          3,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          1,
+          3,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          6,
+          1,
+          3,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          7,
+          0,
+          2,
+          0,
+          0,
+          0,
+          748
+        ],
+        [
+          1,
+          0,
+          8,
+          10,
+          0,
+          0,
+          0,
+          69291
+        ],
+        [
+          1,
+          1,
+          8,
+          10,
+          0,
+          0,
+          0,
+          69291
+        ],
+        [
+          1,
+          2,
+          8,
+          14,
+          0,
+          0,
+          0,
+          275
+        ],
+        [
+          1,
+          3,
+          8,
+          14,
+          0,
+          0,
+          0,
+          275
+        ],
+        [
+          1,
+          4,
+          8,
+          13,
+          0,
+          0,
+          0,
+          275
+        ],
+        [
+          1,
+          5,
+          8,
+          12,
+          0,
+          0,
+          0,
+          275
+        ],
+        [
+          1,
+          6,
+          8,
+          14,
+          0,
+          0,
+          0,
+          275
+        ],
+        [
+          1,
+          7,
+          7,
+          14,
+          0,
+          0,
+          0,
+          991
+        ],
+        [
+          2,
+          0,
+          85,
+          48,
+          0,
+          0,
+          0,
+          73642
+        ],
+        [
+          2,
+          1,
+          85,
+          48,
+          0,
+          0,
+          0,
+          73642
+        ],
+        [
+          2,
+          2,
+          85,
+          61,
+          0,
+          0,
+          0,
+          4466
+        ],
+        [
+          2,
+          3,
+          85,
+          60,
+          0,
+          0,
+          0,
+          4466
+        ],
+        [
+          2,
+          4,
+          85,
+          60,
+          0,
+          0,
+          0,
+          4466
+        ],
+        [
+          2,
+          5,
+          85,
+          59,
+          0,
+          0,
+          0,
+          4466
+        ],
+        [
+          2,
+          6,
+          85,
+          59,
+          0,
+          0,
+          0,
+          4466
+        ],
+        [
+          2,
+          7,
+          84,
+          60,
+          0,
+          0,
+          0,
+          5262
+        ],
+        [
+          3,
+          0,
+          926,
+          415,
+          0,
+          0,
+          0,
+          106189
+        ],
+        [
+          3,
+          1,
+          926,
+          415,
+          0,
+          0,
+          0,
+          106189
+        ],
+        [
+          3,
+          2,
+          926,
+          414,
+          0,
+          0,
+          0,
+          36941
+        ],
+        [
+          3,
+          3,
+          926,
+          414,
+          0,
+          0,
+          0,
+          36941
+        ],
+        [
+          3,
+          4,
+          925,
+          414,
+          0,
+          0,
+          0,
+          37713
+        ],
+        [
+          3,
+          5,
+          925,
+          414,
+          0,
+          0,
+          0,
+          37713
+        ],
+        [
+          3,
+          6,
+          925,
+          414,
+          0,
+          0,
+          0,
+          36857
+        ],
+        [
+          3,
+          7,
+          924,
+          413,
+          0,
+          0,
+          0,
+          37701
+        ],
+        [
+          4,
+          0,
+          921,
+          412,
+          0,
+          0,
+          0,
+          105777
+        ],
+        [
+          4,
+          1,
+          921,
+          412,
+          0,
+          0,
+          0,
+          105777
+        ],
+        [
+          4,
+          2,
+          921,
+          425,
+          0,
+          0,
+          0,
+          36549
+        ],
+        [
+          4,
+          3,
+          921,
+          424,
+          0,
+          0,
+          0,
+          36549
+        ],
+        [
+          4,
+          4,
+          921,
+          424,
+          0,
+          0,
+          0,
+          36549
+        ],
+        [
+          4,
+          5,
+          921,
+          424,
+          0,
+          0,
+          0,
+          36549
+        ],
+        [
+          4,
+          6,
+          921,
+          424,
+          0,
+          0,
+          0,
+          36549
+        ],
+        [
+          4,
+          7,
+          920,
+          424,
+          0,
+          0,
+          0,
+          37413
+        ],
+        [
+          5,
+          0,
+          519,
+          10,
+          0,
+          0,
+          0,
+          87160
+        ],
+        [
+          5,
+          1,
+          519,
+          10,
+          0,
+          0,
+          0,
+          87160
+        ],
+        [
+          5,
+          2,
+          519,
+          28,
+          0,
+          0,
+          0,
+          17920
+        ],
+        [
+          5,
+          3,
+          519,
+          28,
+          0,
+          0,
+          0,
+          17920
+        ],
+        [
+          5,
+          4,
+          519,
+          27,
+          0,
+          0,
+          0,
+          17920
+        ],
+        [
+          5,
+          5,
+          519,
+          27,
+          0,
+          0,
+          0,
+          17920
+        ],
+        [
+          5,
+          6,
+          519,
+          28,
+          0,
+          0,
+          0,
+          17920
+        ],
+        [
+          5,
+          7,
+          518,
+          27,
+          0,
+          0,
+          0,
+          18768
+        ],
+        [
+          6,
+          0,
+          519,
+          10,
+          0,
+          0,
+          0,
+          112248
+        ],
+        [
+          6,
+          1,
+          519,
+          10,
+          0,
+          0,
+          0,
+          112248
+        ],
+        [
+          6,
+          2,
+          519,
+          9,
+          0,
+          0,
+          0,
+          43008
+        ],
+        [
+          6,
+          3,
+          519,
+          9,
+          0,
+          0,
+          0,
+          43008
+        ],
+        [
+          6,
+          4,
+          519,
+          9,
+          0,
+          0,
+          0,
+          43008
+        ],
+        [
+          6,
+          5,
+          519,
+          27,
+          0,
+          0,
+          0,
+          43008
+        ],
+        [
+          6,
+          6,
+          519,
+          9,
+          0,
+          0,
+          0,
+          43008
+        ],
+        [
+          6,
+          7,
+          518,
+          8,
+          0,
+          0,
+          0,
+          43856
+        ],
+        [
+          7,
+          0,
+          921,
+          412,
+          0,
+          0,
+          0,
+          106113
+        ],
+        [
+          7,
+          1,
+          921,
+          412,
+          0,
+          0,
+          0,
+          106113
+        ],
+        [
+          7,
+          2,
+          921,
+          411,
+          0,
+          0,
+          0,
+          36885
+        ],
+        [
+          7,
+          3,
+          921,
+          411,
+          0,
+          0,
+          0,
+          36885
+        ],
+        [
+          7,
+          4,
+          921,
+          411,
+          0,
+          0,
+          0,
+          36885
+        ],
+        [
+          7,
+          5,
+          921,
+          411,
+          0,
+          0,
+          0,
+          36885
+        ],
+        [
+          7,
+          6,
+          921,
+          411,
+          0,
+          0,
+          0,
+          36885
+        ],
+        [
+          7,
+          7,
+          920,
+          410,
+          0,
+          0,
+          0,
+          37749
+        ],
+        [
+          8,
+          0,
+          921,
+          412,
+          0,
+          0,
+          0,
+          106001
+        ],
+        [
+          8,
+          1,
+          921,
+          412,
+          0,
+          0,
+          0,
+          106001
+        ],
+        [
+          8,
+          2,
+          921,
+          412,
+          0,
+          0,
+          0,
+          348600
+        ],
+        [
+          8,
+          3,
+          921,
+          412,
+          0,
+          0,
+          0,
+          348600
+        ],
+        [
+          8,
+          4,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          8,
+          5,
+          921,
+          412,
+          0,
+          0,
+          0,
+          106001
+        ],
+        [
+          8,
+          6,
+          921,
+          412,
+          0,
+          0,
+          0,
+          106001
+        ],
+        [
+          8,
+          7,
+          920,
+          410,
+          0,
+          0,
+          0,
+          37637
+        ],
+        [
+          9,
+          0,
+          626,
+          373,
+          0,
+          0,
+          0,
+          88619
+        ],
+        [
+          9,
+          1,
+          613,
+          360,
+          0,
+          0,
+          0,
+          88599
+        ],
+        [
+          9,
+          2,
+          613,
+          359,
+          0,
+          0,
+          0,
+          20199
+        ],
+        [
+          9,
+          3,
+          613,
+          359,
+          0,
+          0,
+          0,
+          19371
+        ],
+        [
+          9,
+          4,
+          626,
+          372,
+          0,
+          0,
+          0,
+          20219
+        ],
+        [
+          9,
+          5,
+          613,
+          359,
+          0,
+          0,
+          0,
+          19371
+        ],
+        [
+          9,
+          6,
+          613,
+          359,
+          0,
+          0,
+          0,
+          20199
+        ],
+        [
+          9,
+          7,
+          625,
+          371,
+          0,
+          0,
+          0,
+          20227
+        ],
+        [
+          10,
+          0,
+          410,
+          411,
+          0,
+          0,
+          0,
+          70837
+        ],
+        [
+          10,
+          1,
+          409,
+          411,
+          0,
+          0,
+          0,
+          71198
+        ],
+        [
+          10,
+          2,
+          410,
+          411,
+          0,
+          0,
+          0,
+          12540
+        ],
+        [
+          10,
+          3,
+          410,
+          411,
+          0,
+          0,
+          0,
+          12047
+        ],
+        [
+          10,
+          4,
+          411,
+          411,
+          0,
+          0,
+          0,
+          13248
+        ],
+        [
+          10,
+          5,
+          410,
+          411,
+          0,
+          0,
+          0,
+          12123
+        ],
+        [
+          10,
+          6,
+          409,
+          410,
+          0,
+          0,
+          0,
+          8190
+        ],
+        [
+          10,
+          7,
+          409,
+          410,
+          0,
+          0,
+          0,
+          7114
+        ],
+        [
+          11,
+          0,
+          921,
+          412,
+          0,
+          0,
+          0,
+          106001
+        ],
+        [
+          11,
+          1,
+          921,
+          412,
+          0,
+          0,
+          0,
+          348600
+        ],
+        [
+          11,
+          2,
+          921,
+          412,
+          0,
+          0,
+          0,
+          348600
+        ],
+        [
+          11,
+          3,
+          921,
+          412,
+          0,
+          0,
+          0,
+          106001
+        ],
+        [
+          11,
+          4,
+          0,
+          1,
+          0,
+          0,
+          0,
+          224512
+        ],
+        [
+          11,
+          5,
+          921,
+          411,
+          0,
+          0,
+          0,
+          36773
+        ],
+        [
+          11,
+          6,
+          0,
+          1,
+          0,
+          0,
+          0,
+          120530
+        ],
+        [
+          11,
+          7,
+          920,
+          410,
+          0,
+          0,
+          0,
+          37637
+        ]
+      ],
+      "current_frames": [
+        [
+          0,
+          0,
+          1,
+          1,
+          2,
+          3,
+          0,
+          69024
+        ],
+        [
+          0,
+          1,
+          1,
+          1,
+          2,
+          3,
+          0,
+          69024
+        ],
+        [
+          0,
+          2,
+          1,
+          0,
+          2,
+          3,
+          0,
+          0
+        ],
+        [
+          0,
+          3,
+          1,
+          0,
+          2,
+          3,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          1,
+          0,
+          2,
+          3,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          1,
+          0,
+          2,
+          3,
+          0,
+          0
+        ],
+        [
+          0,
+          6,
+          1,
+          0,
+          2,
+          3,
+          0,
+          0
+        ],
+        [
+          0,
+          7,
+          0,
+          0,
+          1,
+          2,
+          0,
+          748
+        ],
+        [
+          1,
+          0,
+          8,
+          1,
+          2,
+          10,
+          0,
+          69256
+        ],
+        [
+          1,
+          1,
+          8,
+          1,
+          2,
+          10,
+          0,
+          69256
+        ],
+        [
+          1,
+          2,
+          8,
+          0,
+          2,
+          15,
+          0,
+          240
+        ],
+        [
+          1,
+          3,
+          8,
+          0,
+          2,
+          15,
+          0,
+          240
+        ],
+        [
+          1,
+          4,
+          8,
+          0,
+          2,
+          14,
+          0,
+          240
+        ],
+        [
+          1,
+          5,
+          8,
+          0,
+          2,
+          13,
+          0,
+          240
+        ],
+        [
+          1,
+          6,
+          8,
+          0,
+          2,
+          15,
+          0,
+          240
+        ],
+        [
+          1,
+          7,
+          7,
+          0,
+          2,
+          15,
+          0,
+          956
+        ],
+        [
+          2,
+          0,
+          85,
+          1,
+          2,
+          87,
+          0,
+          70968
+        ],
+        [
+          2,
+          1,
+          85,
+          1,
+          2,
+          87,
+          0,
+          70968
+        ],
+        [
+          2,
+          2,
+          85,
+          0,
+          2,
+          101,
+          0,
+          1792
+        ],
+        [
+          2,
+          3,
+          85,
+          0,
+          2,
+          100,
+          0,
+          1792
+        ],
+        [
+          2,
+          4,
+          85,
+          0,
+          2,
+          100,
+          0,
+          1792
+        ],
+        [
+          2,
+          5,
+          85,
+          0,
+          2,
+          99,
+          0,
+          1792
+        ],
+        [
+          2,
+          6,
+          85,
+          0,
+          2,
+          99,
+          0,
+          1792
+        ],
+        [
+          2,
+          7,
+          84,
+          0,
+          2,
+          100,
+          0,
+          2588
+        ],
+        [
+          3,
+          0,
+          926,
+          1,
+          3,
+          928,
+          0,
+          71392
+        ],
+        [
+          3,
+          1,
+          926,
+          1,
+          3,
+          928,
+          0,
+          71392
+        ],
+        [
+          3,
+          2,
+          926,
+          0,
+          3,
+          928,
+          0,
+          2144
+        ],
+        [
+          3,
+          3,
+          926,
+          0,
+          3,
+          928,
+          0,
+          2144
+        ],
+        [
+          3,
+          4,
+          925,
+          0,
+          3,
+          927,
+          0,
+          3000
+        ],
+        [
+          3,
+          5,
+          925,
+          0,
+          3,
+          927,
+          0,
+          3000
+        ],
+        [
+          3,
+          6,
+          925,
+          0,
+          3,
+          927,
+          0,
+          2144
+        ],
+        [
+          3,
+          7,
+          924,
+          0,
+          3,
+          926,
+          0,
+          2988
+        ],
+        [
+          4,
+          0,
+          921,
+          1,
+          3,
+          923,
+          0,
+          71148
+        ],
+        [
+          4,
+          1,
+          921,
+          1,
+          3,
+          923,
+          0,
+          71148
+        ],
+        [
+          4,
+          2,
+          921,
+          0,
+          3,
+          937,
+          0,
+          1920
+        ],
+        [
+          4,
+          3,
+          921,
+          0,
+          3,
+          936,
+          0,
+          1920
+        ],
+        [
+          4,
+          4,
+          921,
+          0,
+          3,
+          936,
+          0,
+          1920
+        ],
+        [
+          4,
+          5,
+          921,
+          0,
+          3,
+          936,
+          0,
+          1920
+        ],
+        [
+          4,
+          6,
+          921,
+          0,
+          3,
+          936,
+          0,
+          1920
+        ],
+        [
+          4,
+          7,
+          920,
+          0,
+          3,
+          936,
+          0,
+          2784
+        ],
+        [
+          5,
+          0,
+          519,
+          1,
+          12,
+          13,
+          508,
+          69240
+        ],
+        [
+          5,
+          1,
+          519,
+          1,
+          12,
+          13,
+          508,
+          69240
+        ],
+        [
+          5,
+          2,
+          519,
+          0,
+          12,
+          32,
+          508,
+          0
+        ],
+        [
+          5,
+          3,
+          519,
+          0,
+          12,
+          32,
+          508,
+          0
+        ],
+        [
+          5,
+          4,
+          519,
+          0,
+          12,
+          31,
+          508,
+          0
+        ],
+        [
+          5,
+          5,
+          519,
+          0,
+          12,
+          31,
+          508,
+          0
+        ],
+        [
+          5,
+          6,
+          519,
+          0,
+          12,
+          32,
+          508,
+          0
+        ],
+        [
+          5,
+          7,
+          518,
+          0,
+          12,
+          31,
+          508,
+          848
+        ],
+        [
+          6,
+          0,
+          519,
+          1,
+          10,
+          12,
+          509,
+          69240
+        ],
+        [
+          6,
+          1,
+          519,
+          1,
+          10,
+          12,
+          509,
+          69240
+        ],
+        [
+          6,
+          2,
+          519,
+          0,
+          10,
+          12,
+          509,
+          0
+        ],
+        [
+          6,
+          3,
+          519,
+          0,
+          10,
+          12,
+          509,
+          0
+        ],
+        [
+          6,
+          4,
+          519,
+          0,
+          10,
+          12,
+          509,
+          0
+        ],
+        [
+          6,
+          5,
+          519,
+          0,
+          10,
+          30,
+          509,
+          0
+        ],
+        [
+          6,
+          6,
+          519,
+          0,
+          10,
+          12,
+          509,
+          0
+        ],
+        [
+          6,
+          7,
+          518,
+          0,
+          10,
+          11,
+          509,
+          848
+        ],
+        [
+          7,
+          0,
+          921,
+          1,
+          3,
+          923,
+          0,
+          71484
+        ],
+        [
+          7,
+          1,
+          921,
+          1,
+          3,
+          923,
+          0,
+          71484
+        ],
+        [
+          7,
+          2,
+          921,
+          0,
+          3,
+          923,
+          0,
+          2256
+        ],
+        [
+          7,
+          3,
+          921,
+          0,
+          3,
+          923,
+          0,
+          2256
+        ],
+        [
+          7,
+          4,
+          921,
+          0,
+          3,
+          923,
+          0,
+          2256
+        ],
+        [
+          7,
+          5,
+          921,
+          0,
+          3,
+          923,
+          0,
+          2256
+        ],
+        [
+          7,
+          6,
+          921,
+          0,
+          3,
+          923,
+          0,
+          2256
+        ],
+        [
+          7,
+          7,
+          920,
+          0,
+          3,
+          922,
+          0,
+          3120
+        ],
+        [
+          8,
+          0,
+          921,
+          1,
+          3,
+          923,
+          0,
+          71372
+        ],
+        [
+          8,
+          1,
+          921,
+          1,
+          3,
+          923,
+          0,
+          71372
+        ],
+        [
+          8,
+          2,
+          921,
+          1,
+          3,
+          923,
+          0,
+          313971
+        ],
+        [
+          8,
+          3,
+          921,
+          1,
+          3,
+          923,
+          0,
+          313971
+        ],
+        [
+          8,
+          4,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          8,
+          5,
+          921,
+          1,
+          3,
+          923,
+          0,
+          71372
+        ],
+        [
+          8,
+          6,
+          921,
+          1,
+          3,
+          923,
+          0,
+          71372
+        ],
+        [
+          8,
+          7,
+          920,
+          0,
+          3,
+          922,
+          0,
+          3008
+        ],
+        [
+          9,
+          0,
+          626,
+          1,
+          3,
+          628,
+          0,
+          71280
+        ],
+        [
+          9,
+          1,
+          613,
+          1,
+          3,
+          615,
+          0,
+          71260
+        ],
+        [
+          9,
+          2,
+          613,
+          0,
+          3,
+          615,
+          0,
+          2860
+        ],
+        [
+          9,
+          3,
+          613,
+          0,
+          3,
+          615,
+          0,
+          2032
+        ],
+        [
+          9,
+          4,
+          626,
+          0,
+          3,
+          628,
+          0,
+          2880
+        ],
+        [
+          9,
+          5,
+          613,
+          0,
+          3,
+          615,
+          0,
+          2032
+        ],
+        [
+          9,
+          6,
+          613,
+          0,
+          3,
+          615,
+          0,
+          2860
+        ],
+        [
+          9,
+          7,
+          625,
+          0,
+          3,
+          627,
+          0,
+          2888
+        ],
+        [
+          10,
+          0,
+          410,
+          1,
+          2,
+          412,
+          0,
+          70718
+        ],
+        [
+          10,
+          1,
+          409,
+          1,
+          2,
+          411,
+          0,
+          71114
+        ],
+        [
+          10,
+          2,
+          410,
+          0,
+          2,
+          412,
+          0,
+          12456
+        ],
+        [
+          10,
+          3,
+          410,
+          0,
+          2,
+          412,
+          0,
+          11963
+        ],
+        [
+          10,
+          4,
+          411,
+          0,
+          2,
+          413,
+          0,
+          13080
+        ],
+        [
+          10,
+          5,
+          410,
+          0,
+          2,
+          412,
+          0,
+          12039
+        ],
+        [
+          10,
+          6,
+          409,
+          0,
+          2,
+          411,
+          0,
+          8106
+        ],
+        [
+          10,
+          7,
+          409,
+          0,
+          2,
+          411,
+          0,
+          7030
+        ],
+        [
+          11,
+          0,
+          921,
+          1,
+          3,
+          923,
+          0,
+          71372
+        ],
+        [
+          11,
+          1,
+          921,
+          1,
+          3,
+          923,
+          0,
+          313971
+        ],
+        [
+          11,
+          2,
+          921,
+          1,
+          3,
+          923,
+          0,
+          313971
+        ],
+        [
+          11,
+          3,
+          921,
+          1,
+          3,
+          923,
+          0,
+          71372
+        ],
+        [
+          11,
+          4,
+          0,
+          1,
+          0,
+          0,
+          0,
+          224512
+        ],
+        [
+          11,
+          5,
+          921,
+          0,
+          3,
+          923,
+          0,
+          2144
+        ],
+        [
+          11,
+          6,
+          0,
+          1,
+          0,
+          0,
+          0,
+          120530
+        ],
+        [
+          11,
+          7,
+          920,
+          0,
+          3,
+          922,
+          0,
+          3008
+        ]
+      ],
+      "RTL": "GAME BATCH RTL PASSED: 4 real C mixed/normal/piercing/crowded scenes, original pixels and front-page protection"
+    }
+  },
+  "chest_relics": {
+    "per_run": 1,
+    "trigger": "first defeated crown guardian drops a key",
+    "choices": [
+      "ice trail",
+      "shatter shield",
+      "frost decoy"
+    ],
+    "logic_regression": "PASS",
+    "preview": "native firmware screenshots, modeled timing"
+  },
+  "altar_gameplay": {
+    "asset": "project E1",
+    "display_side": 96,
+    "world_center": [
+      1024,
+      704
+    ],
+    "enemy_counts": "all living enemies by kind across the map",
+    "combat_pauses_while_open": true,
+    "max_skills_keep_level_gain_and_skip_offer": true,
+    "crown_bolt_removal": [
+      "player contact",
+      "combat viewport exit"
+    ]
+  },
+  "lightweight_batch": {
+    "enabled_in": "game mixed sprites/background/projectiles and generic API; pressure uses packed positions or fused tiles",
+    "staging_commands": 512,
+    "descriptor_bytes": 32,
+    "descriptor_memory": "DDR asset pool, one register-held command, no new BRAM",
+    "C_reference_sprites": 513,
+    "submissions_before_after": [
+      513,
+      2
+    ],
+    "APB_writes_before_after": [
+      6156,
+      8
+    ],
+    "C_scalar_pixels": "48 complete scalar comparisons, four sizes, both pages, 0..1025 sprites, identical",
+    "RTL": "ordered mixed commands, both pages, bus errors and three concurrent HDMI frames",
+    "resource_report": "Inputs: 62 / 1703 (3.64%)\nOutputs: 235 / 2267 (10.37%)\nGlobal Clocks (GBUF): 10 / 32 (31.25%)\nRegional Clocks (RBUF): 1 / 32 (3.12%)\n\tRBUF: Core: 0 / 16 (0.00%)\n\tRBUF: Periphery: 1 / 8 (12.50%)\n\tRBUF: Multi-Region: 0 / 8 (0.00%)\nXLRs: 33069 / 60800 (54.39%)\n\tXLRs needed for LUT4: 13530 / 60800 (22.25%)\n\tXLRs needed for LUT4 + FF: 6869 / 60800 (11.30%)\n\tXLRs needed for COMB4: 0 / 60800 (0.00%)\n\tXLRs needed for COMB4 + FF: 0 / 60800 (0.00%)\n\tXLRs needed for Adder: 2801 / 60800 (4.61%)\n\tXLRs needed for Adder + FF: 1065 / 60800 (1.75%)\n\tXLRs needed for SRL8: 725 / 14720 (4.93%)\n\tXLRs needed for SRL8 + FF: 0 / 14720 (0.00%)\n\tXLRs needed for FF: 8060 / 60800 (13.26%)\n\tXLRs needed for Routing: 19 / 60800 (0.03%)\nMemory Blocks: 256 / 256 (100.00%)\nDSP Blocks: 44 / 160 (27.50%)"
+  },
+  "game_HUD_layout": {
+    "top": [
+      "60帧纪录",
+      "屏内",
+      "帧率"
+    ],
+    "bottom_right": [
+      "击杀",
+      "存活弹数"
+    ],
+    "pause_hint_x": 176,
+    "count_scope": "all actually drawn enemies, gems/hearts, orbs, hero and player projectiles",
+    "visible_count_refresh": "every rendered frame",
+    "MAX60_refresh": "confirmed 30-frame passing windows only"
+  },
+  "key_demo": "original checkerboards, fixed 64x64 player origin, four walk frames at 10Hz",
+  "tests": {
+    "native_open_poses": 119,
+    "black_pupil_checked_poses": "88..110",
+    "Alpha_full_image_cases": 1024,
+    "animated_key_full_viewport_cases": 208,
+    "animated_key_real_RTL_cases": 16,
+    "menu_compositor_random_stall_cases": [
+      "bridge",
+      "curved",
+      "eyes",
+      "final",
+      "chapter_forward",
+      "chapter_back",
+      "pause"
+    ],
+    "continuous_HDMI_scanout": "PASS",
+    "real_Sapphire_CPU150_memory100_boot": "PASS",
+    "sprite_HUD": "GAME UART PASSED: full FIFO, partial bursts, 32-byte frame cap, ring wrap, whole-line drop, HUD pacing and ordered logs\nLIVE GAME HUD PASSED: 126 synthetic production-loop frames, 36 visible-count pixel updates, both pages; 2..514 total visible sprites; 0..512 projectiles and off-screen counts; total record 0->11->514; late window rejected; CLINT/video wrap; pause/exit; Chinese layout.",
+    "natural_game_HUD": "NATURAL frame=60 total_sprites=8 HUD_record=6 visible_projectiles=2 active_projectiles=2 kills=1\nNATURAL frame=900 total_sprites=11 HUD_record=14 visible_projectiles=1 active_projectiles=1 kills=27\nNATURAL frame=1680 total_sprites=34 HUD_record=28 visible_projectiles=1 active_projectiles=1 kills=47\nNATURAL frame=1800 total_sprites=19 HUD_record=36 visible_projectiles=0 active_projectiles=0 kills=49\nNATURAL GAME HUD PASSED: 1899 production play frames, total visible 2..36, MAX60=36; 629 actual count pixel updates, 30 record pixel updates on both pages; 477 zero-projectile frames, projectile peak 3; only movement/start/upgrade buttons, no object-pool injection. Modeled timing, not board FPS."
+  },
+  "board_tested": false,
+  "board_programmed": false,
+  "preview_note": "Actual native C output and simulation fixtures; not board footage or board FPS measurements.",
+  "files": {
+    "build_inputs.json": {
+      "bytes": 10640,
+      "sha256": "be9fca326c6165f4dc7f0c18103eb82e01af468dc7ed613715c3e75dc455d404"
+    },
+    "evidence/basic_bus_run.log": {
+      "bytes": 1867,
+      "sha256": "c559d60179a82ad0f229ce9f49c0aebfd61f1626265d249df3545a0a778ff24e"
+    },
+    "evidence/basic_demo1_view0_image0_path1.png": {
+      "bytes": 28888,
+      "sha256": "64dfb77054efd59564c9e3911a957b396c7ad43c7cd701ae747f6eb2dd4e2ca9"
+    },
+    "evidence/basic_demo1_view0_image1_path1.png": {
+      "bytes": 44984,
+      "sha256": "08399b8b4f602bbbbba2a64818d7445149bd98bc1ee00812eca36bdf11bb6982"
+    },
+    "evidence/basic_demo_host.log": {
+      "bytes": 648,
+      "sha256": "4854ab3da49f7d032e37b38e90801826a2f2135fec67ccf98a145c8676bf6be5"
+    },
+    "evidence/basic_effects_demo3_bg0_variant3.png": {
+      "bytes": 10257,
+      "sha256": "dc9bb1e184f609545cdacde2188538ed5e5222915e56af5ad31beb72ac5ae8d4"
+    },
+    "evidence/basic_effects_demo3_bg1_variant3.png": {
+      "bytes": 10232,
+      "sha256": "80d8e1e456b374bd7fd554d45708e9d9bfb5976516c3987f184c4371242f19ff"
+    },
+    "evidence/BATCH_RENDERING.md": {
+      "bytes": 12976,
+      "sha256": "2fcaa1199c302fd94166b49e969a2ecce2ce46ece056177e188223c6809d4e6d"
+    },
+    "evidence/bench_entry_run.log": {
+      "bytes": 1400,
+      "sha256": "f25fc995be08fff87f775955295e4f7d77c3a62e88647a8dac68e741a30aef79"
+    },
+    "evidence/bench_optimization.patch": {
+      "bytes": 65723,
+      "sha256": "6c3b35e24f140a3df4e342a5689bba557388e2d4e415a92fd7896a9899e3e9c4"
+    },
+    "evidence/BENCH_OPTIMIZATION_RESEARCH.md": {
+      "bytes": 9485,
+      "sha256": "6670822ebe0f6d89f9400716fa869dcd48786faa791ccccdd8cb18a96963ff5a"
+    },
+    "evidence/bench_optimization_summary.json": {
+      "bytes": 2681,
+      "sha256": "a0c0f5cb1902b8fd80fedc86a89b992129a1875199222b75bb4104b731cf036c"
+    },
+    "evidence/bench_throughput_after.json": {
+      "bytes": 5040,
+      "sha256": "845c7648b00183d9bcf14345d2791af68ff8b596b5372b891bee7181cdaec02a"
+    },
+    "evidence/bench_throughput_after_run.log": {
+      "bytes": 2273,
+      "sha256": "c158fe2de5056117efbbc4c833589ae369833133c84a201f7ef1f4774bcfa344"
+    },
+    "evidence/bench_throughput_before.json": {
+      "bytes": 2318,
+      "sha256": "5955c2ea175626674be2a30b8766d7cfd43b706b1c6a7061f65b07c4c437648d"
+    },
+    "evidence/bench_throughput_before_run.log": {
+      "bytes": 2293,
+      "sha256": "53114f76a351d209fff3a9bdf7cf9070403d4027ee0888ea2a8613f3817933da"
+    },
+    "evidence/bench_throughput_cache_baseline.json": {
+      "bytes": 4898,
+      "sha256": "58e6c4b2861c669e11adc82957fd77dc6dffac357692ff1b4290dc43913a482c"
+    },
+    "evidence/bolt_capacity.json": {
+      "bytes": 1234,
+      "sha256": "faf245966275156f37b40f24431c6e49aad9e85323d108f1d142a37ae3611366"
+    },
+    "evidence/bolt_capacity.log": {
+      "bytes": 1116,
+      "sha256": "84bb83ae098eb4d38173b20309f1d8b6f7b6701e7b457e416915551d20d3e0df"
+    },
+    "evidence/bolt_capacity.patch": {
+      "bytes": 26114,
+      "sha256": "2da720a241cf308ae722a9968b7af9142e109f438420bfca576ca92dda196268"
+    },
+    "evidence/book_reference_altar_bolt_exit.png": {
+      "bytes": 16571,
+      "sha256": "f7b64a226751442b9aa31423663b1d07491cdd650b9c49d2dabb661699d7b044"
+    },
+    "evidence/book_reference_altar_field.png": {
+      "bytes": 16623,
+      "sha256": "06271407891780444c975244d772e5500f82268aad63503db937fe1d75350e79"
+    },
+    "evidence/book_reference_altar_maxed.png": {
+      "bytes": 16642,
+      "sha256": "01dbe5bc933fe2cac66f80e02144b3c35df4ba82086dcda832d5d49426b220fd"
+    },
+    "evidence/book_reference_altar_maxed_panel.png": {
+      "bytes": 13200,
+      "sha256": "ad8662afa172562100a10577e9cef4c5cf28425164fcbf79ea61ad2f16396b8f"
+    },
+    "evidence/book_reference_altar_panel.png": {
+      "bytes": 13163,
+      "sha256": "3d452c8ab73e44772eaca3b5d8e6f498ee9f8888b9088a4d8137ae34f065f320"
+    },
+    "evidence/book_reference_game_paused.png": {
+      "bytes": 8095,
+      "sha256": "0d7b2446d21cac0a3d4817e6f46e23fa03a418d77519fb5e5e6e7cb1171bd4b7"
+    },
+    "evidence/book_reference_game_play.png": {
+      "bytes": 16470,
+      "sha256": "5b82ffbf006d18b39f151c735e2f87fa1574f3ce6bda499b34153da6463d21f9"
+    },
+    "evidence/book_reference_relic_decoy.png": {
+      "bytes": 18390,
+      "sha256": "3701940a206c30226cfeca0f4109776223187f4d9b1806568dd2b431a97f3685"
+    },
+    "evidence/book_reference_relic_ice.png": {
+      "bytes": 19961,
+      "sha256": "21f813df2ce156c41d6f93a9528d091701fc0bf92972f6fbf362ccb1fe9d1f4b"
+    },
+    "evidence/book_reference_relic_offer.png": {
+      "bytes": 9883,
+      "sha256": "75657db9999e694abcd6f94a6e00ea8e3a5983456e97518f1cd89dd868940a7d"
+    },
+    "evidence/book_reference_relic_shield.png": {
+      "bytes": 19647,
+      "sha256": "efb133dde564723ef7379a4242207e805cc5dc07159c645763219a91e3121428"
+    },
+    "evidence/compile.log": {
+      "bytes": 1354,
+      "sha256": "595c5b5e87b4e33a62ae78d07ea6fbaf3d185cb884edcbe27ce8251aa38d2823"
+    },
+    "evidence/COPY_IMAGE_CREDITS.md": {
+      "bytes": 860,
+      "sha256": "c9c155b0ba339cb2ebfc80d08efeb85b98984f4599b358a42fba6088fcb7f049"
+    },
+    "evidence/cpu150_boot_run.log": {
+      "bytes": 1251,
+      "sha256": "208f778e5ec61aad5fb0d485fe7c7d9bc1f2a97996c694ee886c2751e8e6e1e8"
+    },
+    "evidence/eye_comparison.png": {
+      "bytes": 11131,
+      "sha256": "d45c27c84faf2a863cc6e7e5e3743166bd7733acd9c2094882ebfcdf4947fccf"
+    },
+    "evidence/firmware.log": {
+      "bytes": 407,
+      "sha256": "7b99e5f8a0fa529a99af54d5b23670ab290649fe1a7ed612e56e839a944ca4b5"
+    },
+    "evidence/firmware_size.log": {
+      "bytes": 177,
+      "sha256": "a18242b4624ea7c86a116eae83121520a950be20a7e413bbfa62adc2401f6f65"
+    },
+    "evidence/first_light.hier_util.rpt": {
+      "bytes": 67089,
+      "sha256": "291370f64bc8db6cc8c79270a07af7008d816796e2cdeba8d65302a5f04ce2b7"
+    },
+    "evidence/first_light.map.rpt": {
+      "bytes": 377414,
+      "sha256": "321424751f4d7cec5ba9438234e9f9611f8af007eb1e2dbb08ddeb9ed706aaa4"
+    },
+    "evidence/first_light.place.rpt": {
+      "bytes": 2192,
+      "sha256": "1109f3f196cdc03e0dc00379172ec650a3f7a206ae908ffd67ea26c4d4119bf0"
+    },
+    "evidence/first_light.route.rpt": {
+      "bytes": 1143,
+      "sha256": "442efa462dd0c3420b8f4ab163387e2eb4fb66051682da0882138520e53e25b7"
+    },
+    "evidence/first_light.timing.rpt": {
+      "bytes": 1072387,
+      "sha256": "5ea4a22f79235856f21b5ca5f350d479b01346f13091cb127bf746eef86727c0"
+    },
+    "evidence/game_batch.json": {
+      "bytes": 23305,
+      "sha256": "16df93f105e0c1ec0681d629d535b9000b7d72feead2fbc1587480669198081b"
+    },
+    "evidence/game_batch.patch": {
+      "bytes": 40325,
+      "sha256": "7fb13a042fd551d34d2f27d2351fb52f9ada53569a785160d18655a504d5d91a"
+    },
+    "evidence/game_batch_batch_only.log": {
+      "bytes": 3122,
+      "sha256": "fe116475d375f5e4debbf396e5a9c8701607b20df408526aefd4a21d7a97af94"
+    },
+    "evidence/game_batch_current.log": {
+      "bytes": 3155,
+      "sha256": "d52927f5d112156b4dc2bd80458c35d27bb35cde5a2fb1e804e6aa48e4cc853a"
+    },
+    "evidence/game_batch_run.log": {
+      "bytes": 1534,
+      "sha256": "cc3287fd4a4274e129ed2ed1cee7825df2107f2cc547d364cea4218056d3dd90"
+    },
+    "evidence/game_live_hud.gif": {
+      "bytes": 41604,
+      "sha256": "4a07ee33e619cbf203f51dc8a6c4e65aea78b98bc0a4a63a31bb700e4bbee9b8"
+    },
+    "evidence/game_live_hud.log": {
+      "bytes": 391,
+      "sha256": "a198c9ba0ba4fa7257d080c1c4c693fe6c54a9256d584c3ce497e3c5e3b57c77"
+    },
+    "evidence/game_natural_hud.log": {
+      "bytes": 704,
+      "sha256": "369a3bb5b56b85c3d9c535a5dc2060118455ded856487b73b83fcaa2488f55ae"
+    },
+    "evidence/GAME_RENDER_BATCH.md": {
+      "bytes": 5384,
+      "sha256": "669194541d1a79e3af1912161122c8f2932a8bb7e539bcf8e4a7233b7e153213"
+    },
+    "evidence/key_walk_preview.gif": {
+      "bytes": 49154,
+      "sha256": "bc16c01bf11fb78e66f3d615b0a5d341119bd0459a8c650bf72db4b1bc359ffe"
+    },
+    "evidence/live_hud_015.png": {
+      "bytes": 13118,
+      "sha256": "3e187c7249b7eec15ac57aa39d957165f43e03a579fb523bdb0e555b86f88a6f"
+    },
+    "evidence/live_hud_031.png": {
+      "bytes": 13113,
+      "sha256": "92085c448ddb042db454d4a812f24313aede8a528e3b0db8ce9a7298b33aeaa6"
+    },
+    "evidence/live_hud_061.png": {
+      "bytes": 13207,
+      "sha256": "b06922360eca47fbd9ffaefce328f3055dfeaba10dfde6e3751abf715d960fd0"
+    },
+    "evidence/live_hud_091.png": {
+      "bytes": 13174,
+      "sha256": "36dfc2da933629b293a05e7a59d3646eb27bfca83d260a424b6affb5363ad23f"
+    },
+    "evidence/live_hud_126.png": {
+      "bytes": 13126,
+      "sha256": "4b4ca01c4323335dd25f84d6666e8d12323288182db495008b7744ef6972deec"
+    },
+    "evidence/localized_game_regions.json": {
+      "bytes": 303,
+      "sha256": "5d930b1a899186925ddf72699d31fa64363b5b0ffbf1ae8b22cddd69e694ef8d"
+    },
+    "evidence/natural_hud_0060.png": {
+      "bytes": 14304,
+      "sha256": "f0c0acfca00dbb80e319070aef3c2d2f97c1dfe0a2dc4df80609139446334eb7"
+    },
+    "evidence/natural_hud_0900.png": {
+      "bytes": 9185,
+      "sha256": "9c3c112eab50baedb7ef98930d78ade6930eb5984effe4e1a455d3ff700de5e2"
+    },
+    "evidence/natural_hud_1680.png": {
+      "bytes": 13743,
+      "sha256": "84a9d5a0d56c11bdde2372a2bf162a6218faf6fdf5cb2425a097f05875960246"
+    },
+    "evidence/natural_hud_1800.png": {
+      "bytes": 10955,
+      "sha256": "15fbd6852a490ba8fc20ab1b7db3dbb111a4467686e5e2e963c5428a8cd0b109"
+    },
+    "evidence/reference_stack.json": {
+      "bytes": 3391,
+      "sha256": "b2888b2f2bcb2035604035fcca55163f19b55a70f0026bdfe43fa56ecb8c063f"
+    },
+    "evidence/reference_stack_usage.txt": {
+      "bytes": 6298,
+      "sha256": "4dc9b9391bd6ef7786ccbad4d10c0530a6ce021d68add912105c813673213aab"
+    },
+    "evidence/reference_ui_check.log": {
+      "bytes": 489,
+      "sha256": "172b46eeaa254ef10f57f8293bd5183dd7781d3da91fbf4098cc9c0edbddb41d"
+    },
+    "evidence/render_batch_host.log": {
+      "bytes": 864,
+      "sha256": "2a305aff0478a9d8432a4c371a250e9c1fce145ba2bb20f0f79389463338ecc5"
+    },
+    "evidence/render_batch_run.log": {
+      "bytes": 1536,
+      "sha256": "2ecf67beb296033e81a7ae75a13002609186ba70128e38b034547080f714dce5"
+    },
+    "evidence/simulation.log": {
+      "bytes": 2357,
+      "sha256": "d2917e9b3f606850ad6faa21fe095174141ff98a6af6848487dda14b1124e265"
+    },
+    "evidence/tile_renderer.json": {
+      "bytes": 7810,
+      "sha256": "5bd4ba6d778f9aa387290d89a89f66bc1ac7896810baf31220dee5f72d633b62"
+    },
+    "evidence/tile_run.log": {
+      "bytes": 4979,
+      "sha256": "4f63b7a2a72c51b8f93f21003520852399b68e65c4e6360b1706a1d6947b7df6"
+    },
+    "evidence/ui_check.log": {
+      "bytes": 1422,
+      "sha256": "2d0f53cd20e8afe98af499242021c5c0bbcee65e09136609eed2a7eeb9d52c47"
+    },
+    "evidence/ui_compositor_bridge.log": {
+      "bytes": 1312,
+      "sha256": "115b1ffd039771e4b51443fc6074cfe09bf53edca164c5b936e756783663f7b2"
+    },
+    "evidence/ui_compositor_chapter_back.log": {
+      "bytes": 1324,
+      "sha256": "9d1b1ac695e6fe5c863c930597e3a93c446f01c54baf2821a7b3f3cdb4373d3a"
+    },
+    "evidence/ui_compositor_chapter_forward.log": {
+      "bytes": 1330,
+      "sha256": "3d948e701bf7609bf4a035d6c6f4ff0b3b2620c56c1aace5e28e1bbd71578347"
+    },
+    "evidence/ui_compositor_curved.log": {
+      "bytes": 1312,
+      "sha256": "72fe642072a201d57fe8217d593bed4cd089be54b245ec26c5c7ab678be7bbe8"
+    },
+    "evidence/ui_compositor_eyes.log": {
+      "bytes": 1308,
+      "sha256": "c8c8d19601d07eb57503ccaa56d15f21c0265cbe0abb259a1f067a6d4af7c0b2"
+    },
+    "evidence/ui_compositor_final.log": {
+      "bytes": 1310,
+      "sha256": "6f8680e280cc002bc39fb1155af2d0d82b7c164ba1d564306d9b83d944b192f5"
+    },
+    "evidence/ui_compositor_pause.log": {
+      "bytes": 1310,
+      "sha256": "d15c768162d6cc6c45d8a6828c0ccd7a4ffc1a2d40725661bf7010d51af2195d"
+    },
+    "evidence/ui_scanout_run.log": {
+      "bytes": 1376,
+      "sha256": "f6751b57815fb82780e3f8c6fab0160d1a7c75b86f1f4fcd971f878b30141a05"
+    },
+    "first_light.bin": {
+      "bytes": 106260,
+      "sha256": "6dd503c26e2ad62ad15712220932c0da37e9d8c0ab2671601af64e07f633e7d9"
+    },
+    "first_light.bit": {
+      "bytes": 2957181,
+      "sha256": "9fb6953d6e473c9f606344c673d5ed75ecd4cf44cca44cd14baf02d396082f86"
+    },
+    "first_light.hex": {
+      "bytes": 2957241,
+      "sha256": "9f8c8192a4864649fb91a761ea666bd3ac0cceddd4a353d60b424d01a353c364"
+    },
+    "README.md": {
+      "bytes": 9105,
+      "sha256": "0e5c5fb0621ddc832b568c3f19dcac6635f5f1e3724d8d2b76c57068b4157f86"
+    }
+  }
+}

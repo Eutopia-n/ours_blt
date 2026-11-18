@@ -1,5 +1,6 @@
 #ifndef REFERENCE_BOOK_ANIMATION_H
 #define REFERENCE_BOOK_ANIMATION_H
+#include "scene_workspace.h"
 /* The prototype uses 154 curved strips, separate cover/paper delays and a
  * 5200-pixel perspective distance. CPU builds descriptors; FPGA draws pixels. */
 static uint32_t book_command_count;
@@ -15,8 +16,12 @@ static int32_t book_phase(int32_t t,int32_t start,int32_t duration) {
 }
 /* Angle has 1024 steps per revolution, with eight fractional bits. */
 static int32_t book_sin(int32_t a) {
-    uint32_t u=(uint32_t)a&262143u,n=u>>8;
-    return book_sine[n]+(book_sine[n+1u]-book_sine[n])*(int32_t)(u&255u)/256;
+    uint32_t u=(uint32_t)a,i=(u>>8)&255u;
+    uint32_t first=i,second=i+1u;
+    if(u&65536u){first=256u-i;second=first-1u;}
+    int32_t start=book_sine_quarter[first],end=book_sine_quarter[second];
+    int32_t value=start+(end-start)*(int32_t)(u&255u)/256;
+    return (u&131072u) ? -value:value;
 }
 static void book_command(uint32_t source,uint32_t pitch,int32_t x,int32_t y,
                          int32_t w,int32_t h,uint32_t sw,uint32_t sh,
@@ -53,8 +58,7 @@ static void book_capture(void) {
     for(uint32_t n=0;n<FRAMEBUFFER_BYTES/4u;++n)dst[n]=src[n];
     publish_pixels();book_cache_valid=1;book_cache_key=book_menu_key();
 }
-typedef struct {int32_t x,y,w,h,z;uint16_t u,sw;uint8_t back,flip,light;} BookStrip;
-static BookStrip book_mesh[154];
+#define book_mesh (scene_workspace.book_mesh)
 static int32_t book_round_div(int32_t n,int32_t d){return n>=0 ? (n+d/2)/d:-((-n+d/2)/d);}
 static void book_shadow(int32_t hinge,int32_t top,int32_t height,int32_t free_x,int32_t free_z) {
     if(free_z<4)return;
@@ -109,7 +113,10 @@ static void book_sheet(uint32_t paper,int32_t hinge,int32_t top,int32_t width,in
             uint32_t source_w=paper ? 306u:153u,col=source_w-s->u-sw;
             source=paper ? BOOK_CACHE_BASE+18u*1280u+(14u+col)*2u:
                 ASSET_BASE+book_resources[BOOK_BLANK].base+9u*320u+(7u+col);
-            pitch=paper ? 1280u:320u;sh=paper ? 462u:231u;flags|=2u|8u;if(!paper)flags|=16u;
+            pitch=paper ? 1280u:320u;sh=paper ? 462u:231u;flags|=2u|8u;
+            // A captured menu is opaque RGB565, including true-black pupils.
+            // Only its desk colours are a cutout; zero is not a transparency key.
+            if(paper)flags&=~1u;else flags|=16u;
         } else if(paper) {
             source=ASSET_BASE+book_resources[BOOK_LEAF].base+s->u;
             pitch=158;sh=231;flags|=16u;

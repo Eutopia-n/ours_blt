@@ -1,8 +1,12 @@
-Model Technology ModelSim SE-64 vlog 10.6e Compiler 2018.06 Jun 23 2018
-Start time: 16:11:13 on Oct 19,2026
-vlog -work sim/work -sv rtl/sync_fifo.v rtl/fill_engine.v rtl/render_regs.v rtl/framebuffer_video.v rtl/video_mode_measure.v rtl/render_subsystem.v rtl/button_input.v sim/tb_render.sv 
+Model Technology ModelSim SE-64 vlog 2020.4 Compiler 2020.10 Oct 13 2020
+Start time: 21:20:58 on Nov 17,2026
+vlog -work sim/work -sv rtl/sync_fifo.v rtl/fill_engine.v rtl/render_batch.v rtl/tile_renderer.v rtl/ui_compositor.v rtl/ui_asset_rom.v rtl/render_regs.v rtl/framebuffer_video.v rtl/video_mode_measure.v rtl/render_subsystem.v rtl/button_input.v sim/tb_render.sv 
 -- Compiling module sync_fifo
 -- Compiling module fill_engine
+-- Compiling module render_batch
+-- Compiling module tile_renderer
+-- Compiling module ui_compositor
+-- Compiling module ui_asset_rom
 -- Compiling module render_regs
 -- Compiling module framebuffer_video
 -- Compiling module video_mode_measure
@@ -13,5 +17,5 @@ vlog -work sim/work -sv rtl/sync_fifo.v rtl/fill_engine.v rtl/render_regs.v rtl/
 Top level modules:
 	button_input
 	tb_render
-End time: 16:11:13 on Oct 19,2026, Elapsed time: 0:00:00
+End time: 21:20:59 on Nov 17,2026, Elapsed time: 0:00:01
 Errors: 0, Warnings: 0

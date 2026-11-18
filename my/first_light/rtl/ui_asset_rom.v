@@ -45,6 +45,9 @@ always @(posedge clk)q13<=rom13[address[8:0]];
 reg [31:0] rom14[0:511],q14;
 initial $readmemh("assets/ui/magic_book_v5/runtime/reference/rom_14.hex",rom14);
 always @(posedge clk)q14<=rom14[address[8:0]];
+reg [31:0] rom15[0:511],q15;
+initial $readmemh("assets/ui/magic_book_v5/runtime/reference/rom_15.hex",rom15);
+always @(posedge clk)q15<=rom15[address[8:0]];
 always @* case(bank)
 4'd0:data=q0;
 4'd1:data=q1;
@@ -61,5 +64,6 @@ always @* case(bank)
 4'd12:data=q12;
 4'd13:data=q13;
 4'd14:data=q14;
+4'd15:data=q15;
 default:data=0;endcase
 endmodule

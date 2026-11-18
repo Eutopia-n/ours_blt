@@ -22,27 +22,30 @@ static uint8_t book_stream_byte(uint32_t at) {
     return (uint8_t)(book_stream_value>>((at&3u)*8u));
 #endif
 }
-/* Decode a small lossless LZ4/RLE resource through the temporary menu cache.
- * No work buffer is allocated in on-chip RAM. */
-static void book_load(uint32_t id) {
-    const BookResource *r=&book_resources[id];
+/* Expand an LZ4 stream into the temporary DDR menu cache. */
+static inline __attribute__((always_inline)) void book_unpack(uint32_t at,uint32_t bytes,uint32_t expected) {
     volatile uint8_t *dst=(volatile uint8_t *)(uintptr_t)BOOK_SCRATCH_BASE;
-    uint32_t at=r->offset,end=at+r->compressed,out=0;
+    uint32_t end=at+bytes,out=0;
     while(at<end) {
         uint32_t token=book_stream_byte(at++),length=token>>4;
         if(length==15u){uint32_t n;do{n=book_stream_byte(at++);length+=n;}while(n==255u);}
-        if(at+length>end || out+length>r->rle)fail("FAIL UI literal");
+        if(at+length>end || out+length>expected)fail("FAIL UI literal");
         while(length--)dst[out++]=book_stream_byte(at++);
         if(at==end)break;
         uint32_t offset=book_stream_byte(at++);offset|=(uint32_t)book_stream_byte(at++)<<8;
         length=(token&15u)+4u;
         if((token&15u)==15u){uint32_t n;do{n=book_stream_byte(at++);length+=n;}while(n==255u);}
-        if(!offset || offset>out || out+length>r->rle)fail("FAIL UI match");
+        if(!offset || offset>out || out+length>expected)fail("FAIL UI match");
         while(length--){dst[out]=dst[out-offset];++out;}
     }
-    if(out!=r->rle)fail("FAIL UI size");
+    if(out!=expected)fail("FAIL UI size");
+}
+static void book_load(uint32_t id) {
+    const BookResource *r=&book_resources[id];
+    book_unpack(r->offset,r->compressed,r->rle);
     const volatile uint16_t *tokens=(const volatile uint16_t *)(uintptr_t)BOOK_SCRATCH_BASE;
-    volatile uint16_t *pixels=(volatile uint16_t *)(uintptr_t)(ASSET_BASE+r->base);out=0;
+    volatile uint16_t *pixels=(volatile uint16_t *)(uintptr_t)(ASSET_BASE+r->base);
+    uint32_t out=0;
     uint32_t mask=(1u<<r->bits)-1u;
     for(uint32_t n=0;n<r->rle/2u;++n) {
         uint32_t token=tokens[n],count=token>>r->bits;

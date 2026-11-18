@@ -1,0 +1,3 @@
+BASIC HOST PASSED: pixel/guard and manual controls; CPU default/no auto-switch over 70 frames; DST hidden; equal page backgrounds; 70-frame default single-buffer/front writes; explicit S toggles, pause, A/B labels removed; authoritative back-page exit and identical two-page menu
+EFFECTS HOST PASSED: 1024 Alpha cases; 208 full-viewport stationary-walk cases with exact original checkerboards and player-source comparison, two pages/keys and key on/off; fixed centre across frame wrap; 64KiB guards; timer wrap, pause/resume and Alpha resource reload
+COPY ART PASSED: both ROM screenshots, all 98304 RGB565 pixels verified against source images

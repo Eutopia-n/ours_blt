@@ -1,0 +1,97 @@
+{
+  "scope": "Incremental modeled renderer cycles against the texture-cache release; no CPU, HUD, scanout or board MAX60",
+  "comparison": [
+    {
+      "side": 4,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles_previous_release": 14122,
+      "cycles_final": 11807,
+      "ratio": 1.196
+    },
+    {
+      "side": 16,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles_previous_release": 49544,
+      "cycles_final": 35175,
+      "ratio": 1.409
+    },
+    {
+      "side": 24,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles_previous_release": 101193,
+      "cycles_final": 65957,
+      "ratio": 1.534
+    },
+    {
+      "side": 32,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles_previous_release": 150727,
+      "cycles_final": 95183,
+      "ratio": 1.584
+    },
+    {
+      "side": 4,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles_previous_release": 10785,
+      "cycles_final": 9309,
+      "ratio": 1.159
+    },
+    {
+      "side": 16,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles_previous_release": 35535,
+      "cycles_final": 26886,
+      "ratio": 1.322
+    },
+    {
+      "side": 24,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles_previous_release": 67535,
+      "cycles_final": 47610,
+      "ratio": 1.419
+    },
+    {
+      "side": 32,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles_previous_release": 97596,
+      "cycles_final": 66523,
+      "ratio": 1.467
+    },
+    {
+      "side": 32,
+      "count": 8,
+      "ready": 0,
+      "key": 0,
+      "cycles_previous_release": 22946,
+      "cycles_final": 14346,
+      "ratio": 1.599
+    }
+  ],
+  "source_sha256": {
+    "rtl/fill_engine.v": "9b29948ef5716846daec61973c61c3c57e1e7154ce91c0bfaca2d6e7c633b751",
+    "rtl/render_subsystem.v": "e0cb4be6615a20c072043044e66cacad2049f91861c1d84626397fc4da4c3365",
+    "rtl/render_batch.v": "72bcb1c24dac4e145e1472d58a4fe4feb274b3f960daca8f807f112711e8fd61",
+    "rtl/tile_renderer.v": "a0a4d12b5c8aaa72e955304348e3f52fc42f20482167e370a57e43750fb27969",
+    "sim/tb_render.sv": "fe35a4bd73faeae76164c0dc719726055eeccd56ab2037ae36e28cc235e6bbd3"
+  },
+  "previous_release_BIT_SHA256": "3e14f0d1fdd771c213e29baac1b8ff832d729d0354e181822c9a28721dd8ff0f",
+  "final_BIT_SHA256": "9fb6953d6e473c9f606344c673d5ed75ecd4cf44cca44cd14baf02d396082f86",
+  "pressure_optimization_BIT_SHA256": "d75776a0dda232a4f32669d798af340fc640c600ba2a123221f72f641e861c90",
+  "game_integration_note": "Same renderer RTL; current firmware has ordered game batches, GPU projectiles and a 512-slot compact pool; game FPS not measured on board."
+}

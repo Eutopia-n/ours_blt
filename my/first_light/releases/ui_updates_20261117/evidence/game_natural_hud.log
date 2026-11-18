@@ -1,0 +1,5 @@
+NATURAL frame=60 total_sprites=8 HUD_record=6 visible_projectiles=2 active_projectiles=2 kills=1
+NATURAL frame=900 total_sprites=11 HUD_record=14 visible_projectiles=1 active_projectiles=1 kills=27
+NATURAL frame=1680 total_sprites=34 HUD_record=28 visible_projectiles=1 active_projectiles=1 kills=47
+NATURAL frame=1800 total_sprites=19 HUD_record=36 visible_projectiles=0 active_projectiles=0 kills=49
+NATURAL GAME HUD PASSED: 1899 production play frames, total visible 2..36, MAX60=36; 629 actual count pixel updates, 30 record pixel updates on both pages; 477 zero-projectile frames, projectile peak 3; only movement/start/upgrade buttons, no object-pool injection. Modeled timing, not board FPS.

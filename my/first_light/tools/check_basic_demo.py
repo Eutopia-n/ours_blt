@@ -40,7 +40,7 @@ prelude=r'''
 #include "demo_controls.h"
 #define GAME_ASSET_BASE (ASSET_BASE+0x4000u)
 #include "game_frame_bounds.h"
-#define GAME_FRAME_COUNT GAME_FRAME_BOUNDS_COUNT
+#include "game_assets.h"
 #define BENCH_VARIANTS 4u
 enum {DEMO_FILL,DEMO_COPY,DEMO_BUFFER,DEMO_KEY,DEMO_ALPHA,DEMO_BENCH};
 static const char *const demo_details[] __attribute__((unused))={"","","","","","FPGA ALPHA + COLOR KEY / 60 FPS"};
@@ -48,7 +48,7 @@ static const char *const demo_names[]={"矩形填充","图像复制","双缓冲"
 static uint32_t menu_repaint_pages,menu_level,menu_group,menu_item[2],book_closed;
 static uint32_t draw_buffer=FRAMEBUFFER,clock_value,video_epoch,presented_page;
 static uint32_t regs[64],ar_count,aw_count,rwait_count,wwait_count,hw_calls,drains;
-static uint32_t script[160],script_n,script_pos,report_count;
+static uint32_t script[160],script_n,script_pos,report_count,advance_poll_clock;
 static uint32_t bar_front_writes,bar_back_writes,same_page_requests,page_changes;
 typedef struct {uint32_t x,y,w;char label[96];} Field;
 static Field fields[2][128];static uint32_t field_count[2];
@@ -114,7 +114,7 @@ static int host_present(void){
 static void fail(const char *s){puts(s);abort();}
 static void puts_uart(const char *s){(void)s;}
 static void uart_number(const char *s,uint32_t v){(void)v;if(!strcmp(s,"BASIC "))++report_count;}
-static uint32_t button_event(void){return script_pos<script_n ? script[script_pos++] : 4u;}
+static uint32_t button_event(void){if(advance_poll_clock)clock_value+=FRAME_60_CYCLES;return script_pos<script_n ? script[script_pos++] : 4u;}
 static void draw_player(uint32_t f,uint32_t x,uint32_t y,uint32_t hw){(void)f;(void)x;(void)y;(void)hw;}
 static void note_text(uint32_t x,uint32_t y,const char *s,uint32_t width){
     const char *p=s;uint32_t used=0,page=draw_page();
@@ -166,14 +166,20 @@ for name in ('font_column','text_at_width','text_at','decimal','number_at','deci
 book=(ROOT/'software/book_menu.h').read_text(encoding='utf-8')
 parts.append('#include "reference_ui_assets.h"')
 parts.append('#define BOOK_GOLD 0xac2au\n#define BOOK_EDGE 0xc52fu')
+parts.append('static uint8_t copy_rom[32768];\nstatic uint32_t book_cache_valid;\n'
+             'static uint8_t book_stream_byte(uint32_t at){assert(at<sizeof(copy_rom));return copy_rom[at];}')
+parts.append(function('book_unpack',book))
 for name in ('book_pixels','book_stamp','book_text_width','book_text'):
     parts.append(function(name,book))
 parts.append('#include "demo_skin.h"')
 parts.append('#include "basic_demo.h"')
+parts.append(function('game_decode_runs',(ROOT/'software/game_view.h').read_text(encoding='utf-8')))
 parts.append('#include "effects_demo.h"')
 parts.append(r'''
 static void save_ui(const char *name){
-    char path[180];snprintf(path,sizeof(path),"reports/basic_%s.ppm",name);
+    char path[180];
+    if(!strncmp(name,"key_walk_",9))snprintf(path,sizeof(path),"software/build/basic_host/key_frames/%s.ppm",name);
+    else snprintf(path,sizeof(path),"reports/basic_%s.ppm",name);
     FILE *f=fopen(path,"wb");assert(f);fprintf(f,"P6\n640 480\n255\n");
     const uint16_t *p=(void*)(uintptr_t)(presented_page ? FRAMEBUFFER_B:FRAMEBUFFER);
     for(uint32_t i=0;i<640u*480u;++i){uint16_t c=p[i];fputc((c>>11)*255/31,f);fputc(((c>>5)&63)*255/63,f);fputc((c&31)*255/31,f);}fclose(f);
@@ -183,12 +189,17 @@ int main(void){
     assert(VirtualAlloc((void*)(uintptr_t)ASSET_BASE,ASSET_BYTES,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE)==(void*)(uintptr_t)ASSET_BASE);
     assert(VirtualAlloc((void*)(uintptr_t)FRAMEBUFFER,2*FRAMEBUFFER_BYTES,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE)==(void*)(uintptr_t)FRAMEBUFFER);
     unsigned char *fb=(void*)(uintptr_t)FRAMEBUFFER,*assets=(void*)(uintptr_t)ASSET_BASE;
-    memset(assets,0xa5,ASSET_BYTES);basic_init_images();
+    FILE *rom=fopen("assets/ui/magic_book_v5/runtime/reference/ui_stream.bin","rb");assert(rom);
+    assert(fread(copy_rom,1,sizeof(copy_rom),rom)>=(size_t)basic_copy_stream[1][0]+basic_copy_stream[1][1]);fclose(rom);
+    memset(assets,0xa5,ASSET_BYTES);book_cache_valid=1;basic_init_images();assert(!book_cache_valid);
     unsigned char *snapshot=malloc(2u*BASIC_IMAGE_BYTES),*expected=malloc(2u*FRAMEBUFFER_BYTES);assert(snapshot && expected);
     memcpy(snapshot,(void*)(uintptr_t)BASIC_IMAGE_BASE,2u*BASIC_IMAGE_BYTES);
-    for(uint32_t i=0;i<BASIC_IMAGE_BASE-ASSET_BASE;++i)assert(assets[i]==0xa5);
+    for(uint32_t i=0;i<BASIC_IMAGE_BASE-ASSET_BASE;++i)
+        if(i<BOOK_SCRATCH_BASE-ASSET_BASE || i>=BOOK_SCRATCH_BASE-ASSET_BASE+BASIC_COPY_INDEX_BYTES+32u)assert(assets[i]==0xa5);
     for(uint32_t i=BASIC_IMAGE_BASE-ASSET_BASE+2u*BASIC_IMAGE_BYTES;i<ASSET_BYTES;++i)assert(assets[i]==0xa5);
     assert(memcmp(snapshot,snapshot+BASIC_IMAGE_BYTES,BASIC_IMAGE_BYTES));
+    FILE *decoded=fopen("software/build/basic_host/copy_surfaces.rgb565","wb");assert(decoded);
+    assert(fwrite(snapshot,1,2u*BASIC_IMAGE_BYTES,decoded)==2u*BASIC_IMAGE_BYTES);fclose(decoded);
     uint32_t copy_cases=0,fill_cases=0;
     for(uint32_t image=0;image<2;++image)for(uint32_t page=0;page<2;++page)
     for(uint32_t load=0;load<4;++load)for(uint32_t hw=0;hw<2;++hw){
@@ -351,7 +362,7 @@ int main(void){
     assert(!memcmp(asset_before+EFFECT_BASE-ASSET_BASE+2u*EFFECT_BYTES,assets+EFFECT_BASE-ASSET_BASE+2u*EFFECT_BYTES,
         ASSET_BYTES-(EFFECT_BASE-ASSET_BASE+2u*EFFECT_BYTES)));
     uint32_t effect_cases=0;
-    for(uint32_t demo=DEMO_KEY;demo<=DEMO_ALPHA;++demo)
+    for(uint32_t demo=DEMO_ALPHA;demo<=DEMO_ALPHA;++demo)
     for(uint32_t page=0;page<2;++page)for(uint32_t bg=0;bg<2;++bg)
     for(uint32_t variant=0;variant<(demo==DEMO_ALPHA ? 256u:4u);++variant){
         EffectsConfig ec={demo==DEMO_ALPHA ? variant:128u,demo==DEMO_KEY ? variant/2u:0u,variant&1u,bg};
@@ -374,7 +385,46 @@ int main(void){
         }
         ++effect_cases;
     }
-    assert(effect_cases==1040u);
+    assert(effect_cases==1024u);
+    uint16_t walk_reference[4096];
+    FILE *walk=fopen("assets/game/game.rgb565","rb");assert(walk);
+    assert(fread(walk_reference,2,4096,walk)==4096);fclose(walk);
+    effects_init_key_assets();
+    for(uint32_t key=0;key<2;++key)for(uint32_t frame=0;frame<4;++frame)
+    for(uint32_t y=0;y<64;++y)for(uint32_t x=0;x<64;++x) {
+        uint16_t expected=walk_reference[frame*1024u+(y/2u)*32u+x/2u];
+        if(!expected)expected=effects_key(key);else if(expected==effects_key(key))expected^=1u;
+        assert(*(uint16_t*)(uintptr_t)(effects_walk_source(key,frame)+y*128u+x*2u)==expected);
+    }
+    assert(!memcmp(asset_before,assets,EFFECT_BASE-ASSET_BASE));
+    assert(!memcmp(asset_before+EFFECT_BASE-ASSET_BASE+2u*EFFECT_BYTES,assets+EFFECT_BASE-ASSET_BASE+2u*EFFECT_BYTES,
+        ASSET_BYTES-(EFFECT_BASE-ASSET_BASE+2u*EFFECT_BYTES)));
+    const uint32_t poses[]={0,1,2,3,4,5,6,7,32,63,64,UINT32_MAX,0};
+    uint32_t key_cases=0;
+    for(uint32_t page=0;page<2;++page)for(uint32_t bg=0;bg<2;++bg)
+    for(uint32_t key=0;key<2;++key)for(uint32_t enabled=0;enabled<2;++enabled) {
+        clear_host();draw_buffer=FRAMEBUFFER+page*FRAMEBUFFER_BYTES;
+        effects_key_valid[0]=effects_key_valid[1]=0;
+        EffectsConfig key_config={128u,key,enabled,bg};
+        for(uint32_t step=0;step<sizeof(poses)/sizeof(poses[0]);++step) {
+            effects_tick=poses[step];effects_draw_scene(DEMO_KEY,&key_config);
+            assert(effects_verify(DEMO_KEY,&key_config)==8);
+            uint32_t position=88u;
+            for(uint32_t panel=0;panel<2;++panel)
+            for(uint32_t y=0;y<192;++y)for(uint32_t x=0;x<240;++x) {
+                uint32_t cell=((x/16u)^(y/16u))&1u;
+                uint16_t expected=bg ? (cell ? 0x7befu:0x2945u):(cell ? 0x0514u:0xfca0u);
+                if(x>=position && x<position+64u && y>=64u && y<128u) {
+                    uint16_t fg=walk_reference[(effects_tick&3u)*1024u+((y-64u)/2u)*32u+(x-position)/2u];
+                    if(!fg)fg=effects_key(key);else if(fg==effects_key(key))fg^=1u;
+                    if(!panel || !enabled || fg!=effects_key(key))expected=fg;
+                }
+                assert(*(uint16_t*)(uintptr_t)(draw_buffer+(192u+y)*1280u+(48u+panel*304u+x)*2u)==expected);
+            }
+            ++key_cases;
+        }
+    }
+    assert(key_cases==208u);
     EffectsConfig ec={128u,0,1,0};clear_host();draw_buffer=FRAMEBUFFER;
     effects_draw_scene(DEMO_ALPHA,&ec);
     volatile uint16_t *probe=(void*)(uintptr_t)(draw_buffer+224u*1280u+408u*2u);
@@ -384,6 +434,7 @@ int main(void){
         clear_host();draw_buffer=FRAMEBUFFER;
         ec=(EffectsConfig){demo==DEMO_ALPHA ? (v==0 ? 0u:v==1 ? 128u:255u):128u,demo==DEMO_KEY ? v/2u:0u,v&1u,bg};
         demo_skin(demo,"FPGA");demo_window(48,192,240,192);demo_window(352,192,240,192);
+        effects_key_valid[0]=effects_key_valid[1]=0;
         effects_draw_scene(demo,&ec);effects_labels(demo,&ec,effects_verify(demo,&ec));host_present();
         char name[80];snprintf(name,sizeof(name),"effects_demo%u_bg%u_variant%u",demo,bg,v);save_ui(name);
     }
@@ -396,16 +447,38 @@ int main(void){
         if(demo==DEMO_ALPHA)assert(regs[GFX_ALPHA/4]==127);
         else assert(regs[GFX_COLOR_KEY/4]==0xf81fu);
     }
+    // Capture two complete stationary walk cycles from actual production C.
+    // These previews illustrate animation, not measured board FPS.
+    EffectsConfig preview={128u,1u,1u,0u};effects_tick=effects_key_paused=0;
+    clear_host();effects_redraw(DEMO_KEY,&preview);
+    for(uint32_t frame=0;frame<8u;++frame) {
+        effects_tick=frame;effects_draw_key(&preview);
+        effects_check_label(effects_verify(DEMO_KEY,&preview));host_present();
+        char name[64];snprintf(name,sizeof(name),"key_walk_%03u",frame);save_ui(name);
+    }
     clear_host();script_pos=0;script_n=1;script[0]=4;effects_demo_loop(DEMO_ALPHA);
     assert(regs[GFX_ALPHA/4]==0 && effects_verify(DEMO_ALPHA,&(EffectsConfig){255u,0u,1u,0u})==8);
+    // Advance idle polls through a cycle-counter wrap. The actual production
+    // loop must animate, pause, resume, toggle the key/background and return.
+    clear_host();clock_value=UINT32_MAX-2u*EFFECT_WALK_PERIOD;script_pos=0;script_n=80;
+    for(uint32_t n=0;n<script_n;++n)script[n]=0;
+    script[20]=16;script[35]=16;script[45]=8;script[55]=1;script[65]=2;script[79]=4;
+    advance_poll_clock=1;effects_demo_loop(DEMO_KEY);advance_poll_clock=0;
+    assert(effects_tick>4 && !effects_key_paused && script_pos==script_n);
+    uint32_t retired=draw_buffer;draw_buffer=FRAMEBUFFER+presented_page*FRAMEBUFFER_BYTES;
+    assert(effects_verify(DEMO_KEY,&(EffectsConfig){128u,1u,0u,1u})==8);
+    draw_buffer=retired;
+    effects_init_assets();assert(effects_assets_ready==1);
+    assert(*(uint16_t*)(uintptr_t)(EFFECT_BASE+64u*256u+64u*2u)==effects_pixel(0,64,64));
     uint32_t size_index=3u;const uint32_t expected_sizes[]={2u,1u,0u,3u};
     for(uint32_t n=0;n<4u;++n){size_index=bench_next_size(size_index);assert(size_index==expected_sizes[n]);}
     puts("BASIC HOST PASSED: pixel/guard and manual controls; CPU default/no auto-switch over 70 frames; DST hidden; equal page backgrounds; 70-frame default single-buffer/front writes; explicit S toggles, pause, A/B labels removed; authoritative back-page exit and identical two-page menu");
-    puts("EFFECTS HOST PASSED: 1040 full-image cases, all 256 transparencies, two keys/backgrounds/pages and key on/off; source guards, 8-pixel hardware-readback checks and deliberate corruption; 14 previews and hardware-only controls");
+    puts("EFFECTS HOST PASSED: 1024 Alpha cases; 208 full-viewport stationary-walk cases with exact original checkerboards and player-source comparison, two pages/keys and key on/off; fixed centre across frame wrap; 64KiB guards; timer wrap, pause/resume and Alpha resource reload");
     return 0;
 }
 ''')
-out=ROOT/'software/build/basic_host';out.mkdir(exist_ok=True)
+out=ROOT/'software/build/basic_host';out.mkdir(parents=True,exist_ok=True)
+(out/'key_frames').mkdir(exist_ok=True)
 source=out/'check.c';source.write_text('\n'.join(parts),encoding='utf-8')
 env=os.environ.copy();env['PATH']=str(args.cc.parent)+os.pathsep+env.get('PATH','')
 subprocess.run([str(args.cc),'-std=c11','-O2','-Wall','-Wextra','-Werror','-Wno-unused-function','-Isoftware',str(source),'-o',str(out/'check.exe')],cwd=ROOT,env=env,check=True)
@@ -414,8 +487,38 @@ r=subprocess.run([str(out/'check.exe')],cwd=ROOT,env=env,capture_output=True,tex
 print(r.stdout+r.stderr,flush=True)
 if r.returncode:raise SystemExit(r.returncode)
 def chunk(kind,data):return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
-for path in list((ROOT/'reports').glob('basic_demo*.ppm'))+list((ROOT/'reports').glob('basic_effects*.ppm'))+list((ROOT/'reports').glob('basic_buffer*.ppm'))+list((ROOT/'reports').glob('basic_reference*.ppm')):
+for path in list((ROOT/'reports').glob('basic_demo*.ppm'))+list((ROOT/'reports').glob('basic_effects*.ppm'))+list((ROOT/'reports').glob('basic_buffer*.ppm'))+list((ROOT/'reports').glob('basic_reference*.ppm'))+list((out/'key_frames').glob('key_walk_*.ppm')):
     header,size,maximum,pixels=path.read_bytes().split(b'\n',3)
     assert (header,size,maximum)==(b'P6',b'640 480',b'255')
     rows=b''.join(b'\0'+pixels[y*1920:(y+1)*1920] for y in range(480))
     path.with_suffix('.png').write_bytes(b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',640,480,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(rows))+chunk(b'IEND',b''))
+    if path.stem.startswith('key_walk_'):path.unlink()
+from PIL import Image
+surfaces=struct.unpack('<'+str(2*256*192)+'H',(out/'copy_surfaces.rgb565').read_bytes())
+def resized(rgb, width, height):
+    def mix(a,b,n):
+        return tuple((c*(32-n)+d*n)//32 for c,d in zip(a,b))
+    for y in range(192):
+        row,fy=divmod(y*height*32//192,32)
+        below=min(height-1,row+1)
+        for x in range(256):
+            col,fx=divmod(x*width*32//256,32)
+            right=min(width-1,col+1)
+            top=mix(rgb[row*width+col],rgb[row*width+right],fx)
+            bottom=mix(rgb[below*width+col],rgb[below*width+right],fx)
+            r,g,b=mix(top,bottom,fy)
+            yield (r<<11)|(g<<5)|b
+for i,name in enumerate(('supertuxkart','0ad')):
+    with Image.open(ROOT/'assets/basic_copy'/f'{name}.png') as source:
+        im=source.convert('RGB').quantize(16,dither=Image.Dither.NONE).convert('RGB')
+    rgb=[(r>>3,g>>2,b>>3) for r,g,b in im.getdata()]
+    assert tuple(resized(rgb,*im.size))==surfaces[i*256*192:(i+1)*256*192],name
+message='COPY ART PASSED: both ROM screenshots, all 98304 RGB565 pixels verified against source images'
+with (ROOT/'reports/basic_demo_host.log').open('a',encoding='utf-8') as log:log.write(message+'\n')
+print(message,flush=True)
+walk_frames=[Image.open(out/f'key_frames/key_walk_{n:03d}.png').convert('RGB') for n in range(8)]
+sample=Image.new('RGB',(1280,960))
+for n in range(4):sample.paste(walk_frames[n],((n%2)*640,(n//2)*480))
+palette=sample.quantize(colors=256,dither=Image.Dither.NONE)
+indexed=[im.quantize(palette=palette,dither=Image.Dither.NONE) for im in walk_frames]
+indexed[0].save(ROOT/'reports/key_walk_preview.gif',save_all=True,append_images=indexed[1:],duration=100,loop=0,optimize=False)

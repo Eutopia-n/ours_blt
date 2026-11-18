@@ -12,12 +12,13 @@ module render_regs #(
     input wire [31:0] burst_reads, burst_writes,
     input wire [31:0] ddr_read_wait_cycles, ddr_write_wait_cycles,
     input wire [31:0] video_frame_count,
+    input wire [15:0] batch_completed,
     input wire [KEY_COUNT-1:0] button_held,
     input wire button_enter_pending,
     input wire video_underflow, video_error, display_page_active, swap_ack,
     input wire [15:0] video_width, video_height,
     input wire video_mode_valid,
-    output reg start, output reg display_enable,
+    output reg start, output reg batch_selected,tile_selected,packed_selected, output reg display_enable,
     output reg [1:0] operation, output reg [31:0] src, dst, stride, src_stride,
     output reg [1:0] blend_ctrl, output reg [7:0] blend_alpha,
     output reg [15:0] color_key,
@@ -36,7 +37,7 @@ module render_regs #(
         paddr == 32 || paddr == 36 || paddr == 40 || paddr == 44 ||
         paddr == 48 || paddr == 52 || paddr == 56 || paddr == 60 ||
         paddr == 64 || paddr == 68 || paddr == 72 || paddr == 76 ||
-        paddr == 80 || paddr == 84 || paddr == 88 || paddr == 92 || paddr == 96 || paddr == 100 || paddr == 104 || paddr == 108 || paddr == 112 || paddr == 116 || paddr == 128 || paddr == 132;
+        paddr == 80 || paddr == 84 || paddr == 88 || paddr == 92 || paddr == 96 || paddr == 100 || paddr == 104 || paddr == 108 || paddr == 112 || paddr == 116 || paddr == 120 || paddr == 124 || paddr == 128 || paddr == 132;
         // 0x5c/0x60 are read-only hardware AXI burst counters.
     wire writable = paddr == 8 || paddr == 12 || paddr == 16 || paddr == 20 ||
         paddr == 24 || paddr == 28 || paddr == 32 || paddr == 48 || paddr == 52 ||
@@ -46,7 +47,7 @@ module render_regs #(
     assign pslverror = transfer && (!known || paddr[1:0] != 0 ||
         (pwrite && (!writable || busy || start ||
          (swap_pending && (paddr == 60 || paddr == 64 || paddr == 8)) ||
-         (paddr == 8 && pwdata != 1) || (paddr == 32 && pwdata > 1) ||
+         (paddr == 8 && pwdata != 1 && pwdata != 2 && pwdata != 3 && pwdata != 4) || (paddr == 32 && pwdata > 1) ||
          (paddr == 48 && pwdata > 3) || (paddr == 56 && pwdata > 1) ||
          (paddr == 60 && pwdata > 1) || (paddr == 64 && pwdata != 1) ||
          (paddr == 128 && pwdata >= `UI_ROM_WORDS) ||
@@ -84,6 +85,8 @@ module render_regs #(
         108: prdata = video_frame_count; // Display refresh epochs, not rendered FPS.
         112: prdata = ddr_read_wait_cycles;
         116: prdata = ddr_write_wait_cycles;
+        120: prdata = (batch_selected || tile_selected) ? {16'd0,batch_completed}:32'd0;
+        124: prdata = 32'd7; // bit0: command list; bit1: positions; bit2: tiles.
         128: prdata = ui_rom_address;
         132: prdata = ui_rom_q;
         default: prdata = 0;
@@ -91,7 +94,7 @@ module render_regs #(
     end
     always @(posedge clk) begin
         if (reset) begin
-            start <= 0; display_enable <= 0;ui_rom_address<=0;
+            start <= 0; batch_selected<=0;tile_selected<=0;packed_selected<=0;display_enable <= 0;ui_rom_address<=0;
             operation <= 0; src <= 32'h01000000; dst <= 32'h01000000; stride <= 1280;
             src_stride <= 1280; // Preserve old framebuffer-only firmware.
             blend_ctrl <= 0; blend_alpha <= 8'd255; color_key <= 0;
@@ -101,7 +104,7 @@ module render_regs #(
             start <= 0;
             if (wr && !pslverror) case (paddr)
             128: ui_rom_address <= pwdata[12:0];
-            8: start <= 1;
+            8: begin start <= 1;batch_selected <= pwdata==2 || pwdata==3;packed_selected<=pwdata==3;tile_selected<=pwdata==4;end
             12: dst <= pwdata;
             16: width <= pwdata[15:0];
             20: height <= pwdata[15:0];

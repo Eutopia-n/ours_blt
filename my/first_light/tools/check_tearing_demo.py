@@ -164,7 +164,7 @@ bench=out/'tb_tearing_demo.sv';bench.write_text(prefix+tail)
 library='sim/work_tearing_demo'
 commands=[]
 if not (ROOT/library).exists():commands.append(([args.modelsim/'vlib.exe',library],'vlib'))
-commands += [([args.modelsim/'vlog.exe','-sv','-work',library,'rtl/sync_fifo.v','rtl/fill_engine.v',
+commands += [([args.modelsim/'vlog.exe','-sv','-work',library,'rtl/sync_fifo.v','rtl/fill_engine.v','rtl/render_batch.v','rtl/tile_renderer.v',
               'rtl/render_regs.v','rtl/framebuffer_video.v','rtl/video_mode_measure.v','rtl/render_subsystem.v',bench],'vlog'),
              ([args.modelsim/'vsim.exe','-batch','-t','1ps','-lib',library,'tb_tearing_demo','-do',
               'onerror {quit -code 1 -force}; run -all; quit -code 0 -force'],'run')]

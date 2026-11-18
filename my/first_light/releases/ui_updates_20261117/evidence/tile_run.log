@@ -1,0 +1,59 @@
+# vsim -batch -t 1ps -lib sim/work_tiles tb_tiles -do "onerror {quit -code 1 -force}; run -all; quit -code 0 -force" 
+# Start time: 21:20:58 on Nov 17,2026
+# ** Note: (vsim-3813) Design is being optimized due to module recompilation...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_tiles(fast)
+# 
+# onerror {quit -code 1 -force}
+# run -all
+# TILE side=32 count=0 ready=0 alpha=128 flags=3 frame=0 fragments=0 legacy_cycles=0 tile_cycles=377394 AR=180 AW=5120
+# TILE side=4 count=1 ready=0 alpha=128 flags=3 frame=0 fragments=1 legacy_cycles=0 tile_cycles=378201 AR=182 AW=5120
+# TILE side=16 count=7 ready=0 alpha=128 flags=3 frame=37 fragments=14 legacy_cycles=0 tile_cycles=378810 AR=195 AW=5120
+# TILE side=24 count=7 ready=0 alpha=128 flags=3 frame=37 fragments=14 legacy_cycles=0 tile_cycles=380982 AR=205 AW=5120
+# TILE side=32 count=7 ready=0 alpha=128 flags=3 frame=37 fragments=20 legacy_cycles=0 tile_cycles=381009 AR=221 AW=5120
+# TILE side=4 count=1024 ready=0 alpha=128 flags=3 frame=0 fragments=1209 legacy_cycles=297663 tile_cycles=404628 AR=341 AW=5120
+# TILE side=16 count=1024 ready=0 alpha=128 flags=3 frame=0 fragments=2122 legacy_cycles=483030 tile_cycles=507102 AR=396 AW=5120
+# TILE side=24 count=1024 ready=0 alpha=128 flags=3 frame=0 fragments=2971 legacy_cycles=728988 tile_cycles=639012 AR=466 AW=5120
+# TILE side=32 count=1024 ready=0 alpha=128 flags=3 frame=0 fragments=3951 legacy_cycles=958404 tile_cycles=788655 AR=531 AW=5120
+# TILE side=32 count=512 ready=0 alpha=128 flags=3 frame=0 fragments=1975 legacy_cycles=579999 tile_cycles=583485 AR=414 AW=5120
+# TILE side=16 count=2048 ready=0 alpha=128 flags=3 frame=0 fragments=4315 legacy_cycles=764499 tile_cycles=637608 AR=537 AW=5120
+# POSITIONS side=4 count=1024 ready=0 cycles=282615
+# POSITIONS side=16 count=128 ready=0 cycles=235824
+# TILE side=4 count=1024 ready=1 alpha=128 flags=3 frame=0 fragments=1209 legacy_cycles=192102 tile_cycles=318729 AR=341 AW=5120
+# TILE side=16 count=1024 ready=1 alpha=128 flags=3 frame=0 fragments=2122 legacy_cycles=331872 tile_cycles=420108 AR=396 AW=5120
+# TILE side=24 count=1024 ready=1 alpha=128 flags=3 frame=0 fragments=2971 legacy_cycles=496620 tile_cycles=551223 AR=466 AW=5120
+# TILE side=32 count=1024 ready=1 alpha=128 flags=3 frame=0 fragments=3951 legacy_cycles=646113 tile_cycles=699717 AR=531 AW=5120
+# TILE side=32 count=512 ready=1 alpha=128 flags=3 frame=0 fragments=1975 legacy_cycles=381951 tile_cycles=496329 AR=414 AW=5120
+# TILE side=16 count=2048 ready=1 alpha=128 flags=3 frame=0 fragments=4315 legacy_cycles=546003 tile_cycles=548643 AR=537 AW=5120
+# POSITIONS side=4 count=1024 ready=1 cycles=184908
+# POSITIONS side=16 count=128 ready=1 cycles=143769
+# POSITIONS side=32 count=0 ready=0 cycles=202023
+# POSITIONS side=32 count=7 ready=0 cycles=209103
+# TILE side=32 count=4096 ready=0 alpha=128 flags=3 frame=36000 fragments=15840 legacy_cycles=3226374 tile_cycles=2019603 AR=1286 AW=5120
+# TILE side=32 count=7 ready=0 alpha=0 flags=3 frame=37 fragments=20 legacy_cycles=0 tile_cycles=381249 AR=221 AW=5120
+# TILE side=32 count=7 ready=0 alpha=1 flags=3 frame=37 fragments=20 legacy_cycles=0 tile_cycles=381081 AR=221 AW=5120
+# TILE side=32 count=7 ready=0 alpha=255 flags=3 frame=37 fragments=20 legacy_cycles=0 tile_cycles=381123 AR=221 AW=5120
+# TILE side=32 count=7 ready=0 alpha=128 flags=1 frame=37 fragments=20 legacy_cycles=0 tile_cycles=383052 AR=221 AW=5120
+# TILE side=32 count=7 ready=0 alpha=128 flags=2 frame=37 fragments=20 legacy_cycles=0 tile_cycles=380892 AR=221 AW=5120
+# TILE side=32 count=7 ready=0 alpha=254 flags=3 frame=37 fragments=20 legacy_cycles=0 tile_cycles=383967 AR=221 AW=5120
+# TILE side=32 count=128 ready=0 alpha=128 flags=3 frame=37 fragments=384 legacy_cycles=0 tile_cycles=424254 AR=236 AW=5120
+# TILE side=32 count=7 ready=0 alpha=128 flags=3 frame=37 fragments=20 legacy_cycles=0 tile_cycles=381708 AR=221 AW=5120
+# TILE C LIST RTL PASSED: actual 1024-Sprite C bins and scalar C full frame
+# TILE RTL PASSED checked=26 errors=13: original pixels/order, one viewport write, AXI faults drained
+# ** Note: $finish    : C:/Users/18123/Desktop/qiansai/ours_blt/my/first_light/software/build/tile_renderer/tb.sv(555)
+#    Time: 233941110216 ps  Iteration: 1  Instance: /tb_tiles
+# End time: 21:22:00 on Nov 17,2026, Elapsed time: 0:01:02
+# Errors: 0, Warnings: 0

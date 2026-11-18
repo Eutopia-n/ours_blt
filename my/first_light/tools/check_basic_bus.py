@@ -5,12 +5,21 @@ regression. Generated bench uses CPU150 clock and leaves scanout disabled so
 burst counts describe only the selected copy command. This is simulation data.
 """
 from pathlib import Path
-import argparse,csv,subprocess
+import argparse,csv,struct,subprocess
 ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
 parser.add_argument('--modelsim',type=Path,default=Path('D:/modelsim/win64'))
 args=parser.parse_args()
-out=ROOT/'software/build/basic_bus';out.mkdir(exist_ok=True)
+out=ROOT/'software/build/basic_bus';out.mkdir(parents=True,exist_ok=True)
+player=struct.unpack('<4096H',(ROOT/'assets/game/game.rgb565').read_bytes()[:8192])
+walk=[]
+for key in (0,0xf81f):
+    for frame in range(4):
+        for y in range(64):
+            for x in range(64):
+                pixel=player[frame*1024+(y//2)*32+x//2]
+                walk.append(key if not pixel else pixel^1 if pixel==key else pixel)
+(out/'key_walk.hex').write_text(''.join(f'{p:04x}\n' for p in walk),encoding='ascii')
 original=(ROOT/'sim/tb_render.sv').read_text()
 prefix=original[:original.index('    reg [31:0] status;\n    integer old_writes')]
 prefix=prefix.replace('module tb_render;','module tb_basic_bus;').replace('always #5 clk=~clk;','always #3.333333 clk=~clk;')
@@ -37,6 +46,17 @@ tail=r'''
         end
         raw_blend(source,256,draw_base+224*1280+408*2,128,128,alpha,flags,key);
         for(integer n=0;n<MEM_BYTES;n=n+1)if(mem[n]!==golden[n])$fatal(1,"Effect full-DDR mismatch byte %0d",n);
+    endtask
+    reg [15:0] key_walk[0:32767];
+    task checked_walk(input [31:0] source,input [15:0] key,input integer xpos);
+        integer s,d;
+        for(integer n=0;n<MEM_BYTES;n=n+1)golden[n]=mem[n];
+        for(integer y=0;y<64;y=y+1)for(integer x=0;x<64;x=x+1)begin
+            s=source-BASE+y*128+x*2;d=draw_base-BASE+(256+y)*1280+(xpos+x)*2;
+            {golden[d+1],golden[d]}=reference_blend({mem[s+1],mem[s]},{mem[d+1],mem[d]},255,2,key);
+        end
+        raw_blend(source,128,draw_base+256*1280+xpos*2,64,64,255,2,key);
+        for(integer n=0;n<MEM_BYTES;n=n+1)if(mem[n]!==golden[n])$fatal(1,"Walk-frame full-DDR mismatch byte %0d",n);
     endtask
     task basic_await_swap(input bit page);
         integer tries;reg [31:0] value;
@@ -108,6 +128,15 @@ tail=r'''
             checked_effect(32'h012b8000,255,2,16'hf81f);
         end
         $display("EFFECTS RTL PASSED: 28 full-DDR cases, 128x128 assets, Alpha endpoint/midpoint, black/magenta keys on/off, two pages/backgrounds");
+        $readmemh("software/build/basic_bus/key_walk.hex",key_walk);
+        for(integer n=0;n<32768;n=n+1)
+            {mem[32'h012b0000-BASE+n*2+1],mem[32'h012b0000-BASE+n*2]}=key_walk[n];
+        for(integer page=0;page<2;page=page+1)begin
+            draw_base=BASE+page*PAGE_BYTES;write_reg(56,page);
+            for(integer key=0;key<2;key=key+1)for(integer frame=0;frame<4;frame=frame+1)
+                checked_walk(32'h012b0000+(key*4+frame)*8192,key?16'hf81f:16'h0000,440);
+        end
+        $display("KEY WALK RTL PASSED: 16 real 64x64 player-frame cases, 128-byte pitch, both keys/pages at fixed centre; whole-DDR equality with randomized AXI stalls");
         // Start with existing effect pixels visible on A. Draw the new menu
         // only into retired B, acknowledge it, then repaint retired A while B
         // remains visible. Keep scanout running for the entire handover.
@@ -128,8 +157,8 @@ bench=out/'tb_basic_bus.sv';bench.write_text(prefix+tail)
 library='sim/work_basic_bus'
 commands=[]
 if not (ROOT/library).exists():commands.append(([args.modelsim/'vlib.exe',library],'vlib'))
-commands += [([args.modelsim/'vlog.exe','-sv','-work',library,'rtl/sync_fifo.v','rtl/fill_engine.v',
-              'rtl/render_regs.v','rtl/framebuffer_video.v','rtl/video_mode_measure.v','rtl/render_subsystem.v',bench],'vlog'),
+commands += [([args.modelsim/'vlog.exe','-sv','-work',library,'rtl/sync_fifo.v','rtl/fill_engine.v','rtl/render_batch.v','rtl/tile_renderer.v',
+              'rtl/ui_compositor.v','rtl/ui_asset_rom.v','rtl/render_regs.v','rtl/framebuffer_video.v','rtl/video_mode_measure.v','rtl/render_subsystem.v',bench],'vlog'),
              ([args.modelsim/'vsim.exe','-batch','-t','1ps','-lib',library,'tb_basic_bus','-do',
               'onerror {quit -code 1 -force}; run -all; quit -code 0 -force'],'run')]
 for command,label in commands:
@@ -139,7 +168,7 @@ for command,label in commands:
     if run.returncode:raise SystemExit(run.returncode)
     if label=='run' and 'BASIC BUS RTL PASSED' not in log:raise SystemExit('Missing basic bus success marker')
     if label=='run':
-        assert 'EFFECTS RTL PASSED' in log and 'MENU HANDOVER RTL PASSED' in log
+        assert 'EFFECTS RTL PASSED' in log and 'KEY WALK RTL PASSED' in log and 'MENU HANDOVER RTL PASSED' in log
 rows=[{k:int(v) for k,v in r.items()} for r in csv.DictReader((ROOT/'reports/basic_bus_trace.csv').open())]
 assert any(r['awvalid'] and r['awready'] and r['awlen']==15 for r in rows)
 assert any(r['wvalid'] and not r['wready'] for r in rows)

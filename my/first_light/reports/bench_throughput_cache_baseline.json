@@ -1,0 +1,220 @@
+{
+  "scope": "RTL modeled DDR cycles and pixels, not real-board FPS or MAX60",
+  "cases": [
+    {
+      "side": 4,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles": 14122,
+      "AR": 643,
+      "AW": 514,
+      "source_bursts": 1,
+      "source_words": 8
+    },
+    {
+      "side": 16,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles": 49544,
+      "AR": 1677,
+      "AW": 1541,
+      "source_bursts": 8,
+      "source_words": 128
+    },
+    {
+      "side": 24,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles": 101193,
+      "AR": 2717,
+      "AW": 2571,
+      "source_bursts": 18,
+      "source_words": 288
+    },
+    {
+      "side": 32,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles": 150727,
+      "AR": 3508,
+      "AW": 3348,
+      "source_bursts": 32,
+      "source_words": 512
+    },
+    {
+      "side": 4,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles": 10785,
+      "AR": 643,
+      "AW": 514,
+      "source_bursts": 1,
+      "source_words": 8
+    },
+    {
+      "side": 16,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles": 35535,
+      "AR": 1677,
+      "AW": 1541,
+      "source_bursts": 8,
+      "source_words": 128
+    },
+    {
+      "side": 24,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles": 67535,
+      "AR": 2717,
+      "AW": 2571,
+      "source_bursts": 18,
+      "source_words": 288
+    },
+    {
+      "side": 32,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles": 97596,
+      "AR": 3508,
+      "AW": 3348,
+      "source_bursts": 32,
+      "source_words": 512
+    },
+    {
+      "side": 32,
+      "count": 8,
+      "ready": 0,
+      "key": 0,
+      "cycles": 22946,
+      "AR": 426,
+      "AW": 386,
+      "source_bursts": 32,
+      "source_words": 512
+    }
+  ],
+  "source_sha256": {
+    "rtl/fill_engine.v": "2aba669810b457cfa32e6d668a4484aae6eaa532f4e1ed7031d73ceacf07b4b1",
+    "rtl/render_subsystem.v": "ced1b3aa121b4ce390f4e50a8b8cc4f22f4507e425ad54793cae5744ff23fcdc",
+    "rtl/render_batch.v": "15221d22594730579bd3980b360e808d087770b69a4795c705d5b062c0474cae",
+    "sim/tb_render.sv": "fe35a4bd73faeae76164c0dc719726055eeccd56ab2037ae36e28cc235e6bbd3"
+  },
+  "comparison": [
+    {
+      "side": 4,
+      "ready": 0,
+      "key": 1,
+      "cycle_ratio_before_over_after": 1.238,
+      "cycles_before": 17490,
+      "cycles_after": 14122,
+      "AR_before": 1155,
+      "AR_after": 643,
+      "AW_before": 515,
+      "AW_after": 514
+    },
+    {
+      "side": 16,
+      "ready": 0,
+      "key": 1,
+      "cycle_ratio_before_over_after": 2.728,
+      "cycles_before": 135171,
+      "cycles_after": 49544,
+      "AR_before": 4236,
+      "AR_after": 1677,
+      "AW_before": 2060,
+      "AW_after": 1541
+    },
+    {
+      "side": 24,
+      "ready": 0,
+      "key": 1,
+      "cycle_ratio_before_over_after": 2.717,
+      "cycles_before": 274906,
+      "cycles_after": 101193,
+      "AR_before": 6303,
+      "AR_after": 2717,
+      "AW_before": 3103,
+      "AW_after": 2571
+    },
+    {
+      "side": 32,
+      "ready": 0,
+      "key": 1,
+      "cycle_ratio_before_over_after": 3.237,
+      "cycles_before": 487905,
+      "cycles_after": 150727,
+      "AR_before": 10396,
+      "AR_after": 3508,
+      "AW_before": 6172,
+      "AW_after": 3348
+    },
+    {
+      "side": 4,
+      "ready": 1,
+      "key": 1,
+      "cycle_ratio_before_over_after": 1.178,
+      "cycles_before": 12705,
+      "cycles_after": 10785,
+      "AR_before": 1155,
+      "AR_after": 643,
+      "AW_before": 515,
+      "AW_after": 514
+    },
+    {
+      "side": 16,
+      "ready": 1,
+      "key": 1,
+      "cycle_ratio_before_over_after": 2.305,
+      "cycles_before": 81924,
+      "cycles_after": 35535,
+      "AR_before": 4236,
+      "AR_after": 1677,
+      "AW_before": 2060,
+      "AW_after": 1541
+    },
+    {
+      "side": 24,
+      "ready": 1,
+      "key": 1,
+      "cycle_ratio_before_over_after": 2.353,
+      "cycles_before": 158933,
+      "cycles_after": 67535,
+      "AR_before": 6303,
+      "AR_after": 2717,
+      "AW_before": 3103,
+      "AW_after": 2571
+    },
+    {
+      "side": 32,
+      "ready": 1,
+      "key": 1,
+      "cycle_ratio_before_over_after": 2.898,
+      "cycles_before": 282804,
+      "cycles_after": 97596,
+      "AR_before": 10396,
+      "AR_after": 3508,
+      "AW_before": 6172,
+      "AW_after": 3348
+    },
+    {
+      "side": 32,
+      "ready": 0,
+      "key": 0,
+      "cycle_ratio_before_over_after": 1.337,
+      "cycles_before": 30688,
+      "cycles_after": 22946,
+      "AR_before": 650,
+      "AR_after": 426,
+      "AW_before": 386,
+      "AW_after": 386
+    }
+  ]
+}

@@ -100,7 +100,7 @@ bench=out/'tb_bench_entry.sv';bench.write_text(prefix+tail,encoding='utf-8')
 library='sim/work_bench_entry'
 commands=[]
 if not (ROOT/library).exists():commands.append(([args.modelsim/'vlib.exe',library],'vlib'))
-commands.extend([([args.modelsim/'vlog.exe','-sv','-work',library,'rtl/sync_fifo.v','rtl/fill_engine.v','rtl/ui_compositor.v','rtl/ui_asset_rom.v',
+commands.extend([([args.modelsim/'vlog.exe','-sv','-work',library,'rtl/sync_fifo.v','rtl/fill_engine.v','rtl/render_batch.v','rtl/tile_renderer.v','rtl/ui_compositor.v','rtl/ui_asset_rom.v',
     'rtl/render_regs.v','rtl/framebuffer_video.v','rtl/video_mode_measure.v','rtl/render_subsystem.v',bench],'vlog'),
     ([args.modelsim/'vsim.exe','-batch','-t','1ps','-lib',library,'tb_bench_entry','-do',
       'onerror {quit -code 1 -force}; run -all; quit -code 0 -force'],'run')])

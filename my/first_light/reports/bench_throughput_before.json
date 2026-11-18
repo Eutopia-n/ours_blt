@@ -1,0 +1,109 @@
+{
+  "scope": "RTL modeled DDR cycles and pixels, not real-board FPS or MAX60",
+  "cases": [
+    {
+      "side": 4,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles": 17490,
+      "AR": 1155,
+      "AW": 515,
+      "source_bursts": 512,
+      "source_words": 1024
+    },
+    {
+      "side": 16,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles": 135171,
+      "AR": 4236,
+      "AW": 2060,
+      "source_bursts": 2048,
+      "source_words": 16384
+    },
+    {
+      "side": 24,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles": 274906,
+      "AR": 6303,
+      "AW": 3103,
+      "source_bursts": 3072,
+      "source_words": 36864
+    },
+    {
+      "side": 32,
+      "count": 128,
+      "ready": 0,
+      "key": 1,
+      "cycles": 487905,
+      "AR": 10396,
+      "AW": 6172,
+      "source_bursts": 4096,
+      "source_words": 65536
+    },
+    {
+      "side": 4,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles": 12705,
+      "AR": 1155,
+      "AW": 515,
+      "source_bursts": 512,
+      "source_words": 1024
+    },
+    {
+      "side": 16,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles": 81924,
+      "AR": 4236,
+      "AW": 2060,
+      "source_bursts": 2048,
+      "source_words": 16384
+    },
+    {
+      "side": 24,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles": 158933,
+      "AR": 6303,
+      "AW": 3103,
+      "source_bursts": 3072,
+      "source_words": 36864
+    },
+    {
+      "side": 32,
+      "count": 128,
+      "ready": 1,
+      "key": 1,
+      "cycles": 282804,
+      "AR": 10396,
+      "AW": 6172,
+      "source_bursts": 4096,
+      "source_words": 65536
+    },
+    {
+      "side": 32,
+      "count": 8,
+      "ready": 0,
+      "key": 0,
+      "cycles": 30688,
+      "AR": 650,
+      "AW": 386,
+      "source_bursts": 256,
+      "source_words": 4096
+    }
+  ],
+  "source_sha256": {
+    "rtl/fill_engine.v": "11f5186c426e2e5f9d6023a4bdb27d901d7c58b2422888ff7a36c8bbeab31784",
+    "rtl/render_subsystem.v": "fcdc320a3854786100f9fde2c7aecec99806e67ae06b95d886605560039ca393",
+    "rtl/render_batch.v": "15221d22594730579bd3980b360e808d087770b69a4795c705d5b062c0474cae"
+  }
+}

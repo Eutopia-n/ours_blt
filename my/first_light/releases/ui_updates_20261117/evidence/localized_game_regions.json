@@ -1,0 +1,17 @@
+{
+  "game_ready": [
+    [
+      220,
+      68,
+      420,
+      86
+    ],
+    [
+      554,
+      13,
+      595,
+      33
+    ]
+  ],
+  "note": "Chinese game heading and hardware badge are intentionally changed; all remaining ready-page pixels and every menu/cover pixel are compared."
+}
